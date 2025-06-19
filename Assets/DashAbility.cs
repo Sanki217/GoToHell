@@ -26,7 +26,7 @@ public class DashAbility : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(1) && !isDashing && playerEnergy.SpendEnergy(dashCost))
+        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && playerEnergy.SpendEnergy(dashCost))
         {
             Vector3 mouseScreenPos = Input.mousePosition;
             mouseScreenPos.z = Mathf.Abs(mainCamera.transform.position.z);

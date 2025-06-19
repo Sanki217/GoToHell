@@ -4,7 +4,7 @@ public class LavaZone : MonoBehaviour
 {
     [Header("Lava Settings")]
     public float maxLavaEnergy = 50f;
-    public float drainRate = 20f; // Energy drained per second when player is inside
+    public float drainRate = 20f;
 
     private float currentLavaEnergy;
 
@@ -26,5 +26,13 @@ public class LavaZone : MonoBehaviour
     public void RefillLava(float amount)
     {
         currentLavaEnergy = Mathf.Clamp(currentLavaEnergy + amount, 0f, maxLavaEnergy);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.TryGetComponent(out PlayerMovement playerMovement))
+        {
+            playerMovement.RestoreJumpCharges();
+        }
     }
 }

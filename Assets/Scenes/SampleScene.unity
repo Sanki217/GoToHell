@@ -905,6 +905,8 @@ MonoBehaviour:
   deceleration: 25
   jumpForce: 12
   maxJumps: 2
+  wallJumpForce: 10
+  wallJumpDirection: {x: 0.70710677, y: 0.70710677}
   wallLerpToZeroTime: 2
   wallSlideDelay: 0.1
   wallSlideAccelerationTime: 5
@@ -920,6 +922,7 @@ MonoBehaviour:
     m_Bits: 128
   currentVelocity: {x: 0, y: 0, z: 0}
   isWallSliding: 0
+  isGrounded: 0
 --- !u!136 &1048261593
 CapsuleCollider:
   m_ObjectHideFlags: 0

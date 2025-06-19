@@ -30,13 +30,16 @@ public class PlayerEnergy : MonoBehaviour
 
     private void HandleEnergyGain()
     {
-        float absYVelocity = Mathf.Abs(playerMovement.GetVelocity().y);
-        float gain = absYVelocity * energyPerVelocityUnit;
+        float yVelocity = playerMovement.GetVelocity().y;
+        if (yVelocity < 0f)
+        {
+            float gain = Mathf.Abs(yVelocity) * energyPerVelocityUnit;
 
-        if (playerMovement.isWallSliding)
-            gain *= wallSlideEnergyMultiplier;
+            if (playerMovement.isWallSliding)
+                gain *= wallSlideEnergyMultiplier;
 
-        currentEnergy = Mathf.Clamp(currentEnergy + gain * Time.deltaTime, 0, maxEnergy);
+            currentEnergy = Mathf.Clamp(currentEnergy + gain * Time.deltaTime, 0, maxEnergy);
+        }
 
         if (currentLavaZone != null)
         {
@@ -44,6 +47,7 @@ public class PlayerEnergy : MonoBehaviour
             currentEnergy = Mathf.Clamp(currentEnergy + lavaGain, 0, maxEnergy);
         }
     }
+
 
     private void UpdateEnergyUI()
     {

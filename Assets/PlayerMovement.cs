@@ -9,6 +9,10 @@ public class PlayerMovement : MonoBehaviour
     public float jumpForce = 12f;
     public int maxJumps = 2;
 
+    [Header("Wall Jump Settings")]
+    public float wallJumpForce = 10f;
+    public Vector2 wallJumpDirection = new Vector2(1f, 1f).normalized;
+
     [Header("Wall Slide Settings")]
     public float wallLerpToZeroTime = 0.5f;
     public float wallSlideDelay = 2f;
@@ -29,7 +33,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isFacingRight = true;
     private int jumpCount;
     public bool isWallSliding;
-    private bool isGrounded;
+    public bool isGrounded;
     private float fixedZPosition;
 
     private bool touchingWallLeft;
@@ -48,10 +52,10 @@ public class PlayerMovement : MonoBehaviour
         fixedZPosition = transform.position.z;
         rb.useGravity = true;
     }
-    public Vector3 GetVelocity()
-    {
-        return rb.linearVelocity;
-    }
+    public Vector3 GetVelocity() => rb.linearVelocity;
+
+    public void RestoreJumpCharges() => jumpCount = 0;
+
     private void Update()
     {
         HandleInput();
@@ -59,7 +63,6 @@ public class PlayerMovement : MonoBehaviour
         CheckWallContacts();
         CheckWallSlideState();
         Flip();
-
         currentVelocity = rb.linearVelocity;
     }
 
@@ -67,7 +70,6 @@ public class PlayerMovement : MonoBehaviour
     {
         ApplyHorizontalMovement();
         ApplyWallSlideBehavior();
-
         Vector3 pos = rb.position;
         pos.z = fixedZPosition;
         rb.position = pos;
@@ -77,7 +79,11 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Input.GetButtonDown("Jump"))
         {
-            if (isGrounded || isWallSliding || jumpCount < maxJumps)
+            if (isWallSliding)
+            {
+                DoWallJump();
+            }
+            else if (isGrounded || jumpCount < maxJumps)
             {
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, 0f);
                 jumpCount++;
@@ -85,7 +91,16 @@ public class PlayerMovement : MonoBehaviour
             }
         }
     }
-    
+
+    private void DoWallJump()
+    {
+        float direction = touchingWallRight ? -1f : 1f; // Jump away from wall
+        Vector3 jumpVelocity = new Vector3(wallJumpDirection.x * direction * wallJumpForce, wallJumpDirection.y * wallJumpForce, 0f);
+        rb.linearVelocity = jumpVelocity;
+        jumpCount++; // Count as a jump
+        ResetWallSlide();
+    }
+
     private void ApplyHorizontalMovement()
     {
         float moveInput = Input.GetAxisRaw("Horizontal");
@@ -132,7 +147,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void StartWallSlideSequence()
     {
-        Debug.Log("Started wall sliding.");
         wallSlidePhase = WallSlidePhase.LerpToZero;
         wallLerpTimer = 0f;
         wallSlideDelayTimer = 0f;
@@ -150,24 +164,13 @@ public class PlayerMovement : MonoBehaviour
                 float lerpT = Mathf.Clamp01(wallLerpTimer / wallLerpToZeroTime);
                 float newY = Mathf.Lerp(rb.linearVelocity.y, 0f, lerpT);
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, newY, 0f);
-
-                if (lerpT >= 1f)
-                {
-                    wallSlidePhase = WallSlidePhase.WaitingAtZero;
-                    wallSlideDelayTimer = 0f;
-                    Debug.Log("Wall slide paused at zero, starting delay.");
-                }
+                if (lerpT >= 1f) { wallSlidePhase = WallSlidePhase.WaitingAtZero; wallSlideDelayTimer = 0f; }
                 break;
 
             case WallSlidePhase.WaitingAtZero:
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, 0f);
                 wallSlideDelayTimer += Time.fixedDeltaTime;
-                if (wallSlideDelayTimer >= wallSlideDelay)
-                {
-                    wallSlidePhase = WallSlidePhase.AcceleratingToSlide;
-                    wallSlideAccelerationTimer = 0f;
-                    Debug.Log("Wall slide accelerating to max speed.");
-                }
+                if (wallSlideDelayTimer >= wallSlideDelay) { wallSlidePhase = WallSlidePhase.AcceleratingToSlide; wallSlideAccelerationTimer = 0f; }
                 break;
 
             case WallSlidePhase.AcceleratingToSlide:
@@ -175,12 +178,7 @@ public class PlayerMovement : MonoBehaviour
                 float accelT = Mathf.Clamp01(wallSlideAccelerationTimer / wallSlideAccelerationTime);
                 float acceleratingY = Mathf.Lerp(0f, maxWallSlideSpeed, accelT);
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, acceleratingY, 0f);
-
-                if (accelT >= 1f)
-                {
-                    wallSlidePhase = WallSlidePhase.Sliding;
-                    Debug.Log("Wall slide now fully active at constant speed.");
-                }
+                if (accelT >= 1f) { wallSlidePhase = WallSlidePhase.Sliding; }
                 break;
 
             case WallSlidePhase.Sliding:
@@ -196,7 +194,6 @@ public class PlayerMovement : MonoBehaviour
         wallLerpTimer = 0f;
         wallSlideDelayTimer = 0f;
         wallSlideAccelerationTimer = 0f;
-        Debug.Log("Stopped wall sliding.");
     }
 
     private void Flip()
