@@ -6,6 +6,7 @@ public class DashAbility : MonoBehaviour
     public float dashCost = 20f;
     public float dashForce = 600f;
     public float dashDuration = 0.3f;
+    public float decelerationFactor = 2f; // Higher = faster deceleration
     public int dashDamage = 1;
     public float maxDashRange = 10f;
 
@@ -17,6 +18,7 @@ public class DashAbility : MonoBehaviour
     private bool isDashing = false;
     private float dashTimer = 0f;
     private Vector3 dashDirection;
+    private Vector3 initialVelocity;
 
     public bool IsDashing => isDashing;
 
@@ -43,8 +45,9 @@ public class DashAbility : MonoBehaviour
             float dashDistance = Mathf.Min(dashDirection.magnitude, maxDashRange);
             dashDirection.Normalize();
 
-            rb.linearVelocity = Vector3.zero; // Reset velocity for consistency
-            rb.AddForce(dashDirection * dashForce, ForceMode.Impulse);
+            rb.linearVelocity = Vector3.zero; // Reset for consistency
+            initialVelocity = dashDirection * (dashDistance / dashDuration); // Adjust speed based on range and duration
+            rb.linearVelocity = initialVelocity;
 
             isDashing = true;
             dashTimer = dashDuration;
@@ -53,10 +56,15 @@ public class DashAbility : MonoBehaviour
         if (isDashing)
         {
             dashTimer -= Time.deltaTime;
+
+            // Smoothly reduce velocity over time
+            float decelerationMultiplier = Mathf.Clamp01(dashTimer / dashDuration); // 1 ? 0 over duration
+            rb.linearVelocity = initialVelocity * decelerationMultiplier;
+
             if (dashTimer <= 0f)
             {
                 isDashing = false;
-                rb.linearVelocity = Vector3.zero; // Stop abruptly or replace with damping if desired
+                rb.linearVelocity = Vector3.zero; // Fully stop at end
             }
         }
     }

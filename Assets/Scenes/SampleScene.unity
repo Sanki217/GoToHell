@@ -1393,8 +1393,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   dashCost: 15
-  dashForce: 40
-  dashDuration: 0.15
+  dashForce: 300
+  dashDuration: 0.25
+  decelerationFactor: 2
   dashDamage: 1
   maxDashRange: 10
   mainCamera: {fileID: 963194227}
