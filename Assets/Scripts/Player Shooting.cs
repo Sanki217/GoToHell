@@ -11,20 +11,54 @@ public class PlayerShooting : MonoBehaviour
     [Header("Stickable Layers")]
     public LayerMask stickableLayers; // ← Platforms + Walls assigned in Inspector
 
+    [Header("Aiming Line")]
+    public LineRenderer lineRenderer;
+    public float aimLineLength = 20f;
+
     private Camera mainCam;
 
     private void Start()
     {
         currentArrows = maxArrows;
         mainCam = Camera.main;
+
+        if (lineRenderer == null)
+            lineRenderer = GetComponent<LineRenderer>();
+
+        lineRenderer.positionCount = 2;
+        lineRenderer.enabled = true;
     }
 
     private void Update()
     {
+        UpdateAimingLine();
+
         if (Input.GetMouseButtonDown(0) && currentArrows > 0)
         {
             ShootArrow();
         }
+    }
+
+    private void UpdateAimingLine()
+    {
+        Vector3 mouseScreenPos = Input.mousePosition;
+        Ray ray = mainCam.ScreenPointToRay(mouseScreenPos);
+
+        Vector3 mouseWorldPos;
+        Plane plane = new Plane(Vector3.forward, Vector3.zero); // Z = 0 plane
+        if (plane.Raycast(ray, out float distance))
+        {
+            mouseWorldPos = ray.GetPoint(distance);
+        }
+        else
+        {
+            return; // Fail-safe
+        }
+
+        Vector3 shootDir = (mouseWorldPos - shootPoint.position).normalized;
+
+        lineRenderer.SetPosition(0, shootPoint.position);
+        lineRenderer.SetPosition(1, shootPoint.position + shootDir * aimLineLength);
     }
 
     private void ShootArrow()
