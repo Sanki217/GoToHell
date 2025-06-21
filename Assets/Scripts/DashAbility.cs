@@ -4,8 +4,10 @@ public class DashAbility : MonoBehaviour
 {
     [Header("Dash Settings")]
     public float dashCost = 20f;
-    public float dashSpeed = 15f;
-    public float dashDuration = 0.2f;
+    public float dashForce = 600f;
+    public float dashDuration = 0.3f;
+    public int dashDamage = 1;
+    public float maxDashRange = 10f;
 
     [Header("References")]
     public Camera mainCamera;
@@ -15,6 +17,8 @@ public class DashAbility : MonoBehaviour
     private bool isDashing = false;
     private float dashTimer = 0f;
     private Vector3 dashDirection;
+
+    public bool IsDashing => isDashing;
 
     void Start()
     {
@@ -31,10 +35,16 @@ public class DashAbility : MonoBehaviour
             Vector3 mouseScreenPos = Input.mousePosition;
             mouseScreenPos.z = Mathf.Abs(mainCamera.transform.position.z);
             Vector3 worldMousePos = mainCamera.ScreenToWorldPoint(mouseScreenPos);
+            worldMousePos.z = transform.position.z;
 
             dashDirection = (worldMousePos - transform.position);
             dashDirection.z = 0f;
+
+            float dashDistance = Mathf.Min(dashDirection.magnitude, maxDashRange);
             dashDirection.Normalize();
+
+            rb.linearVelocity = Vector3.zero; // Reset velocity for consistency
+            rb.AddForce(dashDirection * dashForce, ForceMode.Impulse);
 
             isDashing = true;
             dashTimer = dashDuration;
@@ -42,11 +52,24 @@ public class DashAbility : MonoBehaviour
 
         if (isDashing)
         {
-            rb.linearVelocity = dashDirection * dashSpeed;
-
             dashTimer -= Time.deltaTime;
             if (dashTimer <= 0f)
+            {
                 isDashing = false;
+                rb.linearVelocity = Vector3.zero; // Stop abruptly or replace with damping if desired
+            }
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (isDashing && other.CompareTag("Enemy"))
+        {
+            Enemy enemy = other.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(dashDamage);
+            }
         }
     }
 }

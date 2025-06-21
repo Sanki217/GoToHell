@@ -9,14 +9,20 @@ public class PlayerHealth : MonoBehaviour
     [Header("UI Reference")]
     public TMP_Text healthTMPText;
 
+    private DashAbility dashAbility;
+
     private void Start()
     {
         currentLives = maxLives;
         UpdateHealthUI();
+        dashAbility = GetComponent<DashAbility>();
     }
 
     public void TakeDamage(int amount)
     {
+        if (dashAbility != null && dashAbility.IsDashing)
+            return; // INVINCIBLE while dashing
+
         currentLives -= amount;
         currentLives = Mathf.Max(currentLives, 0);
         UpdateHealthUI();

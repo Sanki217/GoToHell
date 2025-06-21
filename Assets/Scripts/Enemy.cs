@@ -3,13 +3,22 @@ using UnityEngine;
 public class Enemy : MonoBehaviour
 {
     public int maxHealth = 1;
-    private int currentHealth;
+    public int currentHealth;
+
+    private void Start()
+    {
+        currentHealth = maxHealth;
+    }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            other.GetComponent<PlayerHealth>().TakeDamage(1);
+            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(1);
+            }
         }
     }
 
@@ -28,5 +37,4 @@ public class Enemy : MonoBehaviour
         // Add death effects here later (particles, sounds)
         Destroy(gameObject);
     }
-
 }
