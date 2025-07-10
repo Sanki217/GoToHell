@@ -13,6 +13,7 @@ public class DashAbility : MonoBehaviour
 
     [Header("References")]
     public Camera mainCamera;
+    private CameraFollow cam;
     public LineRenderer lineRenderer;
     public Transform shootOrigin;
 

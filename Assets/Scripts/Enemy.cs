@@ -29,6 +29,8 @@ public class Enemy : MonoBehaviour
         if (currentHealth <= 0)
         {
             Die();
+            Camera.main.GetComponent<CameraFollow>()?.Shake(0.2f, 0.2f); // big shake
+
         }
     }
 

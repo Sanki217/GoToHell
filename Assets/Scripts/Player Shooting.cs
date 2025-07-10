@@ -16,11 +16,14 @@ public class PlayerShooting : MonoBehaviour
     public float aimLineLength = 20f;
 
     private Camera mainCam;
+    private CameraFollow cam;
 
     private void Start()
     {
         currentArrows = maxArrows;
         mainCam = Camera.main;
+        cam = Camera.main.GetComponent<CameraFollow>();
+
 
         if (lineRenderer == null)
             lineRenderer = GetComponent<LineRenderer>();
@@ -36,6 +39,8 @@ public class PlayerShooting : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && currentArrows > 0)
         {
             ShootArrow();
+         
+            cam.Shake(0.1f, 0.05f); // small shake
         }
     }
 
