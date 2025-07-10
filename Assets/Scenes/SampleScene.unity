@@ -1174,6 +1174,7 @@ GameObject:
   - component: {fileID: 1048261597}
   - component: {fileID: 1048261599}
   - component: {fileID: 1048261600}
+  - component: {fileID: 1048261602}
   - component: {fileID: 1048261601}
   m_Layer: 0
   m_Name: Player
@@ -1224,8 +1225,8 @@ MonoBehaviour:
   moveSpeed: 7
   acceleration: 30
   deceleration: 25
-  jumpForce: 7
-  maxJumps: 2
+  jumpForce: 0
+  maxJumps: 0
   wallJumpForce: 13
   wallJumpDirection: {x: 1, y: 0.5}
   wallLerpToZeroTime: 2
@@ -1377,7 +1378,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxEnergy: 100
   currentEnergy: 0
-  energyPerVelocityUnit: 0.5
+  energyPerVelocityUnit: 0.8
   wallSlideEnergyMultiplier: 0.75
   energyTMPText: {fileID: 323077759}
 --- !u!114 &1048261599
@@ -1535,6 +1536,22 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!114 &1048261602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1048261590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7eaa2ddd60b296a42a0638fa4e6438d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverForce: 20
+  energyDrainPerSecond: 7
+  maxUpwardSpeed: 5
+  minEnergyToHover: 5
 --- !u!1 &1249731441
 GameObject:
   m_ObjectHideFlags: 0

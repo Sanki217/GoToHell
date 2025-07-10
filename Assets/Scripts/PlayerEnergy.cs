@@ -48,7 +48,7 @@ public class PlayerEnergy : MonoBehaviour
         }
     }
 
-    public void RestoreEnergy(float amount)
+    public void RestoreEnergy(float amount) //killing
     {
         currentEnergy = Mathf.Min(currentEnergy + amount, maxEnergy);
         UpdateEnergyUI(); // if you have one
@@ -68,6 +68,11 @@ public class PlayerEnergy : MonoBehaviour
             return true;
         }
         return false;
+    }
+    public void DrainEnergy(float amount) //hover
+    {
+        currentEnergy = Mathf.Max(currentEnergy - amount, 0f);
+        UpdateEnergyUI(); // optional
     }
 
     private void OnTriggerEnter(Collider other)
