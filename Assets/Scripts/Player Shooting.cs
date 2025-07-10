@@ -7,6 +7,7 @@ public class PlayerShooting : MonoBehaviour
     public Transform shootPoint;
     public int maxArrows = 3;
     private int currentArrows;
+    public GameObject[] arrowDots; // Assign 3 dots in Inspector
 
     [Header("Stickable Layers")]
     public LayerMask stickableLayers; // ← Platforms + Walls assigned in Inspector
@@ -14,6 +15,7 @@ public class PlayerShooting : MonoBehaviour
     [Header("Aiming Line")]
     public LineRenderer lineRenderer;
     public float aimLineLength = 20f;
+
 
     private Camera mainCam;
     private CameraFollow cam;
@@ -23,6 +25,7 @@ public class PlayerShooting : MonoBehaviour
         currentArrows = maxArrows;
         mainCam = Camera.main;
         cam = Camera.main.GetComponent<CameraFollow>();
+        UpdateArrowUI();
 
 
         if (lineRenderer == null)
@@ -41,9 +44,16 @@ public class PlayerShooting : MonoBehaviour
             ShootArrow();
          
             cam.Shake(0.1f, 0.05f); // small shake
+            UpdateArrowUI();
         }
     }
-
+    private void UpdateArrowUI()
+    {
+        for (int i = 0; i < arrowDots.Length; i++)
+        {
+            arrowDots[i].SetActive(i < currentArrows);
+        }
+    }
     private void UpdateAimingLine()
     {
         Vector3 mouseScreenPos = Input.mousePosition;
@@ -92,5 +102,6 @@ public class PlayerShooting : MonoBehaviour
     public void RestoreArrow()
     {
         currentArrows = Mathf.Clamp(currentArrows + 1, 0, maxArrows);
+        UpdateArrowUI();
     }
 }

@@ -29,14 +29,25 @@ public class Enemy : MonoBehaviour
         if (currentHealth <= 0)
         {
             Die();
-            Camera.main.GetComponent<CameraFollow>()?.Shake(0.2f, 0.2f); // big shake
+            
 
         }
     }
 
     private void Die()
     {
+
         // Add death effects here later (particles, sounds)
+        Camera.main.GetComponent<CameraFollow>()?.Shake(0.2f, 0.2f); // big shake
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            PlayerEnergy energy = player.GetComponent<PlayerEnergy>();
+            if (energy != null)
+            {
+                energy.RestoreEnergy(10); // Adjust value as needed
+            }
+        }
         Destroy(gameObject);
     }
 }

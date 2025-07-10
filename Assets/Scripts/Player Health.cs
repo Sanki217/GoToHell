@@ -8,8 +8,12 @@ public class PlayerHealth : MonoBehaviour
 
     [Header("UI Reference")]
     public TMP_Text healthTMPText;
-
     private DashAbility dashAbility;
+
+    [Header("Damage Cooldown")]
+    public float invincibilityTime = 1f;
+    private bool isInvincible = false;
+
 
     private void Start()
     {
@@ -20,7 +24,7 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-        if (dashAbility != null && dashAbility.isDashing)
+        if (isInvincible || dashAbility != null && dashAbility.isDashing)
             return; // INVINCIBLE while dashing
 
         currentLives -= amount;
@@ -34,11 +38,19 @@ public class PlayerHealth : MonoBehaviour
             Debug.Log("PLAYER DEAD!");
             // TODO: Add game over logic
         }
+
+        StartCoroutine(InvincibilityTimer());
     }
 
     private void UpdateHealthUI()
     {
         if (healthTMPText != null)
             healthTMPText.text = "Lives: " + currentLives;
+    }
+    private System.Collections.IEnumerator InvincibilityTimer()
+    {
+        isInvincible = true;
+        yield return new WaitForSeconds(invincibilityTime);
+        isInvincible = false;
     }
 }

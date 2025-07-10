@@ -48,6 +48,11 @@ public class PlayerEnergy : MonoBehaviour
         }
     }
 
+    public void RestoreEnergy(float amount)
+    {
+        currentEnergy = Mathf.Min(currentEnergy + amount, maxEnergy);
+        UpdateEnergyUI(); // if you have one
+    }
 
     private void UpdateEnergyUI()
     {
