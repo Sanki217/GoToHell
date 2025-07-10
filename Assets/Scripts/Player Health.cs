@@ -20,7 +20,7 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-        if (dashAbility != null && dashAbility.IsDashing)
+        if (dashAbility != null && dashAbility.isDashing)
             return; // INVINCIBLE while dashing
 
         currentLives -= amount;

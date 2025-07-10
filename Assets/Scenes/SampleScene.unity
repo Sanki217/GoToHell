@@ -1136,7 +1136,7 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 76.4839
-  orthographic: 1
+  orthographic: 0
   orthographic size: 5
   m_Depth: -1
   m_CullingMask:
@@ -1394,11 +1394,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9282afe83ba25a54bb793a618a784b16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dashCost: 1
-  dashDuration: 2.02
+  dashCost: 0
+  dashDuration: 0.1
+  maxDashRange: 5
+  postDashMomentum: 10
   dashDamage: 1
+  dashCollisionLayers:
+    serializedVersion: 2
+    m_Bits: 192
   mainCamera: {fileID: 963194227}
-  dashLine: {fileID: 1452812391}
+  lineRenderer: {fileID: 1452812391}
+  shootOrigin: {fileID: 1048261596}
+  isDashing: 0
 --- !u!114 &1048261598
 MonoBehaviour:
   m_ObjectHideFlags: 0
