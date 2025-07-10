@@ -22,7 +22,6 @@ public class DashAbility : MonoBehaviour
     private float dashTimer = 0f;
     private Vector3 dashDirection;
     private Vector3 dashVelocity;
-    private bool queuedDash = false;
 
     void Start()
     {
@@ -58,36 +57,36 @@ public class DashAbility : MonoBehaviour
         {
             Vector3 cursorWorld = GetCursorWorldPosition();
             Vector3 origin = shootOrigin.position;
-            dashDirection = (cursorWorld - origin).normalized;
+            Vector3 direction = (cursorWorld - origin).normalized;
+            float distanceToCursor = Vector3.Distance(origin, cursorWorld);
 
-            // Raycast to detect walls or limit dash within max range
-            Ray ray = new Ray(origin, dashDirection);
+            // Clamp to max dash range
+            float intendedDistance = Mathf.Min(distanceToCursor, maxDashRange);
+
+            // Raycast to avoid going through walls
+            Ray ray = new Ray(origin, direction);
             Vector3 dashTarget;
-            float dashDistance;
 
-            if (Physics.Raycast(ray, out RaycastHit hit, maxDashRange, dashCollisionLayers))
+            if (Physics.Raycast(ray, out RaycastHit hit, intendedDistance, dashCollisionLayers))
             {
                 dashTarget = hit.point;
-                dashDistance = Vector3.Distance(origin, dashTarget);
 
-                // Don't dash or spend energy if target is too close (e.g., right into wall)
-                if (dashDistance < 0.5f)
-                {
+                // Too close to wall � skip dash and energy drain
+                if (Vector3.Distance(origin, dashTarget) < 0.5f)
                     return;
-                }
             }
             else
             {
-                dashTarget = origin + dashDirection * maxDashRange;
-                dashDistance = maxDashRange;
+                dashTarget = origin + direction * intendedDistance;
             }
 
-            // Try to spend energy
+            // Spend energy
             if (!playerEnergy.SpendEnergy(dashCost))
                 return;
 
             // Start dash
-            dashVelocity = dashDirection * (dashDistance / dashDuration);
+            dashDirection = (dashTarget - origin).normalized;
+            dashVelocity = dashDirection * (Vector3.Distance(origin, dashTarget) / dashDuration);
             dashTimer = dashDuration;
             isDashing = true;
         }
@@ -100,17 +99,19 @@ public class DashAbility : MonoBehaviour
         Vector3 cursorWorld = GetCursorWorldPosition();
         Vector3 origin = shootOrigin.position;
         Vector3 direction = (cursorWorld - origin).normalized;
+        float distanceToCursor = Vector3.Distance(origin, cursorWorld);
+        float intendedDistance = Mathf.Min(distanceToCursor, maxDashRange);
 
         Ray ray = new Ray(origin, direction);
         Vector3 endPoint;
 
-        if (Physics.Raycast(ray, out RaycastHit hit, maxDashRange, dashCollisionLayers))
+        if (Physics.Raycast(ray, out RaycastHit hit, intendedDistance, dashCollisionLayers))
         {
             endPoint = hit.point;
         }
         else
         {
-            endPoint = origin + direction * maxDashRange;
+            endPoint = origin + direction * intendedDistance;
         }
 
         lineRenderer.SetPosition(0, origin);

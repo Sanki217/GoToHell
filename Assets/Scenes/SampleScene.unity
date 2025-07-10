@@ -1394,7 +1394,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9282afe83ba25a54bb793a618a784b16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dashCost: 0
+  dashCost: 15
   dashDuration: 0.1
   maxDashRange: 5
   postDashMomentum: 10
