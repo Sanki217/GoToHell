@@ -24,6 +24,8 @@ public class PlayerHealth : MonoBehaviour
             return; // INVINCIBLE while dashing
 
         currentLives -= amount;
+        Camera.main.GetComponent<CameraFollow>()?.Shake(0.15f, 0.15f); // big shake
+
         currentLives = Mathf.Max(currentLives, 0);
         UpdateHealthUI();
 
