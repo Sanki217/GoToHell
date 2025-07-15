@@ -1548,9 +1548,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7eaa2ddd60b296a42a0638fa4e6438d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hoverForce: 20
+  hoverForce: 25
   energyDrainPerSecond: 7
-  maxUpwardSpeed: 5
+  maxUpwardSpeed: 3
   minEnergyToHover: 5
 --- !u!1 &1249731441
 GameObject:
@@ -2289,7 +2289,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1439424210
 Transform:
   m_ObjectHideFlags: 0
@@ -2321,7 +2321,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1452812390
 Transform:
   m_ObjectHideFlags: 0
@@ -2393,7 +2393,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.37967873
+        value: 0.16301155
         inSlope: 0
         outSlope: 0
         tangentMode: 0
