@@ -14,8 +14,12 @@ public class HoverAbility : MonoBehaviour
     private bool isHovering = false;
     private bool wasOutOfEnergy = false;
 
+    private PlayerMovement movement;
+
+
     void Start()
     {
+        movement = GetComponent<PlayerMovement>();
         rb = GetComponent<Rigidbody>();
         energySystem = GetComponent<PlayerEnergy>();
     }
@@ -29,7 +33,7 @@ public class HoverAbility : MonoBehaviour
             wasOutOfEnergy = false;
 
         // Start hover if holding space and energy is above threshold
-        if (Input.GetKey(KeyCode.Space) && hasEnoughEnergy && !wasOutOfEnergy)
+        if (Input.GetKey(KeyCode.Space) && hasEnoughEnergy && !wasOutOfEnergy && !movement.isGrounded)
         {
             isHovering = true;
         }

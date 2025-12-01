@@ -2428,7 +2428,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 1048261596}
   smoothSpeed: 5
-  fixedX: 0
+  parallaxRatio: -0.1
+  yOffset: -1.8
 --- !u!1 &1048261590
 GameObject:
   m_ObjectHideFlags: 0
@@ -2498,8 +2499,8 @@ MonoBehaviour:
   moveSpeed: 10
   acceleration: 30
   deceleration: 25
-  jumpForce: 0
-  maxJumps: 0
+  jumpForce: 3
+  maxJumps: 1
   wallJumpForce: 13
   wallJumpDirection: {x: 1, y: 0.5}
   wallLerpToZeroTime: 2
@@ -2511,7 +2512,7 @@ MonoBehaviour:
     m_Bits: 64
   wallCheckDistance: 0.6
   groundCheck: {fileID: 2133932797}
-  groundCheckRadius: 0.3
+  groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
     m_Bits: 128

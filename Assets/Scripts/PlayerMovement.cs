@@ -83,10 +83,10 @@ public class PlayerMovement : MonoBehaviour
             {
                 DoWallJump();
             }
-            else if (isGrounded || jumpCount < maxJumps)
+            else if (isGrounded)
             {
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, 0f);
-                jumpCount++;
+                jumpCount = 1;
                 ResetWallSlide();
             }
         }

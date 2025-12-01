@@ -1,10 +1,13 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
     public Transform player;
     public float smoothSpeed = 5f;
-    public float fixedX = 0f;
+
+    [Header("Offsets")]
+    public float parallaxRatio = 0.2f;   // camera moves opposite X, 5x smaller → 1/5 = 0.2
+    public float yOffset = 0f;           // adjustable vertical offset
 
     private Vector3 velocity = Vector3.zero;
     private Vector3 shakeOffset = Vector3.zero;
@@ -16,11 +19,21 @@ public class CameraFollow : MonoBehaviour
     {
         if (player == null) return;
 
-        // Desired camera position: match player's Y, but fixed X
-        Vector3 targetPosition = new Vector3(fixedX, player.position.y, transform.position.z);
-        Vector3 smoothedPosition = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, 1f / smoothSpeed);
+        // --- PARALLAX X + ADJUSTABLE Y ---
+        float targetX = player.position.x * -parallaxRatio;
+        float targetY = player.position.y + yOffset;
 
-        // Add camera shake
+        // Keep original Z
+        Vector3 targetPosition = new Vector3(targetX, targetY, transform.position.z);
+
+        Vector3 smoothedPosition = Vector3.SmoothDamp(
+            transform.position,
+            targetPosition,
+            ref velocity,
+            1f / smoothSpeed
+        );
+
+        // Camera shake (unchanged)
         if (shakeDuration > 0f)
         {
             shakeOffset = Random.insideUnitSphere * shakeMagnitude;
