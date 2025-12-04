@@ -55,10 +55,6 @@ public class Arrow : MonoBehaviour
                 enemy.TakeDamage(1);
             }
         }
-        else if (hasLanded && other.CompareTag("Player"))
-        {
-            other.GetComponent<PlayerShooting>().RestoreArrow();
-            Destroy(gameObject);
-        }
+       
     }
 }

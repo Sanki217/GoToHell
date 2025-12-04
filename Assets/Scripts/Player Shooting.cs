@@ -19,6 +19,12 @@ public class PlayerShooting : MonoBehaviour
 
     private Camera mainCam;
     private CameraFollow cam;
+    public bool HasMaxArrows()
+    {
+        return currentArrows >= maxArrows;
+    }
+
+
 
     private void Start()
     {
@@ -104,4 +110,6 @@ public class PlayerShooting : MonoBehaviour
         currentArrows = Mathf.Clamp(currentArrows + 1, 0, maxArrows);
         UpdateArrowUI();
     }
+
+   
 }
