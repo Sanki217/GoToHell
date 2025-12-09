@@ -16,10 +16,16 @@ public class PlayerEnergy : MonoBehaviour
 
     private PlayerMovement playerMovement;
     private LavaZone currentLavaZone;
+    private Collider currentLavaCollider;        // collider of the lava zone we're in (for exit checks)
+    private CapsuleCollider playerCapsule;       // player's capsule collider (root)
 
     void Start()
     {
         playerMovement = GetComponent<PlayerMovement>();
+        playerCapsule = GetComponent<CapsuleCollider>();
+
+        if (playerCapsule == null)
+            Debug.LogWarning("PlayerEnergy: No CapsuleCollider found on player. Lava detection uses the player's CapsuleCollider bounds.");
     }
 
     void Update()
@@ -51,7 +57,7 @@ public class PlayerEnergy : MonoBehaviour
     public void RestoreEnergy(float amount) //killing
     {
         currentEnergy = Mathf.Min(currentEnergy + amount, maxEnergy);
-        UpdateEnergyUI(); // if you have one
+        UpdateEnergyUI();
     }
 
     private void UpdateEnergyUI()
@@ -69,6 +75,7 @@ public class PlayerEnergy : MonoBehaviour
         }
         return false;
     }
+
     public void DrainEnergy(float amount) //hover
     {
         currentEnergy = Mathf.Max(currentEnergy - amount, 0f);
@@ -77,17 +84,46 @@ public class PlayerEnergy : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // If the collider we hit is a LavaZone, only register it if the player's capsule is actually overlapping that collider.
         if (other.TryGetComponent(out LavaZone lavaZone))
         {
-            currentLavaZone = lavaZone;
+            // If we don't have a capsule, fallback to the old behavior (best-effort).
+            if (playerCapsule == null)
+            {
+                currentLavaZone = lavaZone;
+                currentLavaCollider = other;
+                return;
+            }
+
+            // Use bounds intersection to confirm the player's capsule overlaps the lava collider.
+            // This prevents child triggers (like Looter) from falsely registering the player as "in lava".
+            if (playerCapsule.bounds.Intersects(other.bounds))
+            {
+                currentLavaZone = lavaZone;
+                currentLavaCollider = other;
+            }
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.TryGetComponent(out LavaZone lavaZone) && lavaZone == currentLavaZone)
+        // If the collider leaving is the same lava collider we registered, clear it.
+        if (other == currentLavaCollider)
         {
             currentLavaZone = null;
+            currentLavaCollider = null;
+            return;
+        }
+
+        // Safety: if some other lava zone exit fired, and the player's capsule no longer intersects that lava, clear anyway.
+        if (other.TryGetComponent(out LavaZone lavaZone) && lavaZone == currentLavaZone)
+        {
+            // If we still intersect bounds, keep it; otherwise clear.
+            if (playerCapsule == null || !playerCapsule.bounds.Intersects(other.bounds))
+            {
+                currentLavaZone = null;
+                currentLavaCollider = null;
+            }
         }
     }
 }
