@@ -43,6 +43,9 @@ public class PlayerShooting : MonoBehaviour
 
     private void Update()
     {
+        if (!GetComponent<PlayerStateController>().HasControl())
+            return;
+
         UpdateAimingLine();
 
         if (Input.GetMouseButtonDown(0) && currentArrows > 0)

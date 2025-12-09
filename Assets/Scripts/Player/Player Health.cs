@@ -36,6 +36,10 @@ public class PlayerHealth : MonoBehaviour
         if (currentLives <= 0)
         {
             Debug.Log("PLAYER DEAD!");
+
+
+            Object.FindFirstObjectByType<GameStartSequence>().PlayerDied();
+
             // TODO: Add game over logic
         }
 
@@ -47,10 +51,13 @@ public class PlayerHealth : MonoBehaviour
         if (healthTMPText != null)
             healthTMPText.text = "Lives: " + currentLives;
     }
+
     private System.Collections.IEnumerator InvincibilityTimer()
     {
         isInvincible = true;
         yield return new WaitForSeconds(invincibilityTime);
         isInvincible = false;
     }
+
+
 }

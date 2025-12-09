@@ -26,6 +26,12 @@ public class HoverAbility : MonoBehaviour
 
     void Update()
     {
+        if (!GetComponent<PlayerStateController>().HasControl())
+        {
+            isHovering = false;
+            return;
+        }
+
         bool hasEnoughEnergy = energySystem.currentEnergy >= minEnergyToHover;
 
         // If player was out of energy and now above threshold, allow hover again
