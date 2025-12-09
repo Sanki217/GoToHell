@@ -20,7 +20,7 @@ public class OrbUI : MonoBehaviour
     void UpdateText(int amount)
     {
         if (orbText != null)
-            orbText.text = "Orbs: " + amount;
+            orbText.text = "Points: " + amount;
     }
 
     private void OnDestroy()

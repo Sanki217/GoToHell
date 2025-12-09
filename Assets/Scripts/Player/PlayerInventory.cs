@@ -4,8 +4,6 @@ using System;
 public class PlayerInventory : MonoBehaviour
 {
     public int currentOrbs = 0;
-
-    // optional events for UI
     public event Action<int> OnOrbsChanged;
 
     public void AddOrbs(int amount)

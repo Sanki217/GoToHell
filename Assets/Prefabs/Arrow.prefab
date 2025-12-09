@@ -125,7 +125,7 @@ MonoBehaviour:
   speed: 80
   stickableLayers:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 192
 --- !u!114 &8308515621683695785
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -140,3 +140,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canPickUp: 0
   pickupDelay: 0.2
+  isBeingSucked: 0

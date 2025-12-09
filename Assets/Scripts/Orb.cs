@@ -23,13 +23,6 @@ public class Orb : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
-    void Start()
-    {
-        // safety: ensure Z=0 for 2.5D behavior if you want
-        Vector3 p = transform.position;
-        p.z = 0f;
-        transform.position = p;
-    }
 
     public void Initialize(Vector3 ejectDir, float ejectForce)
     {
@@ -43,7 +36,7 @@ public class Orb : MonoBehaviour
     IEnumerator InitialDampCoroutine()
     {
         float t = 0f;
-        Vector3 startVel = rb.linearVelocity;
+        Vector3 startVelocity = rb.linearVelocity;
 
         while (t < initialDampDuration)
         {
@@ -51,16 +44,13 @@ public class Orb : MonoBehaviour
             float alpha = t / initialDampDuration;
             // ease out (1 - (1-alpha)^2)
             float ease = 1f - Mathf.Pow(1f - alpha, 2f);
-            rb.linearVelocity = Vector3.Lerp(startVel, Vector3.zero, ease);
+            rb.linearVelocity = Vector3.Lerp(startVelocity, Vector3.zero, ease);
             yield return null;
         }
 
         rb.linearVelocity = Vector3.zero;
     }
 
-    /// <summary>
-    /// Called by Looter when orb enters looter trigger
-    /// </summary>
     public void StartAttract(Transform playerTransform, PlayerInventory inventory)
     {
         if (isAttracted) return;
@@ -70,7 +60,7 @@ public class Orb : MonoBehaviour
         attractTimer = 0f;
 
         // stop physics so we directly control position (optional)
-        rb.isKinematic = true;
+       // rb.isKinematic = true;
 
         // start attraction coroutine
         StartCoroutine(AttractCoroutine());
@@ -94,14 +84,13 @@ public class Orb : MonoBehaviour
 
             float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, accelEase);
 
-            // move toward moving target position
+            
             Vector3 dir = (attractTarget.position - transform.position);
             dir.z = 0f;
             float step = speed * Time.deltaTime;
 
             if (dir.magnitude <= step + 0.05f)
             {
-                // reached player
                 targetInventory?.AddOrbs(value);
                 Destroy(gameObject);
                 yield break;
@@ -109,18 +98,6 @@ public class Orb : MonoBehaviour
 
             transform.position += dir.normalized * step;
             yield return null;
-        }
-    }
-
-    // optional: if player touches orb physically (not recommended because we use Looter trigger)
-    private void OnTriggerEnter(Collider other)
-    {
-        if (isAttracted) return;
-
-        if (other.TryGetComponent<PlayerInventory>(out PlayerInventory inv))
-        {
-            inv.AddOrbs(value);
-            Destroy(gameObject);
         }
     }
 }

@@ -1,5 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using System.Collections;
 
 public class GameStartSequence : MonoBehaviour
@@ -14,17 +15,27 @@ public class GameStartSequence : MonoBehaviour
     public float kickForce = 15f;
     public float delayBeforeControl = 1f;
 
+    [Header("Death Settings")]
+    public float fadeDuration = 1f;
+    public float reloadDelay = 1f;
+
     [Header("UI")]
-    public CanvasGroup fade;
+    public Image blackScreen;              // ← SINGLE IMAGE, NO CANVAS GROUP
     public GameObject pressAnyButtonText;
 
     private bool waitingForStart = true;
-    private bool runStarted = false;
 
     void Start()
     {
         player.DisableControl();
-        ResetPlayerToStart();
+
+        // Ensure blackscreen starts invisible
+        if (blackScreen != null)
+        {
+            Color c = blackScreen.color;
+            c.a = 0f;
+            blackScreen.color = c;
+        }
     }
 
     void Update()
@@ -39,68 +50,54 @@ public class GameStartSequence : MonoBehaviour
 
     IEnumerator StartRunRoutine()
     {
-        // Wait before kick
         yield return new WaitForSeconds(delayBeforeKick);
 
-        // Allow external kick movement
         player.allowKickMovement = true;
-
-        // Kick player to the right
         playerRb.AddForce(Vector3.right * kickForce, ForceMode.Impulse);
 
-        // Wait before giving control
         yield return new WaitForSeconds(delayBeforeControl);
 
         player.EnableControl();
-        runStarted = true;
     }
 
+    // Called when player dies
     public void PlayerDied()
     {
-        if (!runStarted) return;
-        StartCoroutine(DeathRoutine());
+        StartCoroutine(DeathFadeAndReload());
     }
 
-    IEnumerator DeathRoutine()
+    IEnumerator DeathFadeAndReload()
     {
-        runStarted = false;
         player.DisableControl();
+        playerRb.linearVelocity = Vector3.zero;
 
-        // Freeze time
         Time.timeScale = 0f;
 
-        // Fade to black
-        yield return StartCoroutine(Fade(0f, 1f, 1f));
+        // Fade the single Image alpha from 0 → 1
+        yield return StartCoroutine(FadeImage(0f, 1f, fadeDuration));
 
-        // Respawn player
-        ResetPlayerToStart();
+        yield return new WaitForSecondsRealtime(reloadDelay);
 
-        // Unfreeze
         Time.timeScale = 1f;
-
-        // Fade from black
-        yield return StartCoroutine(Fade(1f, 0f, 1f));
-
-        waitingForStart = true;
-        pressAnyButtonText.SetActive(true);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    void ResetPlayerToStart()
-    {
-        player.DisableControl();
-        player.allowKickMovement = false;
-        playerRb.linearVelocity = Vector3.zero;
-        player.transform.position = startPoint.position;
-    }
-
-    IEnumerator Fade(float from, float to, float duration)
+    IEnumerator FadeImage(float from, float to, float duration)
     {
         float t = 0f;
+        Color c = blackScreen.color;
+
         while (t < duration)
         {
             t += Time.unscaledDeltaTime;
-            fade.alpha = Mathf.Lerp(from, to, t / duration);
+
+            float alpha = Mathf.Lerp(from, to, t / duration);
+            blackScreen.color = new Color(c.r, c.g, c.b, alpha);
+
             yield return null;
         }
+
+        // Ensure final alpha is exact
+        blackScreen.color = new Color(c.r, c.g, c.b, to);
     }
 }

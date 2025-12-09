@@ -1,14 +1,12 @@
 using UnityEngine;
-
-[RequireComponent(typeof(SphereCollider))]
 public class Looter : MonoBehaviour
 {
     [Header("Looter (child of Player)")]
-    public Transform playerTransform; // usually parent
+    public Transform playerTransform;
     private PlayerInventory playerInventory;
     private PlayerShooting player;
 
-    // option: auto-detect orb components in trigger enter
+   
     void Start()
     {
         player = GetComponentInParent<PlayerShooting>();
@@ -24,7 +22,6 @@ public class Looter : MonoBehaviour
     {
         if (other.TryGetComponent<Orb>(out Orb orb))
         {
-            // tell the orb to attract to the player
             orb.StartAttract(playerTransform, playerInventory);
         }
 
@@ -32,7 +29,7 @@ public class Looter : MonoBehaviour
 
         if (pickup != null && pickup.canPickUp && !pickup.isBeingSucked)
         {
-            // NEW: do not suck if player is full
+            //do not suck if player is full
             if (player != null && player.HasMaxArrows())
                 return;
 

@@ -28,11 +28,5 @@ public class LavaZone : MonoBehaviour
         currentLavaEnergy = Mathf.Clamp(currentLavaEnergy + amount, 0f, maxLavaEnergy);
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.TryGetComponent(out PlayerMovement playerMovement))
-        {
-            playerMovement.RestoreJumpCharges();
-        }
-    }
+  
 }

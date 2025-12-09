@@ -57,7 +57,7 @@ public class PlayerEnergy : MonoBehaviour
     private void UpdateEnergyUI()
     {
         if (energyTMPText != null)
-            energyTMPText.text = Mathf.FloorToInt(currentEnergy).ToString();
+            energyTMPText.text = "Energy: " + Mathf.FloorToInt(currentEnergy).ToString();
     }
 
     public bool SpendEnergy(float amount)
