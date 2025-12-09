@@ -3406,8 +3406,8 @@ MonoBehaviour:
   maxJumps: 1
   wallJumpForce: 13
   wallJumpDirection: {x: 1, y: 0.5}
-  wallSlideStopSpeed: -1.5
-  wallLerpToZeroTime: 3
+  wallSlideStopSpeed: -1.26
+  wallLerpToZeroTime: 4.01
   wallSlideDelay: 0
   wallSlideAccelerationTime: 10
   maxWallSlideSpeed: -6.1
@@ -6185,8 +6185,8 @@ Transform:
   m_GameObject: {fileID: 1995207534}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.3, y: 23.399998, z: 0}
-  m_LocalScale: {x: 0.37450647, y: 4.1980267, z: 7.436129}
+  m_LocalPosition: {x: -2.22, y: 21.28, z: 0}
+  m_LocalScale: {x: 1.4882714, y: 8.427498, z: 7.436129}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1085931525}
