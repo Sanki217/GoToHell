@@ -25,7 +25,6 @@ public class SpawnArea : MonoBehaviour
     public Vector3 maxRotation = new Vector3(0f, 360f, 0f);
 
     [Header("Scale Settings")]
-    // Defaults to 1,1,1 so objects are normal size by default
     public Vector3 minScale = Vector3.one;
     public Vector3 maxScale = Vector3.one;
 
@@ -53,12 +52,13 @@ public class SpawnArea : MonoBehaviour
 
         for (int i = 0; i < spawnCount; i++)
         {
-            Vector3 randomPoint = GetRandomPointInside();
+            Vector3 randomPoint = GetValidPoint(spawnedPositions);
             Quaternion randomRotation = GetRandomRotation();
 
             GameObject prefab = prefabs[Random.Range(0, prefabs.Count)];
-            GameObject spawned = Instantiate(prefab, randomPoint, randomRotation, null);
-            
+            GameObject spawned = Instantiate(prefab, randomPoint, randomRotation);
+
+            spawnedPositions.Add(randomPoint);
         }
     }
 
@@ -73,7 +73,32 @@ public class SpawnArea : MonoBehaviour
         );
     }
 
-   
+    private Vector3 GetValidPoint(List<Vector3> existingPoints)
+    {
+        const int MAX_ATTEMPTS = 30;
+
+        for (int i = 0; i < MAX_ATTEMPTS; i++)
+        {
+            Vector3 point = GetRandomPointInside();
+
+            bool tooClose = false;
+
+            foreach (var p in existingPoints)
+            {
+                if (Vector3.Distance(point, p) < minSeparationDistance)
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            if (!tooClose)
+                return point;
+        }
+
+        // If all attempts failed, return a random point anyway
+        return GetRandomPointInside();
+    }
 
     private Quaternion GetRandomRotation()
     {
@@ -81,7 +106,6 @@ public class SpawnArea : MonoBehaviour
         float yRotation = Random.Range(minRotation.y, maxRotation.y);
         float zRotation = Random.Range(minRotation.z, maxRotation.z);
 
-        // Convert the random Euler angles into a Quaternion
         return Quaternion.Euler(xRotation, yRotation, zRotation);
     }
 }

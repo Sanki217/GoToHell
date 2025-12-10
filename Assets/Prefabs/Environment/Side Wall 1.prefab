@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3807821061502342724}
   - component: {fileID: 7781406793525639506}
   - component: {fileID: 3462309763768128273}
-  m_Layer: 7
+  m_Layer: 6
   m_Name: Side Wall 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3.06461, y: 4.7919493, z: 7.4361296}
+  m_LocalScale: {x: 3.06461, y: 4.7919493, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
