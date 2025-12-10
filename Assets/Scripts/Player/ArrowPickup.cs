@@ -7,7 +7,7 @@ public class ArrowPickup : MonoBehaviour
 
     public bool isBeingSucked = false;
     private Transform target; // player
-    private float suckSpeed = 12f;
+    private float suckSpeed = 15f;
 
     private Arrow arrow;
 
