@@ -5,6 +5,7 @@ public class Enemy : MonoBehaviour
     public int maxHealth = 1;
     public int currentHealth;
     public GameObject orbPrefab;    
+    public float energyRestoredOnDeath = 5f;
 
     private void Start()
     {
@@ -66,7 +67,7 @@ public class Enemy : MonoBehaviour
             PlayerEnergy energy = player.GetComponent<PlayerEnergy>();
             if (energy != null)
             {
-                energy.RestoreEnergy(10); // Adjust value as needed
+                energy.RestoreEnergy(energyRestoredOnDeath); // Adjust value as needed
             }
         }
         Destroy(gameObject);

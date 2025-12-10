@@ -59,10 +59,11 @@ public class Orb : MonoBehaviour
         targetInventory = inventory;
         attractTimer = 0f;
 
-        // stop physics so we directly control position (optional)
-       // rb.isKinematic = true;
+        // disable physics to stop jitter
+        rb.isKinematic = true;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
 
-        // start attraction coroutine
         StartCoroutine(AttractCoroutine());
     }
 
@@ -96,7 +97,8 @@ public class Orb : MonoBehaviour
                 yield break;
             }
 
-            transform.position += dir.normalized * step;
+            rb.MovePosition(transform.position + dir.normalized * step);
+
             yield return null;
         }
     }
