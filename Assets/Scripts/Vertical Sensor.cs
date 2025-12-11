@@ -18,16 +18,15 @@ public class VerticalSensor : MonoBehaviour
         if (other.transform.root == rootEnemy) return; // ignore self
 
         // You can refine detection tags, but this works for everything
-        if (other.CompareTag("Ceiling"))
-        {
-            OnHitCeiling?.Invoke();
-        }
-        else if (other.CompareTag("Ground"))
-        {
-            OnHitGround?.Invoke();
-        }
-        else
-        {
+        //if (other.CompareTag("Wall"))
+      //  {
+     //       OnHitCeiling?.Invoke();
+   //     }
+  //      else if (other.CompareTag("Ground"))
+ //       {
+// //           OnHitGround?.Invoke();
+//        else
+  //      {
             // Generic bounce logic:
             Vector3 localPos = transform.InverseTransformPoint(other.ClosestPoint(transform.position));
 
@@ -35,6 +34,6 @@ public class VerticalSensor : MonoBehaviour
                 OnHitCeiling?.Invoke();
             else
                 OnHitGround?.Invoke();
-        }
+ //       }
     }
 }
