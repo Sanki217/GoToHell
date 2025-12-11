@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// SpawnManager (MonoBehaviour) — automatically starts spawning on Start(),
@@ -62,6 +63,28 @@ public class SpawnManager : MonoBehaviour
 
     // Public explicit entry if you prefer manual control
     public static void SpawnAll() => Instance.StartCoroutine(Instance.SpawnAllCoroutine());
+    private void OnEnable()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Clear from previous level
+        areas.Clear();
+
+        // Find all active SpawnAreas in the new scene
+        foreach (var area in FindObjectsByType<SpawnArea>(FindObjectsSortMode.None))
+            InternalRegister(area);
+
+        // Start spawning again
+        StartCoroutine(SpawnAllCoroutine());
+    }
 
     private IEnumerator SpawnAllCoroutine()
     {
