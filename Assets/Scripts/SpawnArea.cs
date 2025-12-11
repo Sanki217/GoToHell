@@ -42,7 +42,7 @@ public class SpawnArea : MonoBehaviour
         SpawnManager.Unregister(this);
     }
 
-    public void SpawnObjects()
+    public virtual void SpawnObjects()
     {
         if (prefabs.Count == 0) return;
 
@@ -62,7 +62,7 @@ public class SpawnArea : MonoBehaviour
         }
     }
 
-    private Vector3 GetRandomPointInside()
+    public Vector3 GetRandomPointInside()
     {
         Bounds b = area.bounds;
 
@@ -73,7 +73,7 @@ public class SpawnArea : MonoBehaviour
         );
     }
 
-    private Vector3 GetValidPoint(List<Vector3> existingPoints)
+    public Vector3 GetValidPoint(List<Vector3> existingPoints)
     {
         const int MAX_ATTEMPTS = 30;
 
@@ -100,7 +100,7 @@ public class SpawnArea : MonoBehaviour
         return GetRandomPointInside();
     }
 
-    private Quaternion GetRandomRotation()
+    public Quaternion GetRandomRotation()
     {
         float xRotation = Random.Range(minRotation.x, maxRotation.x);
         float yRotation = Random.Range(minRotation.y, maxRotation.y);
