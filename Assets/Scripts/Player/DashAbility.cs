@@ -53,7 +53,7 @@ public class DashAbility : MonoBehaviour
 
     void HandleInput()
     {
-        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing)
+        if (Input.GetMouseButtonDown(1) && !isDashing)
         {
             Vector3 cursorWorld = GetCursorWorldPosition();
             Vector3 origin = shootOrigin.position;

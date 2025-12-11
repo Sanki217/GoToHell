@@ -1781,7 +1781,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 1048261596}
   smoothSpeed: 5
-  parallaxRatio: -0.4
+  parallaxRatio: -0.2
   yOffset: -1.8
 --- !u!1 &1048261590
 GameObject:
@@ -2181,7 +2181,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7eaa2ddd60b296a42a0638fa4e6438d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hoverForce: 40
+  hoverForce: 28
   energyDrainPerSecond: 10
   maxUpwardSpeed: 0.5
   minEnergyToHover: 5
@@ -3777,7 +3777,8 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 2831797678064267653, guid: 7bfe85cca18a72b4d8a12ab5e7bf9700, type: 3}
-  spawnCount: 35
+  - {fileID: 5456285349514001431, guid: 780fe9defb2d7e943b5c8de90c680a0f, type: 3}
+  spawnCount: 64
   minSeparationDistance: 4
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -4107,7 +4108,7 @@ SceneRoots:
   - {fileID: 27474412}
   - {fileID: 1048261596}
   - {fileID: 1378056375}
-  - {fileID: 177737229}
   - {fileID: 1879213014}
   - {fileID: 134081375}
+  - {fileID: 177737229}
   - {fileID: 640388727}
