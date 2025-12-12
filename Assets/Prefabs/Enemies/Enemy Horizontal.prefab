@@ -12,13 +12,13 @@ GameObject:
   - component: {fileID: 9107505770039923809}
   - component: {fileID: 683928952675716204}
   - component: {fileID: 2273875277664882120}
-  - component: {fileID: 1960979329093158761}
   - component: {fileID: 1041990607757972644}
-  - component: {fileID: 5750225951597575830}
-  - component: {fileID: 6217076362429943899}
+  - component: {fileID: 1960979329093158761}
   - component: {fileID: 3763179088666929006}
+  - component: {fileID: 6217076362429943899}
+  - component: {fileID: 3995792188890039685}
   m_Layer: 0
-  m_Name: EnemyVertical 1
+  m_Name: Enemy Horizontal
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -114,24 +114,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1960979329093158761
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5456285349514001431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a13dcf60e504c9e4ca1b179f38ae63d9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 1
-  currentHealth: 0
-  orbPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
-  energyRestoredOnDeath: 5
-  minimumOrbs: 1
-  maximumOrbs: 3
 --- !u!54 &1041990607757972644
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -159,7 +141,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &5750225951597575830
+--- !u!114 &1960979329093158761
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -168,24 +150,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 5456285349514001431}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60fe1e875d5f954f96f40d55bc9ce97, type: 3}
+  m_Script: {fileID: 11500000, guid: a13dcf60e504c9e4ca1b179f38ae63d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxSpeed: 3
-  acceleration: 5
-  sensor: {fileID: 606765970688220948}
---- !u!114 &6217076362429943899
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5456285349514001431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab59a23f8872ad24fa8eead9c74040d8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  maxHealth: 1
+  currentHealth: 0
+  orbPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
+  energyRestoredOnDeath: 5
+  minimumOrbs: 1
+  maximumOrbs: 3
 --- !u!114 &3763179088666929006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -198,6 +171,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53df51aaefd0904499a3c461da433c6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &6217076362429943899
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5456285349514001431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab59a23f8872ad24fa8eead9c74040d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &3995792188890039685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5456285349514001431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3329911ca3a67d4aa5f7470a0b02c49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxSpeed: 3
+  acceleration: 5
+  turnBrake: 20
+  instantTurn: 0
+  sensor: {fileID: 746640703760186467}
 --- !u!1 &5494290412399166091
 GameObject:
   m_ObjectHideFlags: 0
@@ -208,9 +210,9 @@ GameObject:
   m_Component:
   - component: {fileID: 3748945030633563403}
   - component: {fileID: 3517213100438916454}
-  - component: {fileID: 606765970688220948}
+  - component: {fileID: 746640703760186467}
   m_Layer: 0
-  m_Name: VerticalSensor
+  m_Name: HorizontalSensor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -224,13 +226,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5494290412399166091}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0.000000007450581}
-  m_LocalScale: {x: 1, y: 1.4948, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6834851209747589345}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
 --- !u!136 &3517213100438916454
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -250,11 +252,11 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.35
-  m_Height: 1.86
+  m_Radius: 0.1
+  m_Height: 2.5
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &606765970688220948
+--- !u!114 &746640703760186467
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -263,6 +265,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 5494290412399166091}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 458d531079513f14ea4710b95b6b0e32, type: 3}
+  m_Script: {fileID: 11500000, guid: 94ffe4d97f8c9a1449412c3e11a8d05d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

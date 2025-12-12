@@ -275,7 +275,7 @@ GameObject:
   - component: {fileID: 103440941}
   m_Layer: 0
   m_Name: Sidewall Spawner
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -658,6 +658,7 @@ Transform:
   - {fileID: 373047251}
   - {fileID: 1864433216}
   - {fileID: 1911711818}
+  - {fileID: 1290917206}
   - {fileID: 1548665150}
   - {fileID: 1389026483}
   - {fileID: 1419095552}
@@ -1095,7 +1096,7 @@ GameObject:
   - component: {fileID: 373047249}
   m_Layer: 0
   m_Name: Orb Spawner
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2353,6 +2354,85 @@ Transform:
   - {fileID: 1394318099}
   m_Father: {fileID: 27474412}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1290917205
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1290917206}
+  - component: {fileID: 1290917208}
+  - component: {fileID: 1290917207}
+  m_Layer: 0
+  m_Name: Enemy Spawner Horizontal
+  m_TagString: Spawner
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1290917206
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1290917205}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 18.1, y: -379.6, z: 136.6663}
+  m_LocalScale: {x: 8.000481, y: 950, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 177737229}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1290917207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1290917205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96a3575a6ccdd354ab75559e18b9e600, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawnType: 2
+  prefabs:
+  - {fileID: 5456285349514001431, guid: 976cc109a745e574d9395cb68470ed2a, type: 3}
+  spawnCount: 25
+  minSeparationDistance: 10
+  minRotation: {x: 0, y: 0, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
+  minScale: {x: 1, y: 1, z: 1}
+  maxScale: {x: 1, y: 1, z: 1}
+  collisionCheckRadius: 4
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!65 &1290917208
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1290917205}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1378056371
 GameObject:
   m_ObjectHideFlags: 0
@@ -2558,7 +2638,7 @@ GameObject:
   - component: {fileID: 1389026481}
   m_Layer: 0
   m_Name: Lava Spawner (1)
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2890,7 +2970,7 @@ GameObject:
   - component: {fileID: 1419095550}
   m_Layer: 0
   m_Name: Arrow Spawner
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3387,7 +3467,7 @@ GameObject:
   - component: {fileID: 1548665148}
   m_Layer: 0
   m_Name: Lava Spawner
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3464,7 +3544,7 @@ GameObject:
   - component: {fileID: 1744291260}
   m_Layer: 0
   m_Name: Arrow Spawner (1)
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3625,7 +3705,7 @@ GameObject:
   - component: {fileID: 1864433214}
   m_Layer: 0
   m_Name: Wall Spawner
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3648,7 +3728,7 @@ MonoBehaviour:
   - {fileID: 4036954253965461081, guid: 8abd3ca7e8461ab4094bc52b88ac05e9, type: 3}
   - {fileID: 8964720333734385143, guid: c2f27e99f18ca1243843c80a816ff606, type: 3}
   - {fileID: 7084924073605212868, guid: 1a5688df17477da46879642cf664db25, type: 3}
-  spawnCount: 12
+  spawnCount: 18
   minSeparationDistance: 4
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -3756,8 +3836,8 @@ GameObject:
   - component: {fileID: 1911711817}
   - component: {fileID: 1911711819}
   m_Layer: 0
-  m_Name: Enemy Spawner
-  m_TagString: Untagged
+  m_Name: Enemy Spawner Vertical
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3793,7 +3873,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 18.150549, y: -379.6, z: 136.6663}
-  m_LocalScale: {x: 8.486157, y: 950, z: 0.01}
+  m_LocalScale: {x: 9.814772, y: 950, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 177737229}
@@ -3813,8 +3893,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: 780fe9defb2d7e943b5c8de90c680a0f, type: 3}
-  - {fileID: 2831797678064267653, guid: 7bfe85cca18a72b4d8a12ab5e7bf9700, type: 3}
-  spawnCount: 40
+  spawnCount: 25
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -3975,7 +4054,7 @@ GameObject:
   - component: {fileID: 2073126252}
   m_Layer: 0
   m_Name: Sidewall Spawner (1)
-  m_TagString: Untagged
+  m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

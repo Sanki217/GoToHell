@@ -1,19 +1,19 @@
 using UnityEngine;
 
-public class VerticalMovement : EnemyMovement
+public class HorizontalMovement : EnemyMovement
 {
     [Header("Movement")]
     public float maxSpeed = 3f;
     public float acceleration = 5f;
 
     [Header("Turning")]
-    public float turnBrake = 20f; // how fast velocity is canceled on turn
+    public float turnBrake = 20f;
     public bool instantTurn = false;
 
     [Header("Detection")]
-    public VerticalSensor sensor;
+    public HorizontalSensor sensor;
 
-    private float direction = 1f;   // 1 = up, -1 = down
+    private float direction = 1f;   // 1 = right, -1 = left
     private float currentSpeed = 0f;
 
     protected override void Awake()
@@ -22,8 +22,8 @@ public class VerticalMovement : EnemyMovement
 
         if (sensor != null)
         {
-            sensor.OnHitCeiling += HandleHitCeiling;
-            sensor.OnHitGround += HandleHitGround;
+            sensor.OnHitLeft += HandleHitLeft;
+            sensor.OnHitRight += HandleHitRight;
         }
     }
 
@@ -37,17 +37,17 @@ public class VerticalMovement : EnemyMovement
             acceleration * Time.deltaTime
         );
 
-        transform.position += Vector3.up * currentSpeed * Time.deltaTime;
+        transform.position += Vector3.right * currentSpeed * Time.deltaTime;
     }
 
-    private void HandleHitCeiling()
-    {
-        Turn(-1f);
-    }
-
-    private void HandleHitGround()
+    private void HandleHitLeft()
     {
         Turn(1f);
+    }
+
+    private void HandleHitRight()
+    {
+        Turn(-1f);
     }
 
     private void Turn(float newDirection)
@@ -60,7 +60,6 @@ public class VerticalMovement : EnemyMovement
         }
         else
         {
-            // brake opposing velocity immediately
             currentSpeed = Mathf.MoveTowards(
                 currentSpeed,
                 0f,

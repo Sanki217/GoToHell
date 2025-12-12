@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 6217076362429943899}
   - component: {fileID: 3763179088666929006}
   m_Layer: 0
-  m_Name: EnemyVertical
+  m_Name: Enemy Vertical
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -173,6 +173,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxSpeed: 3
   acceleration: 5
+  turnBrake: 20
+  instantTurn: 0
   sensor: {fileID: 606765970688220948}
 --- !u!114 &6217076362429943899
 MonoBehaviour:
@@ -251,7 +253,7 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.35
-  m_Height: 1.86
+  m_Height: 3.51
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &606765970688220948

@@ -3,11 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// SpawnManager (MonoBehaviour) — automatically starts spawning on Start(),
-/// but retains static Register/Unregister API. Runs Phase 1 (non-enemies),
-/// yields one FixedUpdate to let physics register new colliders, then Phase 2.
-/// </summary>
 public class SpawnManager : MonoBehaviour
 {
     private readonly List<SpawnArea> areas = new List<SpawnArea>();
@@ -27,7 +22,7 @@ public class SpawnManager : MonoBehaviour
         }
     }
 
-    // Static API used by SpawnArea
+    // ---------- Static API ----------
     public static void Register(SpawnArea area) => Instance.InternalRegister(area);
     public static void Unregister(SpawnArea area) => Instance.InternalUnregister(area);
 
@@ -44,85 +39,58 @@ public class SpawnManager : MonoBehaviour
         areas.Remove(area);
     }
 
-    // Auto-start on scene Start
-    private void Start()
-    {
-        // Wait a single frame before starting to allow all Awake/Start registrations to complete.
-        // This helps if some SpawnArea register in Start().
-        StartCoroutine(AutoStartRoutine());
-    }
-
-    private IEnumerator AutoStartRoutine()
-    {
-        // Give one frame for all SpawnAreas to register (Awake/Start sequence).
-        yield return null;
-
-        // Now start the two-phase spawn coroutine
-        StartCoroutine(SpawnAllCoroutine());
-    }
-
-    // Public explicit entry if you prefer manual control
-    public static void SpawnAll() => Instance.StartCoroutine(Instance.SpawnAllCoroutine());
+    // ---------- Scene lifecycle ----------
     private void OnEnable()
     {
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable()
     {
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Clear from previous level
+        StopAllCoroutines();
+
         areas.Clear();
 
-        // Find all active SpawnAreas in the new scene
         foreach (var area in FindObjectsByType<SpawnArea>(FindObjectsSortMode.None))
             InternalRegister(area);
 
-        // Start spawning again
         StartCoroutine(SpawnAllCoroutine());
     }
 
+    // ---------- Spawning ----------
     private IEnumerator SpawnAllCoroutine()
     {
         var snapshot = new List<SpawnArea>(areas);
 
-        Debug.Log($"[SpawnManager] Phase 1: Spawning non-enemies ({snapshot.Count} areas snapshot)");
+        Debug.Log($"[SpawnManager] Phase 1: Spawning non-enemies ({snapshot.Count} areas)");
+
         foreach (var area in snapshot)
         {
             if (area == null) continue;
             if (area.spawnType != SpawnArea.SpawnType.Enemies)
-            {
-                try { area.SpawnObjects(); }
-                catch (System.Exception ex) { Debug.LogError($"[SpawnManager] Exception while spawning area {area.name}: {ex}"); }
-            }
+                area.SpawnObjects();
         }
 
-        // Wait for physics to register newly created colliders.
         yield return new WaitForFixedUpdate();
 
-        // Re-snapshot in case registration changed the list
         snapshot = new List<SpawnArea>(areas);
 
-        Debug.Log("[SpawnManager] Phase 2: Spawning enemies (collision-aware)");
+        Debug.Log("[SpawnManager] Phase 2: Spawning enemies");
+
         foreach (var area in snapshot)
         {
             if (area == null) continue;
             if (area.spawnType == SpawnArea.SpawnType.Enemies)
             {
                 if (area is EnemySpawnArea enemyArea)
-                {
-                    try { enemyArea.SpawnEnemiesAvoidingCollisions(); }
-                    catch (System.Exception ex) { Debug.LogError($"[SpawnManager] Exception while spawning enemies in {area.name}: {ex}"); }
-                }
+                    enemyArea.SpawnEnemiesAvoidingCollisions();
                 else
-                {
-                    try { area.SpawnObjects(); }
-                    catch (System.Exception ex) { Debug.LogError($"[SpawnManager] Exception while spawning enemies (fallback) in {area.name}: {ex}"); }
-                }
+                    area.SpawnObjects();
             }
         }
 
