@@ -89,7 +89,7 @@ public class DashAbility : MonoBehaviour
             dashVelocity = dashDirection * (Vector3.Distance(origin, dashTarget) / dashDuration);
             dashTimer = dashDuration;
             isDashing = true;
-            Camera.main.GetComponent<CameraFollow>()?.Shake(0.1f, 0.1f); // big shake
+         //   Camera.main.GetComponent<CameraFollow>()?.Shake(0.1f, 0.1f); // big shake
 
         }
     }

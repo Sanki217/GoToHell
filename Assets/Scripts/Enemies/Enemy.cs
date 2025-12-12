@@ -6,6 +6,8 @@ public class Enemy : MonoBehaviour
     public int currentHealth;
     public GameObject orbPrefab;    
     public float energyRestoredOnDeath = 5f;
+    public int minimumOrbs = 1;
+    public int maximumOrbs = 3;
 
     private void Start()
     {
@@ -39,7 +41,7 @@ public class Enemy : MonoBehaviour
     private void Die()
     {
 
-        int orbCount = Random.Range(1, 3); // spawn 1 or 2 orbs
+        int orbCount = Random.Range(minimumOrbs, maximumOrbs); 
 
         for (int i = 0; i < orbCount; i++)
         {
@@ -60,7 +62,7 @@ public class Enemy : MonoBehaviour
         }
 
         // Add death effects here later (particles, sounds)
-        Camera.main.GetComponent<CameraFollow>()?.Shake(0.2f, 0.2f); // big shake
+        Camera.main.GetComponent<CameraFollow>()?.Shake(0.08f, 0.08f);
         GameObject player = GameObject.FindWithTag("Player");
         if (player != null)
         {

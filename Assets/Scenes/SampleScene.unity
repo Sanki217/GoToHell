@@ -546,8 +546,8 @@ Transform:
   m_GameObject: {fileID: 163100225}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -14.3, y: -1000, z: 0}
-  m_LocalScale: {x: 24.55, y: 1, z: 17.244135}
+  m_LocalPosition: {x: -14.3, y: -1001.49, z: 0}
+  m_LocalScale: {x: 24.55, y: 2.209, z: 17.244135}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1434236165}
@@ -695,7 +695,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -13.8, y: -1000.5, z: 3.7}
-  m_LocalScale: {x: 13.322988, y: 7.1798177, z: 3.0347655}
+  m_LocalScale: {x: 13.322988, y: 16.173975, z: 3.0347655}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1434236165}
@@ -2580,7 +2580,7 @@ MonoBehaviour:
   - {fileID: 2212090523930121391, guid: 2f47a54ce77360d49a8d2ce8c68cf7c8, type: 3}
   - {fileID: 8834222470330700290, guid: 55ad62423243adf478be75bcee5adf34, type: 3}
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
-  spawnCount: 7
+  spawnCount: 6
   minSeparationDistance: 20
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -2910,7 +2910,7 @@ MonoBehaviour:
   spawnType: 5
   prefabs:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
-  spawnCount: 30
+  spawnCount: 20
   minSeparationDistance: 0.5
   minRotation: {x: 0, y: 0, z: -130}
   maxRotation: {x: 0, y: 0, z: -30}
@@ -3409,7 +3409,7 @@ MonoBehaviour:
   - {fileID: 2212090523930121391, guid: 2f47a54ce77360d49a8d2ce8c68cf7c8, type: 3}
   - {fileID: 8834222470330700290, guid: 55ad62423243adf478be75bcee5adf34, type: 3}
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
-  spawnCount: 7
+  spawnCount: 6
   minSeparationDistance: 20
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -3484,7 +3484,7 @@ MonoBehaviour:
   spawnType: 5
   prefabs:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
-  spawnCount: 30
+  spawnCount: 20
   minSeparationDistance: 0.5
   minRotation: {x: 0, y: 0, z: -130}
   maxRotation: {x: 0, y: 0, z: -30}
@@ -3814,13 +3814,13 @@ MonoBehaviour:
   prefabs:
   - {fileID: 5456285349514001431, guid: 780fe9defb2d7e943b5c8de90c680a0f, type: 3}
   - {fileID: 2831797678064267653, guid: 7bfe85cca18a72b4d8a12ab5e7bf9700, type: 3}
-  spawnCount: 75
-  minSeparationDistance: 1.5
+  spawnCount: 40
+  minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
-  maxRotation: {x: 0, y: 360, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
   minScale: {x: 1, y: 1, z: 1}
   maxScale: {x: 1, y: 1, z: 1}
-  collisionCheckRadius: 0.5
+  collisionCheckRadius: 4
   collisionMask:
     serializedVersion: 2
     m_Bits: 4294967295
