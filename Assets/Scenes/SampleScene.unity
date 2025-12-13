@@ -296,7 +296,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 7149176871310243740, guid: 62a8ce862889910419551965fde8a051, type: 3}
   - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
-  spawnCount: 20
+  spawnCount: 30
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -2402,7 +2402,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: 976cc109a745e574d9395cb68470ed2a, type: 3}
-  spawnCount: 25
+  spawnCount: 35
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -2660,7 +2660,7 @@ MonoBehaviour:
   - {fileID: 2212090523930121391, guid: 2f47a54ce77360d49a8d2ce8c68cf7c8, type: 3}
   - {fileID: 8834222470330700290, guid: 55ad62423243adf478be75bcee5adf34, type: 3}
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
-  spawnCount: 6
+  spawnCount: 8
   minSeparationDistance: 20
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -3489,7 +3489,7 @@ MonoBehaviour:
   - {fileID: 2212090523930121391, guid: 2f47a54ce77360d49a8d2ce8c68cf7c8, type: 3}
   - {fileID: 8834222470330700290, guid: 55ad62423243adf478be75bcee5adf34, type: 3}
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
-  spawnCount: 6
+  spawnCount: 8
   minSeparationDistance: 20
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -3893,7 +3893,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: 780fe9defb2d7e943b5c8de90c680a0f, type: 3}
-  spawnCount: 25
+  spawnCount: 35
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -4075,7 +4075,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 7149176871310243740, guid: 62a8ce862889910419551965fde8a051, type: 3}
   - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
-  spawnCount: 20
+  spawnCount: 30
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}

@@ -16,15 +16,21 @@ public class Enemy : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        // Ignore sensor collisions
+        if (other.CompareTag("EnemySensor"))
+            return;
+
+        if (!other.CompareTag("Player"))
+            return;
+
+        PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
         {
-            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(1);
-            }
+            playerHealth.TakeDamage(1);
         }
     }
+
+
 
     public void TakeDamage(int amount)
     {
