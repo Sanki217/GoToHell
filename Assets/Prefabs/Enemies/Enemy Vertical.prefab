@@ -84,6 +84,7 @@ GameObject:
   - component: {fileID: 1960979329093158761}
   - component: {fileID: 5750225951597575830}
   - component: {fileID: 6217076362429943899}
+  - component: {fileID: -5379301451169437591}
   m_Layer: 0
   m_Name: Enemy Vertical
   m_TagString: Enemy
@@ -247,6 +248,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab59a23f8872ad24fa8eead9c74040d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!65 &-5379301451169437591
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5456285349514001431}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &5494290412399166091
 GameObject:
   m_ObjectHideFlags: 0
