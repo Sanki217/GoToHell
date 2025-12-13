@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 384535910388324835}
   - component: {fileID: 5246525077699585000}
   - component: {fileID: 9060920587122821585}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Better Orb
   m_TagString: Untagged
   m_Icon: {fileID: 0}

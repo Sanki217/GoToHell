@@ -14,21 +14,18 @@ public class Enemy : MonoBehaviour
         currentHealth = maxHealth;
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnCollisionEnter(Collision collision)
     {
-        // Ignore sensor collisions
-        if (other.CompareTag("EnemySensor"))
+        if (!collision.collider.CompareTag("Player"))
             return;
 
-        if (!other.CompareTag("Player"))
-            return;
-
-        PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+        PlayerHealth playerHealth = collision.collider.GetComponent<PlayerHealth>();
         if (playerHealth != null)
         {
             playerHealth.TakeDamage(1);
         }
     }
+
 
 
 

@@ -137,6 +137,7 @@ public class DashAbility : MonoBehaviour
         {
             Enemy enemy = other.GetComponent<Enemy>();
             if (enemy != null)
+
                 enemy.TakeDamage(dashDamage);
         }
     }
