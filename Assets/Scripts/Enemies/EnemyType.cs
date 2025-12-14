@@ -11,7 +11,7 @@ public class EnemyType : MonoBehaviour
         behavior = GetComponent<EnemyBehavior>();
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         movement?.TickMovement();
         behavior?.TickBehavior();

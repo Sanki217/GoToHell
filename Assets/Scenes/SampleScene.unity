@@ -274,7 +274,7 @@ GameObject:
   - component: {fileID: 103440942}
   - component: {fileID: 103440941}
   m_Layer: 0
-  m_Name: Sidewall Spawner
+  m_Name: Sidewall Spawner Left
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -660,14 +660,91 @@ Transform:
   - {fileID: 1911711818}
   - {fileID: 1290917206}
   - {fileID: 1092126016}
-  - {fileID: 1548665150}
   - {fileID: 1389026483}
-  - {fileID: 1419095552}
+  - {fileID: 1548665150}
   - {fileID: 1744291262}
+  - {fileID: 1419095552}
   - {fileID: 103440943}
   - {fileID: 2073126254}
+  - {fileID: 205231693}
+  - {fileID: 658264253}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &205231692
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 205231693}
+  - component: {fileID: 205231695}
+  - component: {fileID: 205231694}
+  m_Layer: 0
+  m_Name: Spike Spawner Left
+  m_TagString: Spawner
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &205231693
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 205231692}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 12.6, y: -379.11673, z: 136.6663}
+  m_LocalScale: {x: 0.01, y: 950, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 177737229}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &205231694
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 205231692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79a17b8abe61b142963953701adef15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawnType: 1
+  prefabs:
+  - {fileID: 4442875087141929137, guid: 5be990f49d167a1459d0cf9fbbfa6607, type: 3}
+  spawnCount: 12
+  minSeparationDistance: 10
+  minRotation: {x: 0, y: 0, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
+  minScale: {x: 1, y: 1, z: 1}
+  maxScale: {x: 1, y: 1, z: 1}
+--- !u!65 &205231695
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 205231692}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &232501957
 GameObject:
   m_ObjectHideFlags: 0
@@ -1504,6 +1581,81 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &658264252
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 658264253}
+  - component: {fileID: 658264255}
+  - component: {fileID: 658264254}
+  m_Layer: 0
+  m_Name: Spike Spawner Right
+  m_TagString: Spawner
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &658264253
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 658264252}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 23.6, y: -379.11673, z: 136.6663}
+  m_LocalScale: {x: 0.01, y: 950, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 177737229}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &658264254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 658264252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79a17b8abe61b142963953701adef15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawnType: 1
+  prefabs:
+  - {fileID: 4442875087141929137, guid: 5be990f49d167a1459d0cf9fbbfa6607, type: 3}
+  spawnCount: 12
+  minSeparationDistance: 10
+  minRotation: {x: 0, y: 0, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
+  minScale: {x: 1, y: 1, z: 1}
+  maxScale: {x: 1, y: 1, z: 1}
+--- !u!65 &658264255
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 658264252}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -2717,7 +2869,7 @@ GameObject:
   - component: {fileID: 1389026482}
   - component: {fileID: 1389026481}
   m_Layer: 0
-  m_Name: Lava Spawner (1)
+  m_Name: Lava Spawner Left
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2950,12 +3102,15 @@ MonoBehaviour:
   m_text: 'Left Mouse to shoot arrows - u can collect them
 
     Right Mouse to dash
-    (consumes energy, deals damage, immunity window)
+    (consumes 15 energy, deals damage, immunity window)
 
-    Space in air to hover (consumes
-    energy) on ground to jump
+    Space in air to hover
+    (consumes energy) on ground to jump
 
-    Red cubes are enemies, they deal damage on contact
+    Red cubes are enemies, they deal damage
+    on contact
+
+    Red capsules on walls are spikes - they deal damage
 
     Orange
     cubes restore energy when inside them'
@@ -3049,7 +3204,7 @@ GameObject:
   - component: {fileID: 1419095551}
   - component: {fileID: 1419095550}
   m_Layer: 0
-  m_Name: Arrow Spawner
+  m_Name: Arrow Spawner Right
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3546,7 +3701,7 @@ GameObject:
   - component: {fileID: 1548665149}
   - component: {fileID: 1548665148}
   m_Layer: 0
-  m_Name: Lava Spawner
+  m_Name: Lava Spawner Right
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3623,7 +3778,7 @@ GameObject:
   - component: {fileID: 1744291261}
   - component: {fileID: 1744291260}
   m_Layer: 0
-  m_Name: Arrow Spawner (1)
+  m_Name: Arrow Spawner Left
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4133,7 +4288,7 @@ GameObject:
   - component: {fileID: 2073126253}
   - component: {fileID: 2073126252}
   m_Layer: 0
-  m_Name: Sidewall Spawner (1)
+  m_Name: Sidewall Spawner Right
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
