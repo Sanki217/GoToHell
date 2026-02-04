@@ -16,6 +16,8 @@ public class DashAbility : MonoBehaviour
     public LineRenderer lineRenderer;
     public Transform shootOrigin;
 
+    private PlayerUpgradeManager upgradeManager;
+
     private Rigidbody rb;
     private PlayerEnergy playerEnergy;
     public bool isDashing = false;
@@ -25,6 +27,7 @@ public class DashAbility : MonoBehaviour
 
     void Start()
     {
+        upgradeManager = GetComponent<PlayerUpgradeManager>();
         rb = GetComponent<Rigidbody>();
         playerEnergy = GetComponent<PlayerEnergy>();
         if (!mainCamera) mainCamera = Camera.main;
@@ -45,7 +48,10 @@ public class DashAbility : MonoBehaviour
 
             if (dashTimer <= 0f)
             {
+
                 isDashing = false;
+                upgradeManager?.DashEnd();
+
                 rb.linearVelocity = dashDirection * postDashMomentum;
             }
         }
@@ -89,7 +95,10 @@ public class DashAbility : MonoBehaviour
             dashVelocity = dashDirection * (Vector3.Distance(origin, dashTarget) / dashDuration);
             dashTimer = dashDuration;
             isDashing = true;
-         //   Camera.main.GetComponent<CameraFollow>()?.Shake(0.1f, 0.1f); // big shake
+
+            upgradeManager?.DashStart();
+
+            //   Camera.main.GetComponent<CameraFollow>()?.Shake(0.1f, 0.1f); // big shake
 
         }
     }

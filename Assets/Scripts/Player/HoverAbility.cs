@@ -14,11 +14,13 @@ public class HoverAbility : MonoBehaviour
     private bool isHovering = false;
     private bool wasOutOfEnergy = false;
 
+    private PlayerUpgradeManager upgradeManager;
     private PlayerMovement movement;
 
 
     void Start()
     {
+        upgradeManager = GetComponent<PlayerUpgradeManager>();
         movement = GetComponent<PlayerMovement>();
         rb = GetComponent<Rigidbody>();
         energySystem = GetComponent<PlayerEnergy>();
@@ -42,10 +44,14 @@ public class HoverAbility : MonoBehaviour
         if (Input.GetKey(KeyCode.Space) && hasEnoughEnergy && !wasOutOfEnergy && !movement.isGrounded)
         {
             isHovering = true;
+            upgradeManager?.HoverStart();
+
         }
         else
         {
             isHovering = false;
+            upgradeManager?.HoverEnd();
+
         }
     }
 
@@ -55,6 +61,8 @@ public class HoverAbility : MonoBehaviour
         {
             // Apply force
             rb.AddForce(Vector3.up * hoverForce, ForceMode.Acceleration);
+
+            upgradeManager?.HoverTick(Time.fixedDeltaTime);
 
             // Clamp vertical velocity
             Vector3 velocity = rb.linearVelocity;

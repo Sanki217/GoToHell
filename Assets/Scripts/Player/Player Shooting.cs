@@ -16,6 +16,7 @@ public class PlayerShooting : MonoBehaviour
     public LineRenderer lineRenderer;
     public float aimLineLength = 20f;
 
+    private PlayerUpgradeManager upgradeManager;
 
     private Camera mainCam;
     private CameraFollow cam;
@@ -28,6 +29,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void Start()
     {
+        upgradeManager = GetComponent<PlayerUpgradeManager>();
         currentArrows = maxArrows;
         mainCam = Camera.main;
         cam = Camera.main.GetComponent<CameraFollow>();
@@ -51,6 +53,7 @@ public class PlayerShooting : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && currentArrows > 0)
         {
             ShootArrow();
+
          
             cam.Shake(0.1f, 0.05f); // small shake
             UpdateArrowUI();
@@ -106,6 +109,9 @@ public class PlayerShooting : MonoBehaviour
         GameObject arrow = Instantiate(arrowPrefab, shootPoint.position, Quaternion.identity);
         arrow.GetComponent<Arrow>().Initialize(shootDir, stickableLayers);
         currentArrows--;
+
+        upgradeManager?.FireArrow(shootDir);
+
     }
 
     public void RestoreArrow()

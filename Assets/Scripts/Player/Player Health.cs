@@ -26,6 +26,9 @@ public class PlayerHealth : MonoBehaviour
     {
         if (isInvincible || dashAbility != null && dashAbility.isDashing)
             return; // INVINCIBLE while dashing
+        
+        GetComponent<PlayerUpgradeManager>()?.DamageTaken(amount);
+
 
         currentLives -= amount;
         if (currentLives >= 1)

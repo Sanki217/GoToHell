@@ -45,6 +45,9 @@ public class PlayerMovement : MonoBehaviour
     private float wallSlideDelayTimer;
     private float wallSlideAccelerationTimer;
 
+    private PlayerUpgradeManager upgradeManager;
+
+
     public enum WallSlidePhase { None, LerpToZero, WaitingAtZero, AcceleratingToSlide, Sliding }
     public WallSlidePhase wallSlidePhase = WallSlidePhase.None;
 
@@ -163,6 +166,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 isWallSliding = true;
                 StartWallSlideSequence();
+                upgradeManager?.WallSlideStart();
             }
         }
         else if (isWallSliding)
@@ -219,6 +223,7 @@ public class PlayerMovement : MonoBehaviour
     private void ResetWallSlide()
     {
         isWallSliding = false;
+        upgradeManager?.WallSlideEnd();
         wallSlidePhase = WallSlidePhase.None;
         wallLerpTimer = 0f;
         wallSlideDelayTimer = 0f;
