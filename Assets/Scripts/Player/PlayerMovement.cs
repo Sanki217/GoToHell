@@ -56,6 +56,9 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         fixedZPosition = transform.position.z;
         rb.useGravity = true;
+
+        upgradeManager = GetComponent<PlayerUpgradeManager>(); 
+
     }
 
     public Vector3 GetVelocity() => rb.linearVelocity;
@@ -186,6 +189,7 @@ public class PlayerMovement : MonoBehaviour
     private void ApplyWallSlideBehavior()
     {
         if (!isWallSliding) return;
+        upgradeManager?.WallSlideTick(Time.fixedDeltaTime);
 
         switch (wallSlidePhase)
         {

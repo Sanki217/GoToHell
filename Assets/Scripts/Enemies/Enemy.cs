@@ -9,10 +9,10 @@ public class Enemy : MonoBehaviour
     public float energyRestoredOnDeath = 5f;
     public int minimumOrbs = 1;
     public int maximumOrbs = 3;
-
     private void Start()
     {
         currentHealth = maxHealth;
+
     }
 
     public void TakeDamage(int amount)
@@ -44,8 +44,15 @@ public class Enemy : MonoBehaviour
 
         GameObject player = GameObject.FindWithTag("Player");
         if (player)
+        {
             player.GetComponent<PlayerEnergy>()?.RestoreEnergy(energyRestoredOnDeath);
 
+            var upgradeMgr = player.GetComponent<PlayerUpgradeManager>();
+            if (upgradeMgr != null)
+                upgradeMgr.EnemyKilled(gameObject);
+        }
+
         Destroy(gameObject);
+
     }
 }

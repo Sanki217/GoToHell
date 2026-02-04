@@ -215,7 +215,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 1
   currentHealth: 0
-  orbPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
+  orbPrefab: {fileID: 3203369467192633994, guid: 3d864d70d709b1e4494d14da5aff2229, type: 3}
   energyRestoredOnDeath: 5
   minimumOrbs: 1
   maximumOrbs: 3
