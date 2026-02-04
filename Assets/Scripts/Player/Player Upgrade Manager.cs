@@ -16,6 +16,12 @@ public class PlayerUpgradeManager : MonoBehaviour
         }
     }
 
+    public bool HasUpgrade(string id)
+    => activeUpgrades.ContainsKey(id);
+
+    public int GetUpgradeLevel(string id)
+        => activeUpgrades.TryGetValue(id, out var inst) ? inst.level : 0;
+
     // === EVENTS (Core Signals) ===
     public event Action<Vector3> OnArrowFired;
     public event Action<GameObject> OnArrowHitEnemy;

@@ -119,6 +119,11 @@ public class PlayerShooting : MonoBehaviour
         currentArrows = Mathf.Clamp(currentArrows + 1, 0, maxArrows);
         UpdateArrowUI();
     }
+    public void ForceShoot(Vector3 direction)
+    {
+        GameObject arrow = Instantiate(arrowPrefab, shootPoint.position, Quaternion.identity);
+        arrow.GetComponent<Arrow>().Initialize(direction, stickableLayers);
+    }
 
-   
+
 }
