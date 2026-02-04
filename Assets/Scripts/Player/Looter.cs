@@ -35,6 +35,15 @@ public class Looter : MonoBehaviour
 
             pickup.StartSuck(player.transform);
         }
+
+        UpgradeOrb upgradeOrb = other.GetComponent<UpgradeOrb>();
+        if (upgradeOrb != null)
+        {
+            var mgr = playerTransform.GetComponent<PlayerUpgradeManager>();
+            if (mgr != null)
+                upgradeOrb.Apply(mgr);
+        }
+
     }
 
     private void OnTriggerStay(Collider other)
