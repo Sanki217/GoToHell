@@ -991,63 +991,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 323077757}
   m_CullTransparentMesh: 1
---- !u!1001 &329033267
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.4036608
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -13.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7633029879013750176, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8853116276484842362, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
-      propertyPath: m_Name
-      value: Bow Extra Arrow (3)
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
 --- !u!1 &331432890
 GameObject:
   m_ObjectHideFlags: 0
@@ -1937,6 +1880,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Bow Extra Arrow (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 8853116276484842362, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2295,18 +2242,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55fed50329e24b4409b0ddc0abc01bf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  arrowPrefab: {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
+  mainArrowPrefab: {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
+  extraArrowPrefab: {fileID: 0}
   shootPoint: {fileID: 1439424210}
   maxArrows: 3
   arrowDots:
   - {fileID: 588770445}
   - {fileID: 1819164548}
   - {fileID: 1384792587}
+  baseArrowSpeed: 14.5
   stickableLayers:
     serializedVersion: 2
     m_Bits: 192
   lineRenderer: {fileID: 1048261601}
   aimLineLength: 0.89
+  maxChargeMultiplier: 3
+  chargeDuration: 1.5
+  timeSlowDuration: 2
+  minTimeScale: 0.2
+  chargeNormalized: 0
+  currentSpeedMultiplier: 1
 --- !u!114 &1048261600
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3036,6 +2991,10 @@ PrefabInstance:
     - target: {fileID: 8853116276484842362, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
       propertyPath: m_Name
       value: Bow Extra Arrow (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8853116276484842362, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -4614,6 +4573,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Enemy Explosion
       objectReference: {fileID: 0}
+    - target: {fileID: 3203369467192633994, guid: 3d864d70d709b1e4494d14da5aff2229, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3443918146638095093, guid: 3d864d70d709b1e4494d14da5aff2229, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -4670,6 +4633,10 @@ PrefabInstance:
     - target: {fileID: 1647045993115609692, guid: 934f4b4d415b3444e96e156178ee182c, type: 3}
       propertyPath: m_Name
       value: Wall Slide Damage
+      objectReference: {fileID: 0}
+    - target: {fileID: 1647045993115609692, guid: 934f4b4d415b3444e96e156178ee182c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2981701369778892077, guid: 934f4b4d415b3444e96e156178ee182c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4768,6 +4735,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Bow Extra Arrow
       objectReference: {fileID: 0}
+    - target: {fileID: 8853116276484842362, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4825,6 +4796,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Dash Pulse
       objectReference: {fileID: 0}
+    - target: {fileID: 9114732291975410541, guid: dfd27593f55a8c84bbcdc0d0dcc1ee58, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4846,7 +4821,6 @@ SceneRoots:
   - {fileID: 3946301743067428910}
   - {fileID: 1388031381}
   - {fileID: 889051291}
-  - {fileID: 329033267}
   - {fileID: 5821722827078297135}
   - {fileID: 3244301516454970741}
   - {fileID: 2579580911748910583}

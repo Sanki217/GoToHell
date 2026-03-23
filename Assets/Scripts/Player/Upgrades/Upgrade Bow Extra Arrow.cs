@@ -10,7 +10,10 @@ public class UpgradeBowExtraArrow : PlayerUpgrade
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
         shooting = mgr.GetComponent<PlayerShooting>();
-        mgr.OnArrowFired += OnArrowFired;
+
+        mgr.OnWeakArrowFired += OnArrowFired;
+        mgr.OnMediumArrowFired += OnArrowFired;
+        mgr.OnChargedArrowFired += OnArrowFired;
     }
 
     public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel)
@@ -18,19 +21,31 @@ public class UpgradeBowExtraArrow : PlayerUpgrade
         level = newLevel;
     }
 
-    private void OnArrowFired(Vector3 dir)
+    private void OnArrowFired(Vector3 dir, float speedMultiplier)
     {
-        if (shooting == null) return;
+        if (shooting == null)
+            return;
 
-        // Fire (level) extra arrows in a small cone
-        float spread = 20f;
+        int arrowsToSpawn = level;
 
-        for (int i = 0; i < level; i++)
+        for (int i = 0; i < arrowsToSpawn; i++)
         {
-            float angle = Random.Range(-spread, spread);
+            float angle = GetSpreadAngle(i + 1);
             Vector3 newDir = Quaternion.Euler(0, 0, angle) * dir;
 
-            shooting.ForceShoot(newDir); // we add this method
+            shooting.SpawnExtraArrow(newDir, speedMultiplier);
         }
+    }
+
+
+    private float GetSpreadAngle(int index)
+    {
+        int step = (index + 1) / 2;   // 1,1,2,2,3,3...
+        float angle = step * 5f;
+
+        if (index % 2 == 0)
+            angle = -angle;
+
+        return angle;
     }
 }

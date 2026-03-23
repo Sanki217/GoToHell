@@ -23,7 +23,12 @@ public class PlayerUpgradeManager : MonoBehaviour
         => activeUpgrades.TryGetValue(id, out var inst) ? inst.level : 0;
 
     // === EVENTS (Core Signals) ===
-    public event Action<Vector3> OnArrowFired;
+
+    public event Action<Vector3, float> OnWeakArrowFired;
+    public event Action<Vector3, float> OnMediumArrowFired;
+    public event Action<Vector3, float> OnChargedArrowFired;
+
+
     public event Action<GameObject> OnArrowHitEnemy;
 
     public event Action OnDashStarted;
@@ -46,7 +51,13 @@ public class PlayerUpgradeManager : MonoBehaviour
         new Dictionary<string, PlayerUpgradeInstance>();
 
     // === EVENT TRIGGERS ===
-    public void FireArrow(Vector3 direction) => OnArrowFired?.Invoke(direction);
+    public void FireWeakArrow(Vector3 dir, float speed) => OnWeakArrowFired?.Invoke(dir, speed);
+
+    public void FireMediumArrow(Vector3 dir, float charge) => OnMediumArrowFired?.Invoke(dir, charge);
+
+    public void FireChargedArrow(Vector3 dir, float speed) => OnChargedArrowFired?.Invoke(dir, speed);
+
+
     public void ArrowHitEnemy(GameObject enemy) => OnArrowHitEnemy?.Invoke(enemy);
 
     public void DashStart() => OnDashStarted?.Invoke();

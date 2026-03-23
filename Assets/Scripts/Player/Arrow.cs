@@ -10,6 +10,12 @@ public class Arrow : MonoBehaviour
     private bool hasLanded = false;
     private float currentVelocity;
 
+    [Header("Spawn Safety")]
+    public float armDelay = 0.05f;
+
+    private float lifeTime;
+
+
     [Header("Collision Layers")]
     public LayerMask stickableLayers;
 
@@ -22,11 +28,14 @@ public class Arrow : MonoBehaviour
 
     private void Update()
     {
+        lifeTime += Time.deltaTime;
+
         if (hasLanded)
         {
             currentVelocity = 0f;
             return;
         }
+
 
         Vector3 move = direction * speed * Time.deltaTime;
         currentVelocity = move.magnitude / Time.deltaTime;
