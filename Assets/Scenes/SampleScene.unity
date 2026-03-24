@@ -129,7 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 27474412}
   m_Layer: 0
-  m_Name: Enwironment
+  m_Name: Environment
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -394,7 +394,7 @@ GameObject:
   - component: {fileID: 135053054}
   - component: {fileID: 135053053}
   m_Layer: 5
-  m_Name: OrbText
+  m_Name: SoulText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1400,11 +1400,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 620882560}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d56a5dc82f4a65941bccdeee0f35e47a, type: 3}
+  m_Script: {fileID: 11500000, guid: 5973f24a1abe84049b4ae8f76a93f717, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   playerInventory: {fileID: 1048261603}
-  orbText: {fileID: 135053053}
+  soulText: {fileID: 135053053}
 --- !u!1 &629914954
 GameObject:
   m_ObjectHideFlags: 0
@@ -2250,16 +2250,16 @@ MonoBehaviour:
   - {fileID: 588770445}
   - {fileID: 1819164548}
   - {fileID: 1384792587}
-  baseArrowSpeed: 14.5
+  baseArrowSpeed: 30
   stickableLayers:
     serializedVersion: 2
     m_Bits: 192
   lineRenderer: {fileID: 1048261601}
   aimLineLength: 0.89
   maxChargeMultiplier: 3
-  chargeDuration: 1.5
-  timeSlowDuration: 2
-  minTimeScale: 0.2
+  chargeDuration: 1
+  timeSlowDuration: 1.5
+  minTimeScale: 0.5
   chargeNormalized: 0
   currentSpeedMultiplier: 1
 --- !u!114 &1048261600
@@ -2421,7 +2421,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0556ce76246b71e4389134d6f34eadd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentOrbs: 0
+  currentSouls: 0
 --- !u!114 &1048261604
 MonoBehaviour:
   m_ObjectHideFlags: 0

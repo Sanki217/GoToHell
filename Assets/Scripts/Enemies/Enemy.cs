@@ -5,14 +5,14 @@ public class Enemy : MonoBehaviour
     public int maxHealth = 1;
     public int currentHealth;
 
-    public GameObject orbPrefab;
+    public GameObject soulPrefab;
     public float energyRestoredOnDeath = 5f;
-    public int minimumOrbs = 1;
-    public int maximumOrbs = 3;
+    public int minimumSouls = 1;
+    public int maximumSouls = 3;
+
     private void Start()
     {
         currentHealth = maxHealth;
-
     }
 
     public void TakeDamage(int amount)
@@ -24,19 +24,19 @@ public class Enemy : MonoBehaviour
 
     private void Die()
     {
-        int orbCount = Random.Range(minimumOrbs, maximumOrbs);
+        int soulCount = Random.Range(minimumSouls, maximumSouls + 1);
 
-        for (int i = 0; i < orbCount; i++)
+        for (int i = 0; i < soulCount; i++)
         {
-            if (!orbPrefab) break;
+            if (!soulPrefab) break;
 
-            GameObject o = Instantiate(orbPrefab, transform.position, Quaternion.identity);
-            Orb orb = o.GetComponent<Orb>();
-            if (orb != null)
+            GameObject s = Instantiate(soulPrefab, transform.position, Quaternion.identity);
+            Soul soul = s.GetComponent<Soul>();
+            if (soul != null)
             {
                 float angle = Random.Range(-60f, 60f) * Mathf.Deg2Rad;
                 Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f).normalized;
-                orb.Initialize(dir, Random.Range(4f, 9f));
+                soul.Initialize(dir, Random.Range(4f, 9f));
             }
         }
 
@@ -53,6 +53,5 @@ public class Enemy : MonoBehaviour
         }
 
         Destroy(gameObject);
-
     }
 }

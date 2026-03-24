@@ -6,24 +6,30 @@ public class Arrow : MonoBehaviour
     public float speed = 50f;
     public float damageVelocityThreshold = 0.1f;
 
-    private Vector3 direction;
-    private bool hasLanded = false;
-    private float currentVelocity;
-
     [Header("Spawn Safety")]
     public float armDelay = 0.05f;
 
-    private float lifeTime;
-
-
     [Header("Collision Layers")]
     public LayerMask stickableLayers;
+
+    private Vector3 direction;
+    private bool hasLanded = false;
+    private float currentVelocity;
+    private float lifeTime;
+
+    // Reference to the upgrade manager so we can fire events
+    private PlayerUpgradeManager upgradeManager;
 
     public void Initialize(Vector3 shootDirection, LayerMask stickLayers)
     {
         direction = shootDirection.normalized;
         stickableLayers = stickLayers;
         transform.rotation = Quaternion.LookRotation(Vector3.forward, direction);
+
+        // Find the upgrade manager on the player
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+            upgradeManager = player.GetComponent<PlayerUpgradeManager>();
     }
 
     private void Update()
@@ -35,7 +41,6 @@ public class Arrow : MonoBehaviour
             currentVelocity = 0f;
             return;
         }
-
 
         Vector3 move = direction * speed * Time.deltaTime;
         currentVelocity = move.magnitude / Time.deltaTime;
@@ -63,7 +68,7 @@ public class Arrow : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Damage only if arrow is still moving
+        // Only damage if arrow is still moving
         if (currentVelocity < damageVelocityThreshold)
             return;
 
@@ -74,6 +79,9 @@ public class Arrow : MonoBehaviour
         if (enemy != null)
         {
             enemy.TakeDamage(1);
+
+            // Fire the upgrade event so upgrades can react to arrow hits
+            upgradeManager?.ArrowHitEnemy(other.gameObject);
         }
     }
 }

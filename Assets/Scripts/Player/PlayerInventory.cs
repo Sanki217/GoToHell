@@ -3,21 +3,21 @@ using System;
 
 public class PlayerInventory : MonoBehaviour
 {
-    public int currentOrbs = 0;
-    public event Action<int> OnOrbsChanged;
+    public int currentSouls = 0;
+    public event Action<int> OnSoulsChanged;
 
-    public void AddOrbs(int amount)
+    public void AddSouls(int amount)
     {
-        currentOrbs += amount;
-        OnOrbsChanged?.Invoke(currentOrbs);
+        currentSouls += amount;
+        OnSoulsChanged?.Invoke(currentSouls);
     }
 
-    public bool SpendOrbs(int amount)
+    public bool SpendSouls(int amount)
     {
-        if (currentOrbs >= amount)
+        if (currentSouls >= amount)
         {
-            currentOrbs -= amount;
-            OnOrbsChanged?.Invoke(currentOrbs);
+            currentSouls -= amount;
+            OnSoulsChanged?.Invoke(currentSouls);
             return true;
         }
         return false;

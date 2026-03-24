@@ -10,7 +10,7 @@ TagManager:
   - EnemySensor
   - LavaZone
   - Wall
-  - Orb
+  - Soul
   layers:
   - Default
   - TransparentFX

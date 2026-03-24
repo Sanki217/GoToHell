@@ -1,4 +1,5 @@
 using UnityEngine;
+
 public class Looter : MonoBehaviour
 {
     [Header("Looter (child of Player)")]
@@ -6,7 +7,6 @@ public class Looter : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerShooting player;
 
-   
     void Start()
     {
         player = GetComponentInParent<PlayerShooting>();
@@ -20,22 +20,23 @@ public class Looter : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.TryGetComponent<Orb>(out Orb orb))
+        // Soul pickup
+        if (other.TryGetComponent<Soul>(out Soul soul))
         {
-            orb.StartAttract(playerTransform, playerInventory);
+            soul.StartAttract(playerTransform, playerInventory);
         }
 
+        // Arrow pickup
         ArrowPickup pickup = other.GetComponent<ArrowPickup>();
-
         if (pickup != null && pickup.canPickUp && !pickup.isBeingSucked)
         {
-            //do not suck if player is full
             if (player != null && player.HasMaxArrows())
                 return;
 
             pickup.StartSuck(player.transform);
         }
 
+        // Upgrade orb pickup
         UpgradeOrb upgradeOrb = other.GetComponent<UpgradeOrb>();
         if (upgradeOrb != null)
         {
@@ -43,7 +44,6 @@ public class Looter : MonoBehaviour
             if (mgr != null)
                 upgradeOrb.Apply(mgr);
         }
-
     }
 
     private void OnTriggerStay(Collider other)
@@ -52,13 +52,10 @@ public class Looter : MonoBehaviour
 
         if (pickup != null && pickup.canPickUp && !pickup.isBeingSucked)
         {
-            // If player had max arrows before but no longer has max, start sucking now
             if (!player.HasMaxArrows())
             {
                 pickup.StartSuck(player.transform);
             }
         }
     }
-
-    // no need for OnTriggerExit for this implementation
 }

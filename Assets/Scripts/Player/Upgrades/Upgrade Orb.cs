@@ -20,7 +20,7 @@ public class UpgradeOrb : MonoBehaviour
             UpgradeType.BowExtraArrow => new UpgradeBowExtraArrow(),
             UpgradeType.DashPulse => new UpgradeDashPulse(),
             UpgradeType.WallSlideDamage => new Upgrade_WallSlide_Damage(),
-          //  UpgradeType.HoverRegen => new UpgradeHoverRegen(),
+            UpgradeType.HoverRegen => new Upgrade_Hover_Regen(),
             UpgradeType.EnemyExplosion => new Upgrade_Enemy_Explosion(),
             _ => null
         };

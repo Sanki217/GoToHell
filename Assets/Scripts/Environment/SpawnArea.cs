@@ -10,7 +10,7 @@ public class SpawnArea : MonoBehaviour
         Enemies,
         Magma,
         ArrowsOnWalls,
-        Orbs,
+        Souls,
         Destructibles
     }
 

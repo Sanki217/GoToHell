@@ -1,10 +1,10 @@
 using UnityEngine;
 using TMPro;
 
-public class OrbUI : MonoBehaviour
+public class SoulUI : MonoBehaviour
 {
     public PlayerInventory playerInventory;
-    public TMP_Text orbText;
+    public TMP_Text soulText;
 
     void Start()
     {
@@ -12,20 +12,20 @@ public class OrbUI : MonoBehaviour
             playerInventory = Object.FindFirstObjectByType<PlayerInventory>();
 
         if (playerInventory != null)
-            playerInventory.OnOrbsChanged += UpdateText;
+            playerInventory.OnSoulsChanged += UpdateText;
 
-        UpdateText(playerInventory != null ? playerInventory.currentOrbs : 0);
+        UpdateText(playerInventory != null ? playerInventory.currentSouls : 0);
     }
 
     void UpdateText(int amount)
     {
-        if (orbText != null)
-            orbText.text = "Points: " + amount;
+        if (soulText != null)
+            soulText.text = "Souls: " + amount;
     }
 
     private void OnDestroy()
     {
         if (playerInventory != null)
-            playerInventory.OnOrbsChanged -= UpdateText;
+            playerInventory.OnSoulsChanged -= UpdateText;
     }
 }

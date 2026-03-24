@@ -7,8 +7,7 @@ public class PlayerShooting : MonoBehaviour
 
     [Header("Arrow Prefabs")]
     public GameObject mainArrowPrefab;
-    public GameObject extraArrowPrefab; // ← ADD THIS
-
+    public GameObject extraArrowPrefab;
 
     [Header("Shooting Point")]
     public Transform shootPoint;
@@ -19,7 +18,7 @@ public class PlayerShooting : MonoBehaviour
     public GameObject[] arrowDots;
 
     [Header("Arrow Speed")]
-    public float baseArrowSpeed = 15f; // WEAK shot speed (100%)
+    public float baseArrowSpeed = 15f;
 
     [Header("Stickable Layers")]
     public LayerMask stickableLayers;
@@ -33,14 +32,17 @@ public class PlayerShooting : MonoBehaviour
     // ================= CHARGING =================
 
     [Header("Charge Shot")]
-    public float maxChargeMultiplier = 3f;     // 300%
+    public float maxChargeMultiplier = 3f;
     public float chargeDuration = 1.5f;
     public float timeSlowDuration = 2f;
     public float minTimeScale = 0.2f;
 
+    [Header("Charge Energy Cost")]
+    public float chargeEnergyPerSecond = 5f;   // energy drained per second while charging
+
     [Header("Debug / Inspector")]
     [Range(0f, 1f)]
-    public float chargeNormalized;              // 0 → 1
+    public float chargeNormalized;
     public float currentSpeedMultiplier = 1f;
 
     // ================= STATE =================
@@ -51,6 +53,7 @@ public class PlayerShooting : MonoBehaviour
     private Camera mainCam;
     private CameraFollow cam;
     private PlayerUpgradeManager upgradeManager;
+    private PlayerEnergy playerEnergy;
 
     private float originalCamZ;
 
@@ -59,6 +62,7 @@ public class PlayerShooting : MonoBehaviour
     void Start()
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
+        playerEnergy = GetComponent<PlayerEnergy>();
 
         mainCam = Camera.main;
         cam = mainCam.GetComponent<CameraFollow>();
@@ -98,6 +102,19 @@ public class PlayerShooting : MonoBehaviour
         if (Input.GetMouseButton(0) && isCharging)
         {
             ChargeTick();
+
+            // --- Energy drain while charging ---
+            // Use unscaled delta because time is slowed during charge
+            float energyCost = chargeEnergyPerSecond * Time.unscaledDeltaTime;
+            bool hadEnergy = playerEnergy.SpendEnergy(energyCost);
+
+            if (!hadEnergy)
+            {
+                // Out of energy — fire immediately at current charge level
+                upgradeManager?.ArrowChargeCancelledByEnergy(chargeNormalized);
+                FireChargedArrow();
+                ResetCharge();
+            }
         }
 
         if (Input.GetMouseButtonUp(0) && isCharging)
@@ -116,12 +133,12 @@ public class PlayerShooting : MonoBehaviour
         chargeNormalized = Mathf.Clamp01(chargeTimer / chargeDuration);
         currentSpeedMultiplier = Mathf.Lerp(1f, maxChargeMultiplier, chargeNormalized);
 
-        // ---- Time Slow ----
+        // Time slow
         float slowT = Mathf.Clamp01(chargeTimer / timeSlowDuration);
         Time.timeScale = Mathf.Lerp(1f, minTimeScale, slowT);
         Time.fixedDeltaTime = 0.02f * Time.timeScale;
 
-        // ---- Camera Zoom ----
+        // Camera zoom
         float targetZ = Mathf.Lerp(originalCamZ, originalCamZ + 3f, slowT);
         Vector3 camPos = cam.transform.position;
         cam.transform.position = new Vector3(camPos.x, camPos.y, targetZ);
@@ -148,39 +165,21 @@ public class PlayerShooting : MonoBehaviour
         Vector3 mouseWorld = GetMouseWorld();
         Vector3 dir = (mouseWorld - shootPoint.position).normalized;
 
-        // ---- MAIN ARROW (consumes ammo) ----
-        SpawnArrow(
-            mainArrowPrefab,
-            dir,
-            currentSpeedMultiplier,
-            consumeAmmo: true
-        );
+        SpawnArrow(mainArrowPrefab, dir, currentSpeedMultiplier, consumeAmmo: true);
 
-        // ---- UPGRADE EVENTS ----
         if (chargeNormalized <= 0f)
-        {
             upgradeManager.FireWeakArrow(dir, currentSpeedMultiplier);
-        }
         else if (chargeNormalized < 1f)
-        {
             upgradeManager.FireMediumArrow(dir, chargeNormalized);
-        }
         else
-        {
             upgradeManager.FireChargedArrow(dir, currentSpeedMultiplier);
-        }
 
         cam.Shake(0.12f, 0.08f);
     }
 
     // ================= GENERIC ARROW SPAWN =================
-    // Used by upgrades (free arrows, different prefabs, etc.)
 
-    public void SpawnArrow(
-        GameObject prefab,
-        Vector3 dir,
-        float speedMultiplier,
-        bool consumeAmmo)
+    public void SpawnArrow(GameObject prefab, Vector3 dir, float speedMultiplier, bool consumeAmmo)
     {
         if (consumeAmmo && currentArrows <= 0)
             return;
@@ -245,5 +244,4 @@ public class PlayerShooting : MonoBehaviour
         a.Initialize(dir.normalized, stickableLayers);
         a.speed = baseArrowSpeed * speedMultiplier;
     }
-
 }
