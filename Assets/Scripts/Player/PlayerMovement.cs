@@ -2,7 +2,7 @@
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement Settings")]
+    [Header("Movement Settings — defaults, overridden by PlayerStats at runtime")]
     public float moveSpeed = 10f;
     public float acceleration = 20f;
     public float deceleration = 25f;
@@ -31,7 +31,16 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 currentVelocity;
     public float currentYVelocity = 0f;
 
+    // ── live values: read from PlayerStats when available ──
+    private float MoveSpeed => playerStats != null ? playerStats.moveSpeed : moveSpeed;
+    private float JumpForce => playerStats != null ? playerStats.jumpForce : jumpForce;
+    private int MaxJumps => playerStats != null ? playerStats.maxJumps : maxJumps;
+    private float MaxWallSlide => playerStats != null ? playerStats.wallSlideSpeed : maxWallSlideSpeed;
+
     private Rigidbody rb;
+    private PlayerStats playerStats;
+    private PlayerUpgradeManager upgradeManager;
+
     private bool isFacingRight = true;
     private int jumpCount;
     public bool isWallSliding;
@@ -45,9 +54,6 @@ public class PlayerMovement : MonoBehaviour
     private float wallSlideDelayTimer;
     private float wallSlideAccelerationTimer;
 
-    private PlayerUpgradeManager upgradeManager;
-
-
     public enum WallSlidePhase { None, LerpToZero, WaitingAtZero, AcceleratingToSlide, Sliding }
     public WallSlidePhase wallSlidePhase = WallSlidePhase.None;
 
@@ -56,13 +62,11 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         fixedZPosition = transform.position.z;
         rb.useGravity = true;
-
-        upgradeManager = GetComponent<PlayerUpgradeManager>(); 
-
+        playerStats = GetComponent<PlayerStats>();
+        upgradeManager = GetComponent<PlayerUpgradeManager>();
     }
 
     public Vector3 GetVelocity() => rb.linearVelocity;
-
     public void RestoreJumpCharges() => jumpCount = 0;
 
     private void Update()
@@ -80,7 +84,6 @@ public class PlayerMovement : MonoBehaviour
         Flip();
         currentVelocity = rb.linearVelocity;
         currentYVelocity = rb.linearVelocity.y;
-
     }
 
     private void FixedUpdate()
@@ -89,9 +92,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (!state.HasControl())
         {
-            if (state.AllowKickMovement())
-                return;
-
+            if (state.AllowKickMovement()) return;
             rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
         }
@@ -106,8 +107,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleInput()
     {
-        if (!GetComponent<PlayerStateController>().HasControl())
-            return;
+        if (!GetComponent<PlayerStateController>().HasControl()) return;
 
         if (Input.GetButtonDown("Jump"))
         {
@@ -117,9 +117,16 @@ public class PlayerMovement : MonoBehaviour
             }
             else if (isGrounded)
             {
-                rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, 0f);
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, JumpForce, 0f);
                 jumpCount = 1;
                 ResetWallSlide();
+                upgradeManager?.Jump(1);
+            }
+            else if (jumpCount < MaxJumps)
+            {
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, JumpForce, 0f);
+                jumpCount++;
+                upgradeManager?.Jump(jumpCount);
             }
         }
     }
@@ -127,10 +134,14 @@ public class PlayerMovement : MonoBehaviour
     private void DoWallJump()
     {
         float direction = touchingWallRight ? -1f : 1f;
-        Vector3 jumpVelocity = new Vector3(wallJumpDirection.x * direction * wallJumpForce, wallJumpDirection.y * wallJumpForce, 0f);
+        Vector3 jumpVelocity = new Vector3(
+            wallJumpDirection.x * direction * wallJumpForce,
+            wallJumpDirection.y * wallJumpForce,
+            0f);
         rb.linearVelocity = jumpVelocity;
         jumpCount++;
         ResetWallSlide();
+        upgradeManager?.Jump(jumpCount);
     }
 
     private void ApplyHorizontalMovement()
@@ -138,13 +149,10 @@ public class PlayerMovement : MonoBehaviour
         float moveInput = Input.GetAxisRaw("Horizontal");
 
         if ((moveInput > 0 && touchingWallRight) || (moveInput < 0 && touchingWallLeft))
-        {
             moveInput = 0;
-        }
 
-        float targetSpeed = moveInput * moveSpeed;
+        float targetSpeed = moveInput * MoveSpeed;
         float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : deceleration;
-
         float velocityX = Mathf.MoveTowards(rb.linearVelocity.x, targetSpeed, accelRate * Time.fixedDeltaTime);
         rb.linearVelocity = new Vector3(velocityX, rb.linearVelocity.y, -2f);
     }
@@ -189,6 +197,7 @@ public class PlayerMovement : MonoBehaviour
     private void ApplyWallSlideBehavior()
     {
         if (!isWallSliding) return;
+
         upgradeManager?.WallSlideTick(Time.fixedDeltaTime);
 
         switch (wallSlidePhase)
@@ -198,28 +207,23 @@ public class PlayerMovement : MonoBehaviour
                 float lerpT = Mathf.Clamp01(wallLerpTimer / wallLerpToZeroTime);
                 float newY = Mathf.Lerp(rb.linearVelocity.y, wallSlideStopSpeed, lerpT);
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, newY, 0f);
-                if (lerpT >= 1f) { wallSlidePhase = WallSlidePhase.AcceleratingToSlide; wallSlideDelayTimer = 0f; }
+                if (lerpT >= 1f)
+                {
+                    wallSlidePhase = WallSlidePhase.AcceleratingToSlide;
+                    wallSlideDelayTimer = 0f;
+                }
                 break;
 
-          //  case WallSlidePhase.WaitingAtZero:
-          //      rb.linearVelocity = new Vector3(rb.linearVelocity.x, wallSlideStopSpeed, 0f);
-          //      wallSlideDelayTimer += Time.fixedDeltaTime;
-          //      if (wallSlideDelayTimer >= wallSlideDelay) { wallSlidePhase = WallSlidePhase.AcceleratingToSlide; wallSlideAccelerationTimer = 0f; }
-          //      break;
-
             case WallSlidePhase.AcceleratingToSlide:
-                //rb.linearVelocity = currentVelocity;
-                //rb.linearVelocity = new Vector3(rb.linearVelocity.x, rb.linearVelocity.y, 0f);
-               // rb.lineVelocity.y = 
                 wallSlideAccelerationTimer += Time.fixedDeltaTime;
                 float accelT = Mathf.Clamp01(wallSlideAccelerationTimer / wallSlideAccelerationTime);
-                float acceleratingY = Mathf.Lerp(wallSlideStopSpeed, maxWallSlideSpeed, accelT);
+                float acceleratingY = Mathf.Lerp(wallSlideStopSpeed, MaxWallSlide, accelT);
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, acceleratingY, 0f);
-                if (accelT >= 1f) { wallSlidePhase = WallSlidePhase.Sliding; }
+                if (accelT >= 1f) wallSlidePhase = WallSlidePhase.Sliding;
                 break;
 
             case WallSlidePhase.Sliding:
-                rb.linearVelocity = new Vector3(rb.linearVelocity.x, maxWallSlideSpeed, 0f);
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, MaxWallSlide, 0f);
                 break;
         }
     }
@@ -256,7 +260,6 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
-
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, Vector3.right * wallCheckDistance);
         Gizmos.DrawRay(transform.position, Vector3.left * wallCheckDistance);

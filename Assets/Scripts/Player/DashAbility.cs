@@ -4,9 +4,11 @@ using UnityEngine;
 public class DashAbility : MonoBehaviour
 {
     [Header("Dash Settings")]
+    [Tooltip("Default value — overridden at runtime by PlayerStats.dashCost")]
     public float dashCost = 20f;
-    public float dashDuration = 0.3f;
+    [Tooltip("Default value — overridden at runtime by PlayerStats.dashDistance")]
     public float maxDashRange = 10f;
+    public float dashDuration = 0.3f;
     public float postDashMomentum = 10f;
     public int dashDamage = 1;
     public LayerMask dashCollisionLayers;
@@ -17,17 +19,24 @@ public class DashAbility : MonoBehaviour
     public Transform shootOrigin;
 
     private PlayerUpgradeManager upgradeManager;
-
+    private PlayerStats playerStats;
     private Rigidbody rb;
     private PlayerEnergy playerEnergy;
+
     public bool isDashing = false;
-    private float dashTimer = 0f;
+    private float dashTimer;
     private Vector3 dashDirection;
     private Vector3 dashVelocity;
+
+    // ── runtime values read from PlayerStats each frame ──
+    private float CurrentDashCost => playerStats != null ? playerStats.dashCost : dashCost;
+    private float CurrentDashRange => playerStats != null ? playerStats.dashDistance : maxDashRange;
+    private float CurrentDashDmg => playerStats != null ? playerStats.dashDamage : dashDamage;
 
     void Start()
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
+        playerStats = GetComponent<PlayerStats>();
         rb = GetComponent<Rigidbody>();
         playerEnergy = GetComponent<PlayerEnergy>();
         if (!mainCamera) mainCamera = Camera.main;
@@ -41,19 +50,16 @@ public class DashAbility : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (isDashing)
+        if (!isDashing) return;
+
+        rb.linearVelocity = dashVelocity;
+        dashTimer -= Time.fixedDeltaTime;
+
+        if (dashTimer <= 0f)
         {
-            rb.linearVelocity = dashVelocity;
-            dashTimer -= Time.fixedDeltaTime;
-
-            if (dashTimer <= 0f)
-            {
-
-                isDashing = false;
-                upgradeManager?.DashEnd();
-
-                rb.linearVelocity = dashDirection * postDashMomentum;
-            }
+            isDashing = false;
+            upgradeManager?.DashEnd();
+            rb.linearVelocity = dashDirection * postDashMomentum;
         }
     }
 
@@ -65,19 +71,14 @@ public class DashAbility : MonoBehaviour
             Vector3 origin = shootOrigin.position;
             Vector3 direction = (cursorWorld - origin).normalized;
             float distanceToCursor = Vector3.Distance(origin, cursorWorld);
+            float intendedDistance = Mathf.Min(distanceToCursor, CurrentDashRange);
 
-            // Clamp to max dash range
-            float intendedDistance = Mathf.Min(distanceToCursor, maxDashRange);
-
-            // Raycast to avoid going through walls
             Ray ray = new Ray(origin, direction);
             Vector3 dashTarget;
 
             if (Physics.Raycast(ray, out RaycastHit hit, intendedDistance, dashCollisionLayers))
             {
                 dashTarget = hit.point;
-
-                // Too close to wall � skip dash and energy drain
                 if (Vector3.Distance(origin, dashTarget) < 0.5f)
                     return;
             }
@@ -86,20 +87,15 @@ public class DashAbility : MonoBehaviour
                 dashTarget = origin + direction * intendedDistance;
             }
 
-            // Spend energy
-            if (!playerEnergy.SpendEnergy(dashCost))
+            if (!playerEnergy.SpendEnergy(CurrentDashCost))
                 return;
 
-            // Start dash
             dashDirection = (dashTarget - origin).normalized;
             dashVelocity = dashDirection * (Vector3.Distance(origin, dashTarget) / dashDuration);
             dashTimer = dashDuration;
             isDashing = true;
 
             upgradeManager?.DashStart();
-
-            //   Camera.main.GetComponent<CameraFollow>()?.Shake(0.1f, 0.1f); // big shake
-
         }
     }
 
@@ -111,19 +107,15 @@ public class DashAbility : MonoBehaviour
         Vector3 origin = shootOrigin.position;
         Vector3 direction = (cursorWorld - origin).normalized;
         float distanceToCursor = Vector3.Distance(origin, cursorWorld);
-        float intendedDistance = Mathf.Min(distanceToCursor, maxDashRange);
+        float intendedDistance = Mathf.Min(distanceToCursor, CurrentDashRange);
 
         Ray ray = new Ray(origin, direction);
         Vector3 endPoint;
 
         if (Physics.Raycast(ray, out RaycastHit hit, intendedDistance, dashCollisionLayers))
-        {
             endPoint = hit.point;
-        }
         else
-        {
             endPoint = origin + direction * intendedDistance;
-        }
 
         lineRenderer.SetPosition(0, origin);
         lineRenderer.SetPosition(1, endPoint);
@@ -134,20 +126,30 @@ public class DashAbility : MonoBehaviour
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         Plane plane = new Plane(Vector3.forward, shootOrigin.position);
         if (plane.Raycast(ray, out float distance))
-        {
             return ray.GetPoint(distance);
-        }
         return shootOrigin.position;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isDashing && other.CompareTag("Enemy"))
-        {
-            Enemy enemy = other.GetComponent<Enemy>();
-            if (enemy != null)
+        if (!isDashing || !other.CompareTag("Enemy")) return;
 
-                enemy.TakeDamage(dashDamage);
-        }
+        Enemy enemy = other.GetComponent<Enemy>();
+        if (enemy == null) return;
+
+        // Read knockback from PlayerStats
+        float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
+        Vector3 kbDir = (other.transform.position - transform.position).normalized;
+
+        enemy.TakeDamage(
+            Mathf.RoundToInt(CurrentDashDmg),
+            other.transform.position,
+            kbDir,
+            kbForce,
+            false,
+            FloatingTextManager.HitType.Normal
+        );
+
+        upgradeManager?.DashHitEnemy(other.gameObject);
     }
 }

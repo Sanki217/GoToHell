@@ -5,23 +5,29 @@ public class HoverAbility : MonoBehaviour
 {
     [Header("Hover Settings")]
     public float hoverForce = 5f;
-    public float energyDrainPerSecond = 10f;
     public float maxUpwardSpeed = 5f;
     public float minEnergyToHover = 5f;
 
+    [Tooltip("Default value — overridden at runtime by PlayerStats.hoverDrainRate")]
+    public float energyDrainPerSecond = 10f;
+
     private Rigidbody rb;
     private PlayerEnergy energySystem;
+    private PlayerUpgradeManager upgradeManager;
+    private PlayerMovement movement;
+    private PlayerStats playerStats;
+
     private bool isHovering = false;
     private bool wasOutOfEnergy = false;
 
-    private PlayerUpgradeManager upgradeManager;
-    private PlayerMovement movement;
-
+    // reads live value from PlayerStats if available
+    private float DrainRate => playerStats != null ? playerStats.hoverDrainRate : energyDrainPerSecond;
 
     void Start()
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
         movement = GetComponent<PlayerMovement>();
+        playerStats = GetComponent<PlayerStats>();
         rb = GetComponent<Rigidbody>();
         energySystem = GetComponent<PlayerEnergy>();
     }
@@ -36,46 +42,39 @@ public class HoverAbility : MonoBehaviour
 
         bool hasEnoughEnergy = energySystem.currentEnergy >= minEnergyToHover;
 
-        // If player was out of energy and now above threshold, allow hover again
         if (hasEnoughEnergy)
             wasOutOfEnergy = false;
 
-        // Start hover if holding space and energy is above threshold
         if (Input.GetKey(KeyCode.Space) && hasEnoughEnergy && !wasOutOfEnergy && !movement.isGrounded)
         {
             isHovering = true;
             upgradeManager?.HoverStart();
-
         }
         else
         {
             isHovering = false;
             upgradeManager?.HoverEnd();
-
         }
     }
 
     void FixedUpdate()
     {
-        if (isHovering)
-        {
-            // Apply force
-            rb.AddForce(Vector3.up * hoverForce, ForceMode.Acceleration);
+        if (!isHovering) return;
 
-            upgradeManager?.HoverTick(Time.fixedDeltaTime);
+        rb.AddForce(Vector3.up * hoverForce, ForceMode.Acceleration);
 
-            // Clamp vertical velocity
-            Vector3 velocity = rb.linearVelocity;
-            if (velocity.y > maxUpwardSpeed)
-                velocity.y = maxUpwardSpeed;
-            rb.linearVelocity = velocity;
+        upgradeManager?.HoverTick(Time.fixedDeltaTime);
 
-            // Drain energy
-            energySystem.DrainEnergy(energyDrainPerSecond * Time.fixedDeltaTime);
+        // Clamp upward velocity
+        Vector3 velocity = rb.linearVelocity;
+        if (velocity.y > maxUpwardSpeed)
+            velocity.y = maxUpwardSpeed;
+        rb.linearVelocity = velocity;
 
-            // If energy ran out, block further hovering until restored
-            if (energySystem.currentEnergy < minEnergyToHover)
-                wasOutOfEnergy = true;
-        }
+        // Drain energy using live stat value
+        energySystem.DrainEnergy(DrainRate * Time.fixedDeltaTime);
+
+        if (energySystem.currentEnergy < minEnergyToHover)
+            wasOutOfEnergy = true;
     }
 }
