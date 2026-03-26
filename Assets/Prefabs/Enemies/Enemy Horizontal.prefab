@@ -250,6 +250,9 @@ MonoBehaviour:
   turnBrake: 20
   instantTurn: 0
   sensor: {fileID: 746640703760186467}
+  minX: 1.5
+  maxX: 12.5
+  useBounds: 1
 --- !u!65 &-8232553747361180095
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -299,7 +302,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0.000000007450581}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 4.9890747, y: 1, z: 0.76556}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6834851209747589345}

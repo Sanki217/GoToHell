@@ -238,6 +238,9 @@ MonoBehaviour:
   turnBrake: 20
   instantTurn: 0
   sensor: {fileID: 606765970688220948}
+  minY: -1000
+  maxY: -30
+  useBounds: 1
 --- !u!114 &6217076362429943899
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -15,31 +15,17 @@ public class HorizontalSensor : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        HandleCollision(other);
-    }
-
-    // OnTriggerStay ensures that if an enemy somehow gets inside a wall,
-    // it keeps receiving the bounce signal until it escapes.
-    private void OnTriggerStay(Collider other)
-    {
-        HandleCollision(other);
-    }
-
-    private void HandleCollision(Collider other)
-    {
         if (other.transform.root == rootEnemy) return;
         if (other.CompareTag("Spawner")) return;
         if (other.CompareTag("Looter")) return;
-        if (other.CompareTag("Enemy")) return;  // ignore other enemies
+        if (other.CompareTag("Enemy")) return;
 
         Vector3 hitPoint = other.ClosestPoint(rootEnemy.position);
         float deltaX = hitPoint.x - rootEnemy.position.x;
 
         if (Mathf.Abs(deltaX) < 0.01f) return;
 
-        if (deltaX > 0f)
-            OnHitRight?.Invoke();
-        else
-            OnHitLeft?.Invoke();
+        if (deltaX > 0f) OnHitRight?.Invoke();
+        else OnHitLeft?.Invoke();
     }
 }
