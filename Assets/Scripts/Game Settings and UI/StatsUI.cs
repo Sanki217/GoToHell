@@ -72,6 +72,7 @@ public class StatsUI : MonoBehaviour
             $"Crit Chance:       {s.critChance * 100f:F1}%\n" +
             $"Crit Multiplier:   {s.critMultiplier * 100f:F0}%\n" +
             $"Knockback Force:   {s.knockbackForce:F1}\n" +
+            $"Lifesteal:         {s.lifeSteal * 100f:F1}%\n" +
             $"Burn Strength:     {s.burnStrength * 100f:F0}%\n" +
             $"Freeze Strength:   {s.freezeStrength * 100f:F0}%\n" +
             $"Holy Strength:     {s.holyStrength * 100f:F0}%\n" +
@@ -88,6 +89,7 @@ public class StatsUI : MonoBehaviour
             $"Current Energy:    {(en != null ? en.currentEnergy : 0f):F0}\n" +
             $"Hover Drain/s:     {s.hoverDrainRate:F1}\n" +
             $"Charge Drain/s:    {s.arrowChargeDrainRate:F1}\n" +
+            $"Charge Duration:   {s.arrowChargeDuration:F2}s\n" +
             $"Wall Slide Speed:  {s.wallSlideSpeed:F1}\n" +
             $"Loot Range:        {s.lootRange:F1}\n" +
             "\n" +

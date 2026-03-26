@@ -23,6 +23,10 @@ public class PlayerStats : MonoBehaviour
         shooting = GetComponent<PlayerShooting>();
         health = GetComponent<PlayerHealth>();
         upgradeManager = GetComponent<PlayerUpgradeManager>();
+
+        // Initialize sync cache to match the backing fields at startup
+        _lastReadArrows = _currentArrows;
+        _lastReadHP = _currentHP;
     }
 
     // ================================================================
@@ -37,30 +41,56 @@ public class PlayerStats : MonoBehaviour
     public float critMultiplier = 1.5f;
     public float knockbackForce = 0f;
 
+    [Tooltip("Lifesteal: heal player for this % of damage dealt to enemies. " +
+             "0 = disabled, 0.1 = 10%, 1.0 = 100%")]
+    public float lifeSteal = 0f;
+
     [Header("Status Effect Strength (1.0 = base 100%)")]
     public float burnStrength = 1f;
     public float freezeStrength = 1f;
     public float holyStrength = 1f;
     public float shockStrength = 1f;
 
-    // ── Arrow count ── live references into PlayerShooting, Inspector-editable
+    // ── Arrow count ── Inspector-editable backing fields synced to PlayerShooting ──
+    // Change these in the Inspector during play and they take effect immediately.
+
+    [Header("--- AMMO (editable in play mode) ---")]
+    [SerializeField] private int _maxArrows = 3;
+    [SerializeField] private int _currentArrows = 3;
+
     public int MaxArrows
     {
-        get => shooting != null ? shooting.maxArrows : 3;
-        set { if (shooting != null) shooting.maxArrows = value; }
+        get => _maxArrows;
+        set
+        {
+            _maxArrows = value;
+            if (shooting != null) shooting.maxArrows = value;
+        }
     }
 
     public int CurrentArrows
     {
-        get => shooting != null ? shooting.CurrentArrows : 0;
-        set { if (shooting != null) shooting.SetCurrentArrows(value); }
+        get => _currentArrows;
+        set
+        {
+            _currentArrows = value;
+            if (shooting != null) shooting.SetCurrentArrows(value);
+        }
     }
 
-    // ── HP ── live references into PlayerHealth, Inspector-editable
+    // ── HP ── Inspector-editable backing field synced to PlayerHealth ──
+
+    [Header("--- HP (editable in play mode) ---")]
+    [SerializeField] private int _currentHP = 100;
+
     public int CurrentHP
     {
-        get => health != null ? health.CurrentHP : 0;
-        set { if (health != null) health.SetHP(value); }
+        get => _currentHP;
+        set
+        {
+            _currentHP = value;
+            if (health != null) health.SetHP(value);
+        }
     }
 
     // ================================================================
@@ -75,8 +105,7 @@ public class PlayerStats : MonoBehaviour
     public float dashCost = 20f;
 
     [Tooltip("How long after a dash starts the player is immune to damage. " +
-             "0 = only immune during the dash itself. " +
-             "Set higher to give a post-dash grace window.")]
+             "0 = only immune during the dash itself.")]
     public float dashInvincibilityWindow = 0.2f;
 
     public float maxEnergy = 100f;
@@ -85,9 +114,72 @@ public class PlayerStats : MonoBehaviour
     public float hoverDrainRate = 10f;
     public float arrowChargeDrainRate = 5f;
 
-    [Tooltip("Radius of the Looter sphere collider — controls pickup range for all items. " +
-             "Upgrades increase this value to improve loot range.")]
+    [Tooltip("How long it takes to reach 100% charge (seconds). " +
+             "Lower = faster charge. Default 1.5s.")]
+    public float arrowChargeDuration = 1.5f;
+
+    [Tooltip("Radius of the Looter sphere collider — controls pickup range for all items.")]
     public float lootRange = 4f;
+
+    // ================================================================
+    //  SYNC — bidirectional but conflict-safe
+    //  We track what value we last read from the game system.
+    //  If the backing field differs from our last-read value, the USER
+    //  changed it in the Inspector → push to the game system.
+    //  Otherwise, the game changed it internally → read it back.
+    // ================================================================
+
+    private int _lastReadArrows = -1;
+    private int _lastReadHP = -1;
+
+    private void Update()
+    {
+        // ── Arrow sync ──
+        if (shooting != null)
+        {
+            int liveArrows = shooting.CurrentArrows;
+
+            if (_currentArrows != _lastReadArrows)
+            {
+                // Inspector value changed by user — push to PlayerShooting
+                shooting.SetCurrentArrows(_currentArrows);
+                _lastReadArrows = shooting.CurrentArrows;
+                _currentArrows = _lastReadArrows;
+            }
+            else
+            {
+                // Game changed it (shot fired, arrow picked up) — read back
+                _currentArrows = liveArrows;
+                _lastReadArrows = liveArrows;
+            }
+
+            // Max arrows sync (one direction: Inspector → PlayerShooting)
+            if (shooting.maxArrows != _maxArrows)
+                shooting.maxArrows = _maxArrows;
+            else
+                _maxArrows = shooting.maxArrows;
+        }
+
+        // ── HP sync ──
+        if (health != null)
+        {
+            int liveHP = health.CurrentHP;
+
+            if (_currentHP != _lastReadHP)
+            {
+                // Inspector value changed by user — push to PlayerHealth
+                health.SetHP(_currentHP);
+                _lastReadHP = health.CurrentHP;
+                _currentHP = _lastReadHP;
+            }
+            else
+            {
+                // Game changed it (damage taken, heal) — read back
+                _currentHP = liveHP;
+                _lastReadHP = liveHP;
+            }
+        }
+    }
 
     // ================================================================
     //  3. RUN HISTORY  (accumulated — reset each run)
@@ -227,6 +319,13 @@ public class PlayerStats : MonoBehaviour
             case DamageSource.Dash: damageByDash += amount; break;
             case DamageSource.Status: damageByStatus += amount; break;
             case DamageSource.Explosion: damageByExplosion += amount; break;
+        }
+
+        // Lifesteal: heal player for lifeSteal% of damage dealt
+        if (lifeSteal > 0f && health != null)
+        {
+            int healAmount = Mathf.Max(1, Mathf.RoundToInt(amount * lifeSteal));
+            health.RestoreHP(healAmount);
         }
     }
 

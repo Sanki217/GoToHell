@@ -68,8 +68,13 @@ public class PlayerShooting : MonoBehaviour
     private PlayerStats playerStats;
     private float originalCamZ;
 
+    // Live values read from PlayerStats each frame
     private float ChargeDrainRate =>
         playerStats != null ? playerStats.arrowChargeDrainRate : chargeEnergyPerSecond;
+
+    // Lower arrowChargeDuration = reaches 100% faster
+    private float ChargeDuration =>
+        playerStats != null ? playerStats.arrowChargeDuration : chargeDuration;
 
     private const float LightMax = 0.25f;
     private const float MediumMax = 0.75f;
@@ -146,7 +151,8 @@ public class PlayerShooting : MonoBehaviour
     void ChargeTick()
     {
         chargeTimer += Time.unscaledDeltaTime;
-        chargeNormalized = Mathf.Clamp01(chargeTimer / chargeDuration);
+        // ChargeDuration reads from PlayerStats.arrowChargeDuration — lower = faster
+        chargeNormalized = Mathf.Clamp01(chargeTimer / ChargeDuration);
         currentSpeedMultiplier = Mathf.Lerp(1f, maxChargeMultiplier, chargeNormalized);
 
         float slowT = Mathf.Clamp01(chargeTimer / timeSlowDuration);
@@ -220,7 +226,6 @@ public class PlayerShooting : MonoBehaviour
             prefab = strongArrowPrefab != null ? strongArrowPrefab : mainArrowPrefab;
         }
 
-        // Pass chargeNormalized so Arrow can scale damage
         SpawnArrow(prefab, dir, currentSpeedMultiplier,
                    consumeAmmo: true, fireType: fireType, chargeAmount: chargeNormalized);
 
@@ -253,7 +258,7 @@ public class PlayerShooting : MonoBehaviour
         a.Initialize(dir.normalized, stickableLayers);
         a.speed = baseArrowSpeed * speedMultiplier;
         a.fireType = fireType;
-        a.chargeAmount = chargeAmount;   // arrow uses this to scale its own damage
+        a.chargeAmount = chargeAmount;
 
         if (consumeAmmo)
         {
