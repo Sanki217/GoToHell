@@ -3281,6 +3281,7 @@ MonoBehaviour:
   arrowChargeDrainRate: 10
   arrowChargeDuration: 1.5
   lootRange: 4
+  luck: 0
   distanceMovedLeft: 0
   distanceMovedRight: 0
   totalDistance: 0
@@ -7388,7 +7389,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8853116276484842362, guid: 0cc711684e1fd484abb8822eb922454f, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

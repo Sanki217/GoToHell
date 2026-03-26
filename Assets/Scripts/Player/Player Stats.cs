@@ -121,6 +121,9 @@ public class PlayerStats : MonoBehaviour
     [Tooltip("Radius of the Looter sphere collider — controls pickup range for all items.")]
     public float lootRange = 4f;
 
+    [Tooltip("Luck: each point shifts 2% weight from Common toward higher rarities in upgrade rolls.")]
+    public float luck = 0f;
+
     // ================================================================
     //  SYNC — bidirectional but conflict-safe
     //  We track what value we last read from the game system.
