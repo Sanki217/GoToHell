@@ -129,6 +129,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 192
   fireType: 0
+  chargeAmount: 0
 --- !u!114 &8308515621683695785
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -143,6 +144,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canPickUp: 0
   isBeingSucked: 0
-  minSuckSpeed: 8
+  minSuckSpeed: 20
   maxSuckSpeed: 25
   maxSuckDistance: 15

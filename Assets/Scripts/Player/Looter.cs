@@ -4,6 +4,11 @@ public class Looter : MonoBehaviour
 {
     [Header("Looter (child of Player)")]
     public Transform playerTransform;
+
+    [Header("Arrow Scan")]
+    [Tooltip("Radius within which the player scans for pickable arrows each frame")]
+    public float arrowPickupRadius = 8f;
+
     private PlayerInventory playerInventory;
     private PlayerShooting player;
 
@@ -18,22 +23,34 @@ public class Looter : MonoBehaviour
             playerInventory = playerTransform.GetComponent<PlayerInventory>();
     }
 
+    void Update()
+    {
+        // Scan for nearby pickable arrows every frame.
+        // No layer mask — finds arrows by component check, works for any layer.
+        // This catches arrows embedded in walls that the Looter trigger can't reach.
+        if (player == null || player.HasMaxArrows()) return;
+
+        Collider[] nearby = Physics.OverlapSphere(
+            playerTransform.position,
+            arrowPickupRadius
+        );
+
+        foreach (Collider col in nearby)
+        {
+            ArrowPickup pickup = col.GetComponent<ArrowPickup>();
+            if (pickup == null || !pickup.canPickUp || pickup.isBeingSucked) continue;
+
+            pickup.StartSuck(player.transform);
+            break; // attract one arrow per frame — prevents double-restoring
+        }
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         // Soul pickup
         if (other.TryGetComponent<Soul>(out Soul soul))
         {
             soul.StartAttract(playerTransform, playerInventory);
-        }
-
-        // Arrow pickup
-        ArrowPickup pickup = other.GetComponent<ArrowPickup>();
-        if (pickup != null && pickup.canPickUp && !pickup.isBeingSucked)
-        {
-            if (player != null && player.HasMaxArrows())
-                return;
-
-            pickup.StartSuck(player.transform);
         }
 
         // Upgrade orb pickup
@@ -43,19 +60,6 @@ public class Looter : MonoBehaviour
             var mgr = playerTransform.GetComponent<PlayerUpgradeManager>();
             if (mgr != null)
                 upgradeOrb.Apply(mgr);
-        }
-    }
-
-    private void OnTriggerStay(Collider other)
-    {
-        ArrowPickup pickup = other.GetComponent<ArrowPickup>();
-
-        if (pickup != null && pickup.canPickUp && !pickup.isBeingSucked)
-        {
-            if (!player.HasMaxArrows())
-            {
-                pickup.StartSuck(player.transform);
-            }
         }
     }
 }

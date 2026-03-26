@@ -1681,6 +1681,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerTransform: {fileID: 1048261596}
+  arrowPickupRadius: 4
 --- !u!135 &620882563
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1700,7 +1701,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 8.61
+  m_Radius: 4
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &620882564
 MonoBehaviour:
@@ -2911,9 +2912,9 @@ MonoBehaviour:
   chargeEnergyPerSecond: 10
   chargeSlider: {fileID: 1962853256}
   chargePercentText: {fileID: 2032593688}
-  cameraZoomAmount: 3
-  cameraZoomInTime: 0.4
-  cameraZoomOutTime: 0.3
+  cameraZoomAmount: 1.5
+  cameraZoomInTime: 1
+  cameraZoomOutTime: 2
   chargeNormalized: 0
   currentSpeedMultiplier: 1
 --- !u!114 &1048261600
@@ -3124,16 +3125,16 @@ MonoBehaviour:
   dashDamage: 1
   critChance: 0.5
   critMultiplier: 2
-  knockbackForce: 1
+  knockbackForce: 15
   burnStrength: 1
   freezeStrength: 1
   holyStrength: 1
   shockStrength: 1
   moveSpeed: 10
-  jumpForce: 12
-  maxJumps: 2
-  dashDistance: 10
-  dashCost: 15
+  jumpForce: 1
+  maxJumps: 1
+  dashDistance: 6
+  dashCost: 1
   maxEnergy: 100
   energyRegenMultiplier: 1
   wallSlideSpeed: -3

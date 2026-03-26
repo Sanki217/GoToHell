@@ -124,9 +124,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 80
   damageVelocityThreshold: 0.1
+  armDelay: 0.05
   stickableLayers:
     serializedVersion: 2
     m_Bits: 192
+  fireType: 0
+  chargeAmount: 0
 --- !u!114 &8308515621683695785
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -139,6 +142,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca382debb1d2e6742b2b74f5a45fb6e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  canPickUp: 0
-  pickupDelay: 0.2
+  canPickUp: 1
   isBeingSucked: 0
+  minSuckSpeed: 20
+  maxSuckSpeed: 25
+  maxSuckDistance: 15

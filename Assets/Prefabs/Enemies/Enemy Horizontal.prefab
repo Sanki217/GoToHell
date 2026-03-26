@@ -221,6 +221,7 @@ MonoBehaviour:
   enemyRenderer: {fileID: 683928952675716204}
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
   hitFlashDuration: 0.08
+  knockbackDuration: 0.3
 --- !u!114 &6217076362429943899
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -268,7 +269,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

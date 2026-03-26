@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class Enemy : MonoBehaviour
 {
@@ -20,12 +21,18 @@ public class Enemy : MonoBehaviour
     public Color hitFlashColor = Color.white;
     public float hitFlashDuration = 0.08f;
 
+    [Header("Knockback")]
+    public float knockbackDuration = 0.15f;
+
     // ================================================================
     //  PRIVATE STATE
     // ================================================================
 
     private int currentHealth;
     private Rigidbody rb;
+
+    private HorizontalMovement horizontalMovement;
+    private VerticalMovement verticalMovement;
 
     // ================================================================
     //  INIT
@@ -35,11 +42,15 @@ public class Enemy : MonoBehaviour
     {
         currentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
+        horizontalMovement = GetComponent<HorizontalMovement>();
+        verticalMovement = GetComponent<VerticalMovement>();
 
-        // Freeze rotation on all axes so knockback never tips or rotates enemies
-        // Freeze Z position so enemies stay on the 2.5D plane
+        // Make Rigidbody kinematic — enemies use transform movement,
+        // not physics. This prevents any physics impulse from bypassing
+        // the bounds system and pushing enemies through walls.
         if (rb != null)
         {
+            rb.isKinematic = true;
             rb.constraints = RigidbodyConstraints.FreezeRotation |
                              RigidbodyConstraints.FreezePositionZ;
         }
@@ -52,22 +63,14 @@ public class Enemy : MonoBehaviour
     //  PUBLIC API
     // ================================================================
 
-    /// <summary>Returns true if this amount of damage would kill the enemy.</summary>
     public bool WillDie(int amount) => currentHealth - amount <= 0;
 
-    /// <summary>
-    /// Simple overload — used by existing code that just passes an int.
-    /// No knockback, no crit, normal hit type.
-    /// </summary>
     public void TakeDamage(int amount)
     {
         TakeDamage(amount, transform.position, Vector3.zero, 0f, false,
                    FloatingTextManager.HitType.Normal);
     }
 
-    /// <summary>
-    /// Full overload — used by arrows, dash, status effects.
-    /// </summary>
     public void TakeDamage(int amount, Vector3 hitPosition,
                            Vector3 knockbackDir, float knockbackForce,
                            bool isCrit,
@@ -75,18 +78,16 @@ public class Enemy : MonoBehaviour
     {
         currentHealth -= amount;
 
-        // Floating number
         FloatingTextManager.Show(
             amount,
             hitPosition,
             isCrit ? FloatingTextManager.HitType.Critical : hitType
         );
 
-        // Knockback
-        if (knockbackForce > 0f && rb != null && knockbackDir != Vector3.zero)
-            rb.AddForce(knockbackDir.normalized * knockbackForce, ForceMode.Impulse);
+        // Transform-based knockback — respects bounds, never bypasses walls
+        if (knockbackForce > 0f && knockbackDir != Vector3.zero)
+            StartCoroutine(ApplyKnockback(knockbackDir.normalized * knockbackForce));
 
-        // Hit flash
         if (enemyRenderer != null)
             StartCoroutine(HitFlash());
 
@@ -98,6 +99,38 @@ public class Enemy : MonoBehaviour
     //  PRIVATE
     // ================================================================
 
+    private IEnumerator ApplyKnockback(Vector3 impulse)
+    {
+        float elapsed = 0f;
+
+        while (elapsed < knockbackDuration)
+        {
+            elapsed += Time.deltaTime;
+
+            // Ease out: fast at start, slows to zero
+            float t = elapsed / knockbackDuration;
+            Vector3 frameMove = impulse * (1f - t) * Time.deltaTime;
+
+            Vector3 newPos = transform.position + frameMove;
+            newPos.z = transform.position.z;  // keep Z locked
+
+            // Clamp to horizontal bounds
+            if (horizontalMovement != null && horizontalMovement.useBounds)
+                newPos.x = Mathf.Clamp(newPos.x,
+                                       horizontalMovement.minX,
+                                       horizontalMovement.maxX);
+
+            // Clamp to vertical bounds
+            if (verticalMovement != null && verticalMovement.useBounds)
+                newPos.y = Mathf.Clamp(newPos.y,
+                                       verticalMovement.minY,
+                                       verticalMovement.maxY);
+
+            transform.position = newPos;
+            yield return null;
+        }
+    }
+
     private void Die()
     {
         int soulCount = Random.Range(minimumSouls, maximumSouls + 1);
@@ -105,7 +138,6 @@ public class Enemy : MonoBehaviour
         for (int i = 0; i < soulCount; i++)
         {
             if (!soulPrefab) break;
-
             GameObject s = Instantiate(soulPrefab, transform.position, Quaternion.identity);
             Soul soul = s.GetComponent<Soul>();
             if (soul != null)
@@ -129,7 +161,7 @@ public class Enemy : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private System.Collections.IEnumerator HitFlash()
+    private IEnumerator HitFlash()
     {
         if (enemyRenderer == null) yield break;
         Color original = enemyRenderer.material.color;
