@@ -83,11 +83,13 @@ public class StatsUI : MonoBehaviour
             $"Max Jumps:         {s.maxJumps}\n" +
             $"Dash Distance:     {s.dashDistance:F1}\n" +
             $"Dash Cost:         {s.dashCost:F1}\n" +
+            $"Dash Invincibility:{s.dashInvincibilityWindow:F2}s\n" +
             $"Max Energy:        {s.maxEnergy:F1}\n" +
             $"Current Energy:    {(en != null ? en.currentEnergy : 0f):F0}\n" +
             $"Hover Drain/s:     {s.hoverDrainRate:F1}\n" +
             $"Charge Drain/s:    {s.arrowChargeDrainRate:F1}\n" +
             $"Wall Slide Speed:  {s.wallSlideSpeed:F1}\n" +
+            $"Loot Range:        {s.lootRange:F1}\n" +
             "\n" +
             "<b><color=#FFD700>══ AMMO ══</color></b>\n" +
             $"Arrows:            {s.CurrentArrows} / {s.MaxArrows}\n" +

@@ -1,13 +1,12 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Unified player stat system. Three categories:
+/// Unified player stat system.
 ///   1. Combat Stats   — live values modified by upgrades
 ///   2. Movement Stats — live values modified by upgrades
 ///   3. Run History    — accumulated record of everything done this run
 ///
-/// CRIT SYSTEM:
-///   Every damage source calls RollDamage(baseDamage) to get final damage + crit flag.
+/// CRIT SYSTEM: call RollDamage(baseDamage) from every damage source.
 /// </summary>
 public class PlayerStats : MonoBehaviour
 {
@@ -74,11 +73,21 @@ public class PlayerStats : MonoBehaviour
     public int maxJumps = 2;
     public float dashDistance = 10f;
     public float dashCost = 20f;
+
+    [Tooltip("How long after a dash starts the player is immune to damage. " +
+             "0 = only immune during the dash itself. " +
+             "Set higher to give a post-dash grace window.")]
+    public float dashInvincibilityWindow = 0.2f;
+
     public float maxEnergy = 100f;
     public float energyRegenMultiplier = 1f;
     public float wallSlideSpeed = -3f;
     public float hoverDrainRate = 10f;
     public float arrowChargeDrainRate = 5f;
+
+    [Tooltip("Radius of the Looter sphere collider — controls pickup range for all items. " +
+             "Upgrades increase this value to improve loot range.")]
+    public float lootRange = 4f;
 
     // ================================================================
     //  3. RUN HISTORY  (accumulated — reset each run)
@@ -87,8 +96,8 @@ public class PlayerStats : MonoBehaviour
     [Header("--- RUN HISTORY: Movement ---")]
     public float distanceMovedLeft;
     public float distanceMovedRight;
-    public float totalDistance;       // horizontal + vertical combined
-    public int jumpsPerformed;      // all jumps including double jumps
+    public float totalDistance;
+    public int jumpsPerformed;
     public float timeAirborne;
     public float timeGrounded;
     public int wallSlideCount;
@@ -173,7 +182,6 @@ public class PlayerStats : MonoBehaviour
     // ================================================================
 
     public void RecordJump() => jumpsPerformed++;
-
     public void RecordWallSlideStart() => wallSlideCount++;
     public void RecordWallSlideTick(float dt) => totalWallSlideDuration += dt;
     public void RecordHoverStart() => hoverCount++;
@@ -183,8 +191,6 @@ public class PlayerStats : MonoBehaviour
     public void RecordDashHitEnemy() => dashesHitEnemy++;
     public void RecordDashHitWall() => dashesHitWall++;
 
-    /// <param name="dx">Horizontal displacement this frame</param>
-    /// <param name="dy">Vertical displacement this frame</param>
     public void RecordMovement(float dx, float dy, float dt, bool grounded, bool airborne)
     {
         if (dx < 0) distanceMovedLeft += Mathf.Abs(dx);

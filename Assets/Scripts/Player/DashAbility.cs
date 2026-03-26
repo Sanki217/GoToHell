@@ -11,6 +11,11 @@ public class DashAbility : MonoBehaviour
     public int dashDamage = 1;
     public LayerMask dashCollisionLayers;
 
+    [Header("Dash Damage Collider")]
+    [Tooltip("Assign a child GameObject that has a Trigger Collider on it. " +
+             "It will be enabled only during the dash to deal damage to enemies.")]
+    public Collider dashDamageCollider;
+
     [Header("References")]
     public Camera mainCamera;
     public LineRenderer lineRenderer;
@@ -18,6 +23,7 @@ public class DashAbility : MonoBehaviour
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
+    private PlayerHealth playerHealth;
     private Rigidbody rb;
     private PlayerEnergy playerEnergy;
 
@@ -36,9 +42,14 @@ public class DashAbility : MonoBehaviour
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
         playerStats = GetComponent<PlayerStats>();
+        playerHealth = GetComponent<PlayerHealth>();
         rb = GetComponent<Rigidbody>();
         playerEnergy = GetComponent<PlayerEnergy>();
         if (!mainCamera) mainCamera = Camera.main;
+
+        // Damage collider starts disabled — only active during dash
+        if (dashDamageCollider != null)
+            dashDamageCollider.enabled = false;
     }
 
     void Update()
@@ -56,10 +67,7 @@ public class DashAbility : MonoBehaviour
 
         if (dashTimer <= 0f)
         {
-            playerStats?.RecordDash(dashStartDistance);
-            isDashing = false;
-            upgradeManager?.DashEnd();
-            rb.linearVelocity = dashDirection * postDashMomentum;
+            EndDash();
         }
     }
 
@@ -80,7 +88,6 @@ public class DashAbility : MonoBehaviour
             {
                 dashTarget = hit.point;
                 if (Vector3.Distance(origin, dashTarget) < 0.5f) return;
-                // Wall hit detected at dash start — will be recorded in OnCollisionEnter during dash
             }
             else
             {
@@ -98,8 +105,30 @@ public class DashAbility : MonoBehaviour
             dashStartDistance = Vector3.Distance(origin, dashTarget);
             isDashing = true;
 
+            // Enable dash damage collider
+            if (dashDamageCollider != null)
+                dashDamageCollider.enabled = true;
+
+            // Start invincibility window (covers dash + a bit after)
+            float invincDuration = dashDuration +
+                (playerStats != null ? playerStats.dashInvincibilityWindow : 0f);
+            playerHealth?.StartDashInvincibility(invincDuration);
+
             upgradeManager?.DashStart();
         }
+    }
+
+    void EndDash()
+    {
+        playerStats?.RecordDash(dashStartDistance);
+        isDashing = false;
+
+        // Disable damage collider
+        if (dashDamageCollider != null)
+            dashDamageCollider.enabled = false;
+
+        upgradeManager?.DashEnd();
+        rb.linearVelocity = dashDirection * postDashMomentum;
     }
 
     void UpdateDashLine()
@@ -128,49 +157,13 @@ public class DashAbility : MonoBehaviour
         return shootOrigin.position;
     }
 
-    // Detect actual wall collision during dash
     private void OnCollisionEnter(Collision collision)
     {
         if (!isDashing) return;
-        // If we hit something that's not an enemy, it's a wall
         if (!collision.gameObject.CompareTag("Enemy"))
         {
             playerStats?.RecordDashHitWall();
             upgradeManager?.DashHitWall();
         }
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!isDashing || !other.CompareTag("Enemy")) return;
-
-        Enemy enemy = other.GetComponent<Enemy>();
-        if (enemy == null) return;
-
-        float baseDamage = CurrentDashDmg;
-        float finalDamage;
-        bool isCrit;
-
-        if (playerStats != null)
-            (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, other.gameObject);
-        else { finalDamage = baseDamage; isCrit = false; }
-
-        // Zero Z before normalizing to prevent 3D direction errors
-        Vector3 rawDir = other.transform.position - transform.position;
-        rawDir.z = 0f;
-        Vector3 kbDir = rawDir.magnitude > 0.001f ? rawDir.normalized : Vector3.right;
-
-        enemy.TakeDamage(
-            Mathf.Max(1, Mathf.RoundToInt(finalDamage)),
-            other.transform.position,
-            kbDir,
-            CurrentKnockback,
-            isCrit,
-            isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal
-        );
-
-        playerStats?.RecordDashHitEnemy();
-        playerStats?.RecordDamageDealt(finalDamage, DamageSource.Dash);
-        upgradeManager?.DashHitEnemy(other.gameObject);
     }
 }

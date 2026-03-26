@@ -1,47 +1,62 @@
 using UnityEngine;
 
+/// <summary>
+/// Child of the Player. Handles pickup of souls, arrows, and upgrade orbs.
+/// 
+/// The sphere collider radius on this GameObject IS the pickup range for everything.
+/// It is driven by PlayerStats.lootRange so upgrades can increase it.
+/// 
+/// For arrows embedded in walls (outside the sphere), a Physics.OverlapSphere
+/// scan runs every frame using the same radius.
+/// </summary>
 public class Looter : MonoBehaviour
 {
     [Header("Looter (child of Player)")]
     public Transform playerTransform;
 
-    [Header("Arrow Scan")]
-    [Tooltip("Radius within which the player scans for pickable arrows each frame")]
-    public float arrowPickupRadius = 8f;
-
     private PlayerInventory playerInventory;
     private PlayerShooting player;
+    private PlayerStats playerStats;
+    private SphereCollider sphereCollider;
 
     void Start()
     {
         player = GetComponentInParent<PlayerShooting>();
+        playerStats = GetComponentInParent<PlayerStats>();
 
         if (playerTransform == null && transform.parent != null)
             playerTransform = transform.parent;
 
         if (playerTransform != null)
             playerInventory = playerTransform.GetComponent<PlayerInventory>();
+
+        sphereCollider = GetComponent<SphereCollider>();
     }
 
     void Update()
     {
-        // Scan for nearby pickable arrows every frame.
-        // No layer mask — finds arrows by component check, works for any layer.
-        // This catches arrows embedded in walls that the Looter trigger can't reach.
-        if (player == null || player.HasMaxArrows()) return;
+        // Keep sphere collider radius in sync with PlayerStats.lootRange
+        float range = playerStats != null ? playerStats.lootRange : 4f;
+        if (sphereCollider != null && !Mathf.Approximately(sphereCollider.radius, range))
+            sphereCollider.radius = range;
 
-        Collider[] nearby = Physics.OverlapSphere(
-            playerTransform.position,
-            arrowPickupRadius
-        );
-
-        foreach (Collider col in nearby)
+        // Scan for arrows within pickup range — catches arrows inside walls
+        // that the sphere trigger can't physically overlap
+        if (player != null && !player.HasMaxArrows())
         {
-            ArrowPickup pickup = col.GetComponent<ArrowPickup>();
-            if (pickup == null || !pickup.canPickUp || pickup.isBeingSucked) continue;
+            Collider[] nearby = Physics.OverlapSphere(
+                playerTransform.position,
+                range
+            );
 
-            pickup.StartSuck(player.transform);
-            break; // attract one arrow per frame — prevents double-restoring
+            foreach (Collider col in nearby)
+            {
+                ArrowPickup pickup = col.GetComponent<ArrowPickup>();
+                if (pickup == null || !pickup.canPickUp || pickup.isBeingSucked) continue;
+
+                pickup.StartSuck(player.transform);
+                break; // only start one suck per frame
+            }
         }
     }
 

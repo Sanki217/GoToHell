@@ -5,22 +5,18 @@ using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
-    // ================================================================
-    //  INSPECTOR
-    // ================================================================
-
     [Header("HP Settings")]
     public int maxHP = 100;
 
     [Header("UI — assign in Inspector")]
-    public Slider hpSlider;       // drag your HP slider here
-    public TMP_Text hpText;         // optional: shows "75 / 100"
+    public Slider hpSlider;
+    public TMP_Text hpText;
 
     [Header("Damage Cooldown")]
     public float invincibilityTime = 1f;
 
     [Header("Hit Flash")]
-    public Renderer playerRenderer;         // drag the player's MeshRenderer / SpriteRenderer
+    public Renderer playerRenderer;
     public Color hitFlashColor = Color.red;
     public float hitFlashDuration = 0.1f;
 
@@ -31,7 +27,10 @@ public class PlayerHealth : MonoBehaviour
     private int currentHP;
     private bool isInvincible;
 
-    private DashAbility dashAbility;
+    // Separate flag for dash invincibility — tracked independently
+    private bool isDashInvincible = false;
+    private Coroutine dashInvincCoroutine;
+
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
     private Color originalColor;
@@ -48,11 +47,9 @@ public class PlayerHealth : MonoBehaviour
 
     private void Start()
     {
-        dashAbility = GetComponent<DashAbility>();
         upgradeManager = GetComponent<PlayerUpgradeManager>();
         playerStats = GetComponent<PlayerStats>();
 
-        // Use maxHP from PlayerStats if available, else use local field
         if (playerStats != null)
             maxHP = playerStats.maxHP;
 
@@ -71,22 +68,15 @@ public class PlayerHealth : MonoBehaviour
     /// <summary>Deal damage to the player.</summary>
     public void TakeDamage(int amount)
     {
-        // Invincibility frames — ignore damage while dashing or in iframes
-        if (isInvincible)
-            return;
-        if (dashAbility != null && dashAbility.isDashing)
-            return;
+        // Block during normal iframes or dash invincibility window
+        if (isInvincible || isDashInvincible) return;
 
         currentHP -= amount;
         currentHP = Mathf.Max(currentHP, 0);
 
-        // Record in stats
         playerStats?.RecordDamageTaken(amount);
-
-        // Fire upgrade event
         upgradeManager?.DamageTaken(amount);
 
-        // Camera shake on hit (but not on death)
         if (currentHP > 0)
             Camera.main?.GetComponent<CameraFollow>()?.Shake(0.15f, 0.15f);
 
@@ -100,15 +90,28 @@ public class PlayerHealth : MonoBehaviour
             Die();
     }
 
+    /// <summary>
+    /// Called by DashAbility at the start of a dash.
+    /// Grants invincibility for the specified duration
+    /// (dash time + post-dash window from PlayerStats).
+    /// </summary>
+    public void StartDashInvincibility(float duration)
+    {
+        if (dashInvincCoroutine != null)
+            StopCoroutine(dashInvincCoroutine);
+
+        dashInvincCoroutine = StartCoroutine(DashInvincibilityTimer(duration));
+    }
+
     /// <summary>Restore HP. Will not exceed maxHP.</summary>
     public void RestoreHP(int amount)
     {
         currentHP = Mathf.Min(currentHP + amount, maxHP);
-        playerStats?.RecordHPRestored(amount);  // see note below
+        playerStats?.RecordHPRestored(amount);
         UpdateHealthUI();
     }
 
-    /// <summary>Instantly set HP to a specific value (used by Revive).</summary>
+    /// <summary>Instantly set HP to a specific value (used by Revive and Inspector).</summary>
     public void SetHP(int value)
     {
         currentHP = Mathf.Clamp(value, 0, maxHP);
@@ -120,10 +123,7 @@ public class PlayerHealth : MonoBehaviour
     {
         maxHP += amount;
         if (playerStats != null) playerStats.maxHP = maxHP;
-
-        if (healDifference)
-            currentHP = Mathf.Min(currentHP + amount, maxHP);
-
+        if (healDifference) currentHP = Mathf.Min(currentHP + amount, maxHP);
         UpdateHealthUI();
     }
 
@@ -145,7 +145,6 @@ public class PlayerHealth : MonoBehaviour
             hpSlider.maxValue = maxHP;
             hpSlider.value = currentHP;
         }
-
         if (hpText != null)
             hpText.text = $"{currentHP} / {maxHP}";
     }
@@ -155,6 +154,14 @@ public class PlayerHealth : MonoBehaviour
         isInvincible = true;
         yield return new WaitForSeconds(invincibilityTime);
         isInvincible = false;
+    }
+
+    private IEnumerator DashInvincibilityTimer(float duration)
+    {
+        isDashInvincible = true;
+        yield return new WaitForSeconds(duration);
+        isDashInvincible = false;
+        dashInvincCoroutine = null;
     }
 
     private IEnumerator HitFlash()
