@@ -3189,16 +3189,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d20d9ae45c40544a80d38ccb8786c42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHP: 3
-  arrowDamage: 1
-  dashDamage: 1
+  maxHP: 100
+  arrowDamage: 10
+  dashDamage: 10
   critChance: 0.5
   critMultiplier: 2
   knockbackForce: 15
+  lifeSteal: 0
   burnStrength: 1
   freezeStrength: 1
   holyStrength: 1
   shockStrength: 1
+  _maxArrows: 3
+  _currentArrows: 3
+  _currentHP: 100
   moveSpeed: 10
   jumpForce: 1
   maxJumps: 1
@@ -3210,6 +3214,7 @@ MonoBehaviour:
   wallSlideSpeed: -3
   hoverDrainRate: 10
   arrowChargeDrainRate: 10
+  arrowChargeDuration: 1.5
   lootRange: 4
   distanceMovedLeft: 0
   distanceMovedRight: 0
