@@ -3,17 +3,23 @@ using UnityEngine;
 public class HorizontalMovement : EnemyMovement
 {
     [Header("Movement")]
-    public float maxSpeed = 3f;
+    public float maxSpeed    = 3f;
     public float acceleration = 5f;
 
     [Header("Turning")]
-    public float turnBrake = 20f;
-    public bool instantTurn = false;
+    public float turnBrake   = 20f;
+    public bool  instantTurn = false;
 
     [Header("Detection")]
     public HorizontalSensor sensor;
 
-    private float direction = 1f;   // 1 = right, -1 = left
+    [Header("Wall Bounds — set to the X positions of the left and right walls")]
+    [Tooltip("If left at 0/0, bounds are ignored and sensor-only turning is used")]
+    public float minX = -10f;
+    public float maxX =  10f;
+    public bool  useBounds = true;
+
+    private float direction    = 1f;
     private float currentSpeed = 0f;
 
     protected override void Awake()
@@ -22,7 +28,7 @@ public class HorizontalMovement : EnemyMovement
 
         if (sensor != null)
         {
-            sensor.OnHitLeft += HandleHitLeft;
+            sensor.OnHitLeft  += HandleHitLeft;
             sensor.OnHitRight += HandleHitRight;
         }
     }
@@ -38,17 +44,29 @@ public class HorizontalMovement : EnemyMovement
         );
 
         transform.position += Vector3.right * currentSpeed * Time.deltaTime;
+
+        // Hard clamp to bounds — prevents wall penetration regardless of physics
+        if (useBounds)
+        {
+            Vector3 pos = transform.position;
+
+            if (pos.x <= minX && direction < 0f)
+            {
+                Turn(1f);
+                pos.x = minX;
+            }
+            else if (pos.x >= maxX && direction > 0f)
+            {
+                Turn(-1f);
+                pos.x = maxX;
+            }
+
+            transform.position = pos;
+        }
     }
 
-    private void HandleHitLeft()
-    {
-        Turn(1f);
-    }
-
-    private void HandleHitRight()
-    {
-        Turn(-1f);
-    }
+    private void HandleHitLeft()  => Turn(1f);
+    private void HandleHitRight() => Turn(-1f);
 
     private void Turn(float newDirection)
     {
@@ -60,11 +78,7 @@ public class HorizontalMovement : EnemyMovement
         }
         else
         {
-            currentSpeed = Mathf.MoveTowards(
-                currentSpeed,
-                0f,
-                turnBrake * Time.deltaTime
-            );
+            currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, turnBrake * Time.deltaTime);
         }
     }
 }

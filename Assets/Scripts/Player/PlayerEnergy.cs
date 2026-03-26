@@ -3,7 +3,7 @@ using TMPro;
 
 public class PlayerEnergy : MonoBehaviour
 {
-    [Header("Energy Settings")]
+    [Header("Energy Settings — defaults, overridden by PlayerStats at runtime")]
     public float maxEnergy = 100f;
     public float currentEnergy = 0f;
 
@@ -15,17 +15,25 @@ public class PlayerEnergy : MonoBehaviour
     public TMP_Text energyTMPText;
 
     private PlayerMovement playerMovement;
+    private PlayerStats playerStats;
     private LavaZone currentLavaZone;
-    private Collider currentLavaCollider;        // collider of the lava zone we're in (for exit checks)
-    private CapsuleCollider playerCapsule;       // player's capsule collider (root)
+    private Collider currentLavaCollider;
+    private CapsuleCollider playerCapsule;
+
+    // Always read max energy from PlayerStats when available
+    private float MaxEnergy => playerStats != null ? playerStats.maxEnergy : maxEnergy;
+
+    // Regen multiplier from PlayerStats — applied to ALL energy gained
+    private float RegenMultiplier => playerStats != null ? playerStats.energyRegenMultiplier : 1f;
 
     void Start()
     {
         playerMovement = GetComponent<PlayerMovement>();
+        playerStats = GetComponent<PlayerStats>();
         playerCapsule = GetComponent<CapsuleCollider>();
 
         if (playerCapsule == null)
-            Debug.LogWarning("PlayerEnergy: No CapsuleCollider found on player. Lava detection uses the player's CapsuleCollider bounds.");
+            Debug.LogWarning("PlayerEnergy: No CapsuleCollider found on player.");
     }
 
     void Update()
@@ -37,35 +45,55 @@ public class PlayerEnergy : MonoBehaviour
     private void HandleEnergyGain()
     {
         float yVelocity = playerMovement.GetVelocity().y;
+
         if (yVelocity < 0f)
         {
-            float gain = Mathf.Abs(yVelocity) * energyPerVelocityUnit;
+            float gain = Mathf.Abs(yVelocity) * energyPerVelocityUnit * RegenMultiplier;
+
+            EnergySource source = EnergySource.Falling;
 
             if (playerMovement.isWallSliding)
+            {
                 gain *= wallSlideEnergyMultiplier;
+                source = EnergySource.WallSlide;
+            }
 
-            currentEnergy = Mathf.Clamp(currentEnergy + gain * Time.deltaTime, 0, maxEnergy);
+            float actualGain = Mathf.Min(gain * Time.deltaTime, MaxEnergy - currentEnergy);
+            if (actualGain > 0f)
+            {
+                currentEnergy += actualGain;
+                playerStats?.RecordEnergyGained(actualGain, source);
+            }
         }
 
         if (currentLavaZone != null)
         {
-            float lavaGain = currentLavaZone.DrainEnergy(Time.deltaTime);
-            currentEnergy = Mathf.Clamp(currentEnergy + lavaGain, 0, maxEnergy);
+            float lavaGain = currentLavaZone.DrainEnergy(Time.deltaTime) * RegenMultiplier;
+            float actualGain = Mathf.Min(lavaGain, MaxEnergy - currentEnergy);
+            if (actualGain > 0f)
+            {
+                currentEnergy += actualGain;
+                playerStats?.RecordEnergyGained(actualGain, EnergySource.Lava);
+            }
         }
+
+        // Clamp to current max (handles MaxEnergy being lowered mid-run)
+        currentEnergy = Mathf.Clamp(currentEnergy, 0f, MaxEnergy);
     }
 
-    public void RestoreEnergy(float amount) //killing
+    /// <summary>Restore energy from kills or other external sources.</summary>
+    public void RestoreEnergy(float amount)
     {
-        currentEnergy = Mathf.Min(currentEnergy + amount, maxEnergy);
+        float actualGain = Mathf.Min(amount * RegenMultiplier, MaxEnergy - currentEnergy);
+        if (actualGain > 0f)
+        {
+            currentEnergy += actualGain;
+            playerStats?.RecordEnergyGained(actualGain, EnergySource.Kill);
+        }
         UpdateEnergyUI();
     }
 
-    private void UpdateEnergyUI()
-    {
-        if (energyTMPText != null)
-            energyTMPText.text = "Energy: " + Mathf.FloorToInt(currentEnergy).ToString();
-    }
-
+    /// <summary>Spend energy. Returns true if successful.</summary>
     public bool SpendEnergy(float amount)
     {
         if (currentEnergy >= amount)
@@ -76,18 +104,27 @@ public class PlayerEnergy : MonoBehaviour
         return false;
     }
 
-    public void DrainEnergy(float amount) //hover
+    /// <summary>Drain energy (hover). Does not return a value.</summary>
+    public void DrainEnergy(float amount)
     {
         currentEnergy = Mathf.Max(currentEnergy - amount, 0f);
-        UpdateEnergyUI(); // optional
+        UpdateEnergyUI();
     }
+
+    private void UpdateEnergyUI()
+    {
+        if (energyTMPText != null)
+            energyTMPText.text = "Energy: " + Mathf.FloorToInt(currentEnergy).ToString();
+    }
+
+    // ================================================================
+    //  LAVA ZONE DETECTION  (unchanged from original)
+    // ================================================================
 
     private void OnTriggerEnter(Collider other)
     {
-        // If the collider we hit is a LavaZone, only register it if the player's capsule is actually overlapping that collider.
         if (other.TryGetComponent(out LavaZone lavaZone))
         {
-            // If we don't have a capsule, fallback to the old behavior (best-effort).
             if (playerCapsule == null)
             {
                 currentLavaZone = lavaZone;
@@ -95,8 +132,6 @@ public class PlayerEnergy : MonoBehaviour
                 return;
             }
 
-            // Use bounds intersection to confirm the player's capsule overlaps the lava collider.
-            // This prevents child triggers (like Looter) from falsely registering the player as "in lava".
             if (playerCapsule.bounds.Intersects(other.bounds))
             {
                 currentLavaZone = lavaZone;
@@ -107,7 +142,6 @@ public class PlayerEnergy : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        // If the collider leaving is the same lava collider we registered, clear it.
         if (other == currentLavaCollider)
         {
             currentLavaZone = null;
@@ -115,10 +149,8 @@ public class PlayerEnergy : MonoBehaviour
             return;
         }
 
-        // Safety: if some other lava zone exit fired, and the player's capsule no longer intersects that lava, clear anyway.
         if (other.TryGetComponent(out LavaZone lavaZone) && lavaZone == currentLavaZone)
         {
-            // If we still intersect bounds, keep it; otherwise clear.
             if (playerCapsule == null || !playerCapsule.bounds.Intersects(other.bounds))
             {
                 currentLavaZone = null;

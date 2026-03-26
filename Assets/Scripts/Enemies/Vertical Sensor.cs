@@ -15,19 +15,14 @@ public class VerticalSensor : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.transform.root == rootEnemy) return; // ignore self
-
-        if (other.CompareTag("Spawner"))
-            return;
-        if (other.CompareTag("Looter"))
-            return;
+        if (other.transform.root == rootEnemy) return;
+        if (other.CompareTag("Spawner")) return;
+        if (other.CompareTag("Looter")) return;
+        if (other.CompareTag("Enemy")) return;
 
         Vector3 localPos = transform.InverseTransformPoint(other.ClosestPoint(transform.position));
 
-            if (localPos.y > 0)
-                OnHitCeiling?.Invoke();
-            else
-                OnHitGround?.Invoke();
- //       }
+        if (localPos.y > 0) OnHitCeiling?.Invoke();
+        else OnHitGround?.Invoke();
     }
 }

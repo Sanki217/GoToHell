@@ -16,8 +16,8 @@ public class StatsUI : MonoBehaviour
 {
     [Header("References")]
     public GameObject player;
-    public GameObject statsPanel;   // the panel to show/hide
-    public TMP_Text statsText;    // the text inside the panel
+    public GameObject statsPanel;
+    public TMP_Text statsText;
 
     [Header("Settings")]
     public KeyCode toggleKey = KeyCode.Tab;
@@ -41,7 +41,6 @@ public class StatsUI : MonoBehaviour
             playerShooting = player.GetComponent<PlayerShooting>();
         }
 
-        // Start hidden
         if (statsPanel != null)
             statsPanel.SetActive(false);
     }
@@ -55,7 +54,6 @@ public class StatsUI : MonoBehaviour
                 statsPanel.SetActive(isVisible);
         }
 
-        // Refresh text every frame while visible
         if (isVisible && statsText != null && playerStats != null)
             statsText.text = BuildStatString();
     }
@@ -65,7 +63,6 @@ public class StatsUI : MonoBehaviour
         var s = playerStats;
         var hp = playerHealth;
         var en = playerEnergy;
-        var sh = playerShooting;
 
         return
             "<b><color=#FFD700>══ COMBAT STATS ══</color></b>\n" +
@@ -97,13 +94,13 @@ public class StatsUI : MonoBehaviour
             "\n" +
             "<b><color=#FF6666>══ RUN HISTORY: MOVEMENT ══</color></b>\n" +
             $"Total Distance:    {s.totalDistance:F0}m\n" +
-            $"Jumps:             {s.jumpsPerformed}  (Double: {s.doubleJumpsPerformed})\n" +
+            $"Jumps:             {s.jumpsPerformed}\n" +
             $"Wall Slides:       {s.wallSlideCount}  ({s.totalWallSlideDuration:F1}s)\n" +
             $"Hovers:            {s.hoverCount}  ({s.totalHoverDuration:F1}s)\n" +
             $"Dashes:            {s.dashCount}  (hit enemy: {s.dashesHitEnemy}  wall: {s.dashesHitWall})\n" +
             "\n" +
             "<b><color=#FF6666>══ RUN HISTORY: COMBAT ══</color></b>\n" +
-            $"Arrows Fired:      {s.totalArrowsFired}  (W:{s.weakArrowsFired} M:{s.mediumArrowsFired} C:{s.chargedArrowsFired} X:{s.extraArrowsFired})\n" +
+            $"Arrows Fired:      {s.totalArrowsFired}  (L:{s.weakArrowsFired} M:{s.mediumArrowsFired} S:{s.chargedArrowsFired} X:{s.extraArrowsFired})\n" +
             $"Arrows Hit Enemy:  {s.arrowsHitEnemy}\n" +
             $"Enemies Killed:    {s.enemiesKilled}\n" +
             $"Total Dmg Dealt:   {s.totalDamageDealt:F0}\n" +

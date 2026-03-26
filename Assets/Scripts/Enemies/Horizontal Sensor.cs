@@ -15,25 +15,31 @@ public class HorizontalSensor : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Ignore self
-        if (other.transform.root == rootEnemy)
-            return;
+        HandleCollision(other);
+    }
 
-    
-        if (other.CompareTag("Spawner"))
-            return;
-        if (other.CompareTag("Looter"))
-            return;
+    // OnTriggerStay ensures that if an enemy somehow gets inside a wall,
+    // it keeps receiving the bounce signal until it escapes.
+    private void OnTriggerStay(Collider other)
+    {
+        HandleCollision(other);
+    }
+
+    private void HandleCollision(Collider other)
+    {
+        if (other.transform.root == rootEnemy) return;
+        if (other.CompareTag("Spawner")) return;
+        if (other.CompareTag("Looter")) return;
+        if (other.CompareTag("Enemy")) return;  // ignore other enemies
 
         Vector3 hitPoint = other.ClosestPoint(rootEnemy.position);
         float deltaX = hitPoint.x - rootEnemy.position.x;
 
-        if (Mathf.Abs(deltaX) < 0.01f)
-            return;
+        if (Mathf.Abs(deltaX) < 0.01f) return;
 
         if (deltaX > 0f)
-            OnHitRight?.Invoke(); // obstacle on right → go left
+            OnHitRight?.Invoke();
         else
-            OnHitLeft?.Invoke();  // obstacle on left → go right
+            OnHitLeft?.Invoke();
     }
 }

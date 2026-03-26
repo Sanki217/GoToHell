@@ -150,7 +150,7 @@ MonoBehaviour:
   energyRestoredOnDeath: 5
   minimumSouls: 1
   maximumSouls: 3
-  enemyRenderer: {fileID: 0}
+  enemyRenderer: {fileID: 683928952675716204, guid: 780fe9defb2d7e943b5c8de90c680a0f, type: 3}
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
   hitFlashDuration: 0.08
 --- !u!114 &2406779665729675753

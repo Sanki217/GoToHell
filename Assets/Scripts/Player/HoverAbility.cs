@@ -8,7 +8,7 @@ public class HoverAbility : MonoBehaviour
     public float maxUpwardSpeed = 5f;
     public float minEnergyToHover = 5f;
 
-    [Tooltip("Default value — overridden at runtime by PlayerStats.hoverDrainRate")]
+    [Tooltip("Default — overridden by PlayerStats.hoverDrainRate at runtime")]
     public float energyDrainPerSecond = 10f;
 
     private Rigidbody rb;
@@ -19,8 +19,8 @@ public class HoverAbility : MonoBehaviour
 
     private bool isHovering = false;
     private bool wasOutOfEnergy = false;
+    private bool wasHovering = false;  // tracks start/end for history
 
-    // reads live value from PlayerStats if available
     private float DrainRate => playerStats != null ? playerStats.hoverDrainRate : energyDrainPerSecond;
 
     void Start()
@@ -36,24 +36,25 @@ public class HoverAbility : MonoBehaviour
     {
         if (!GetComponent<PlayerStateController>().HasControl())
         {
-            isHovering = false;
+            if (isHovering) EndHover();
             return;
         }
 
         bool hasEnoughEnergy = energySystem.currentEnergy >= minEnergyToHover;
+        if (hasEnoughEnergy) wasOutOfEnergy = false;
 
-        if (hasEnoughEnergy)
-            wasOutOfEnergy = false;
+        bool wantsHover = Input.GetKey(KeyCode.Space) && hasEnoughEnergy
+                          && !wasOutOfEnergy && !movement.isGrounded;
 
-        if (Input.GetKey(KeyCode.Space) && hasEnoughEnergy && !wasOutOfEnergy && !movement.isGrounded)
+        if (wantsHover && !isHovering)
         {
             isHovering = true;
+            playerStats?.RecordHoverStart();
             upgradeManager?.HoverStart();
         }
-        else
+        else if (!wantsHover && isHovering)
         {
-            isHovering = false;
-            upgradeManager?.HoverEnd();
+            EndHover();
         }
     }
 
@@ -64,17 +65,27 @@ public class HoverAbility : MonoBehaviour
         rb.AddForce(Vector3.up * hoverForce, ForceMode.Acceleration);
 
         upgradeManager?.HoverTick(Time.fixedDeltaTime);
+        playerStats?.RecordHoverTick(Time.fixedDeltaTime);
 
-        // Clamp upward velocity
         Vector3 velocity = rb.linearVelocity;
         if (velocity.y > maxUpwardSpeed)
             velocity.y = maxUpwardSpeed;
         rb.linearVelocity = velocity;
 
-        // Drain energy using live stat value
-        energySystem.DrainEnergy(DrainRate * Time.fixedDeltaTime);
+        float drain = DrainRate * Time.fixedDeltaTime;
+        energySystem.DrainEnergy(drain);
+        playerStats?.RecordEnergySpent(drain, EnergySpentSource.Hover);
 
         if (energySystem.currentEnergy < minEnergyToHover)
+        {
             wasOutOfEnergy = true;
+            EndHover();
+        }
+    }
+
+    private void EndHover()
+    {
+        isHovering = false;
+        upgradeManager?.HoverEnd();
     }
 }

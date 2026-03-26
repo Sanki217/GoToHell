@@ -1,13 +1,13 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 /// <summary>
 /// Unified player stat system. Three categories:
-///   1. Combat Stats   — live values modified by upgrades (damage, crit, HP, arrows)
-///   2. Movement Stats — live values modified by upgrades (speed, dash, energy)
-///   3. Run History    — accumulated read-only record of everything done this run
+///   1. Combat Stats   â€” live values modified by upgrades
+///   2. Movement Stats â€” live values modified by upgrades
+///   3. Run History    â€” accumulated record of everything done this run
 ///
-/// Add this component to the Player GameObject.
-/// Upgrades write to Combat/Movement stats. Other scripts call Record* methods.
+/// CRIT SYSTEM:
+///   Every damage source calls RollDamage(baseDamage) to get final damage + crit flag.
 /// </summary>
 public class PlayerStats : MonoBehaviour
 {
@@ -17,24 +17,26 @@ public class PlayerStats : MonoBehaviour
 
     private PlayerShooting shooting;
     private PlayerHealth health;
+    private PlayerUpgradeManager upgradeManager;
 
     private void Awake()
     {
         shooting = GetComponent<PlayerShooting>();
         health = GetComponent<PlayerHealth>();
+        upgradeManager = GetComponent<PlayerUpgradeManager>();
     }
 
     // ================================================================
-    //  1. COMBAT STATS  (live — upgrades modify these)
+    //  1. COMBAT STATS  (live â€” upgrades modify these)
     // ================================================================
 
     [Header("--- COMBAT STATS ---")]
     public int maxHP = 100;
     public float arrowDamage = 1f;
     public float dashDamage = 1f;
-    public float critChance = 0f;    // 0.0 = 0%,  1.0 = 100%
-    public float critMultiplier = 1.5f;  // 1.5 = 150%
-    public float knockbackForce = 0f;    // 0 = knockback disabled
+    public float critChance = 0f;
+    public float critMultiplier = 1.5f;
+    public float knockbackForce = 0f;
 
     [Header("Status Effect Strength (1.0 = base 100%)")]
     public float burnStrength = 1f;
@@ -42,7 +44,7 @@ public class PlayerStats : MonoBehaviour
     public float holyStrength = 1f;
     public float shockStrength = 1f;
 
-    // Arrow count — live references into PlayerShooting
+    // â”€â”€ Arrow count â”€â”€ live references into PlayerShooting, Inspector-editable
     public int MaxArrows
     {
         get => shooting != null ? shooting.maxArrows : 3;
@@ -50,14 +52,20 @@ public class PlayerStats : MonoBehaviour
     }
 
     public int CurrentArrows
-        => shooting != null ? shooting.CurrentArrows : 0;
+    {
+        get => shooting != null ? shooting.CurrentArrows : 0;
+        set { if (shooting != null) shooting.SetCurrentArrows(value); }
+    }
 
-    // HP — live reference into PlayerHealth
+    // â”€â”€ HP â”€â”€ live references into PlayerHealth, Inspector-editable
     public int CurrentHP
-        => health != null ? health.CurrentHP : 0;
+    {
+        get => health != null ? health.CurrentHP : 0;
+        set { if (health != null) health.SetHP(value); }
+    }
 
     // ================================================================
-    //  2. MOVEMENT STATS  (live — upgrades modify these)
+    //  2. MOVEMENT STATS  (live â€” upgrades modify these)
     // ================================================================
 
     [Header("--- MOVEMENT STATS ---")]
@@ -73,15 +81,14 @@ public class PlayerStats : MonoBehaviour
     public float arrowChargeDrainRate = 5f;
 
     // ================================================================
-    //  3. RUN HISTORY  (accumulated — reset each run)
+    //  3. RUN HISTORY  (accumulated â€” reset each run)
     // ================================================================
 
     [Header("--- RUN HISTORY: Movement ---")]
     public float distanceMovedLeft;
     public float distanceMovedRight;
-    public float totalDistance;
-    public int jumpsPerformed;
-    public int doubleJumpsPerformed;
+    public float totalDistance;       // horizontal + vertical combined
+    public int jumpsPerformed;      // all jumps including double jumps
     public float timeAirborne;
     public float timeGrounded;
     public int wallSlideCount;
@@ -142,26 +149,68 @@ public class PlayerStats : MonoBehaviour
     public bool reviveUsed;
 
     // ================================================================
-    //  RECORD METHODS — called by other systems to update Run History
+    //  CRIT SYSTEM
     // ================================================================
 
-    public void RecordSoulCollected(int amount)
+    public (float damage, bool isCrit) RollDamage(float baseDamage)
     {
-        soulsCollected += amount;
-        xpGained += amount;
+        bool isCrit = Random.value < critChance;
+        float finalDamage = isCrit ? baseDamage * critMultiplier : baseDamage;
+        if (isCrit) { critsLanded++; upgradeManager?.CriticalHit(null, finalDamage); }
+        return (finalDamage, isCrit);
     }
 
-    public void RecordEnergyGained(float amount, EnergySource source)
+    public (float damage, bool isCrit) RollDamage(float baseDamage, GameObject enemy)
     {
-        energyGainedTotal += amount;
-        switch (source)
+        bool isCrit = Random.value < critChance;
+        float finalDamage = isCrit ? baseDamage * critMultiplier : baseDamage;
+        if (isCrit) { critsLanded++; upgradeManager?.CriticalHit(enemy, finalDamage); }
+        return (finalDamage, isCrit);
+    }
+
+    // ================================================================
+    //  RECORD METHODS
+    // ================================================================
+
+    public void RecordJump() => jumpsPerformed++;
+
+    public void RecordWallSlideStart() => wallSlideCount++;
+    public void RecordWallSlideTick(float dt) => totalWallSlideDuration += dt;
+    public void RecordHoverStart() => hoverCount++;
+    public void RecordHoverTick(float dt) => totalHoverDuration += dt;
+
+    public void RecordDash(float distance) { dashCount++; totalDashDistance += distance; }
+    public void RecordDashHitEnemy() => dashesHitEnemy++;
+    public void RecordDashHitWall() => dashesHitWall++;
+
+    /// <param name="dx">Horizontal displacement this frame</param>
+    /// <param name="dy">Vertical displacement this frame</param>
+    public void RecordMovement(float dx, float dy, float dt, bool grounded, bool airborne)
+    {
+        if (dx < 0) distanceMovedLeft += Mathf.Abs(dx);
+        else distanceMovedRight += dx;
+        totalDistance += new Vector2(dx, dy).magnitude;
+        if (grounded) timeGrounded += dt;
+        if (airborne) timeAirborne += dt;
+    }
+
+    public void RecordArrowFired(ArrowFireType type)
+    {
+        totalArrowsFired++;
+        switch (type)
         {
-            case EnergySource.Kill: energyFromKills += amount; break;
-            case EnergySource.Falling: energyFromFalling += amount; break;
-            case EnergySource.Lava: energyFromLava += amount; break;
-            case EnergySource.WallSlide: energyFromWallSlide += amount; break;
+            case ArrowFireType.Weak: weakArrowsFired++; break;
+            case ArrowFireType.Medium: mediumArrowsFired++; break;
+            case ArrowFireType.Charged: chargedArrowsFired++; break;
+            case ArrowFireType.Extra: extraArrowsFired++; break;
         }
     }
+
+    public void RecordArrowHitEnemy() => arrowsHitEnemy++;
+    public void RecordArrowHitWall() => arrowsHitWall++;
+    public void RecordArrowHitDestructible() => arrowsHitDestructible++;
+    public void RecordArrowPickedUp() => arrowsPickedUp++;
+    public void RecordChargeCancelled() => chargesCancelledByEnergy++;
 
     public void RecordDamageDealt(float amount, DamageSource source)
     {
@@ -175,62 +224,64 @@ public class PlayerStats : MonoBehaviour
         }
     }
 
-    public void RecordDamageTaken(float amount)
+    public void RecordEnemyKilled() => enemiesKilled++;
+    public void RecordCritLanded() => critsLanded++;
+
+    public void RecordStatusApplied(StatusType type)
     {
-        damageTaken += amount;
-        timesHit++;
+        switch (type)
+        {
+            case StatusType.Burn: burnApplied++; break;
+            case StatusType.Freeze: freezeApplied++; break;
+            case StatusType.Holy: holyApplied++; break;
+            case StatusType.Shock: shockApplied++; break;
+        }
     }
 
-    public void RecordHPRestored(int amount)
+    public void RecordSoulCollected(int amount) { soulsCollected += amount; xpGained += amount; }
+
+    public void RecordEnergyGained(float amount, EnergySource source)
     {
-        hpRestored += amount;
+        energyGainedTotal += amount;
+        switch (source)
+        {
+            case EnergySource.Kill: energyFromKills += amount; break;
+            case EnergySource.Falling: energyFromFalling += amount; break;
+            case EnergySource.Lava: energyFromLava += amount; break;
+            case EnergySource.WallSlide: energyFromWallSlide += amount; break;
+        }
     }
 
-    public void RecordEnemyKilled()
+    public void RecordEnergySpent(float amount, EnergySpentSource source)
     {
-        enemiesKilled++;
+        switch (source)
+        {
+            case EnergySpentSource.Dash: energySpentDashing += amount; break;
+            case EnergySpentSource.Hover: energySpentHovering += amount; break;
+            case EnergySpentSource.Charging: energySpentCharging += amount; break;
+        }
     }
 
-    // ================================================================
-    //  STAT SHEET — formatted string for UI / pause menu
-    // ================================================================
-
-    public string GetStatSheet()
+    public void RecordChestOpened(ChestRarity rarity)
     {
-        return
-            "=== COMBAT ===\n" +
-            $"HP:               {CurrentHP} / {maxHP}\n" +
-            $"Arrow Damage:     {arrowDamage:F1}\n" +
-            $"Dash Damage:      {dashDamage:F1}\n" +
-            $"Crit Chance:      {critChance * 100f:F1}%\n" +
-            $"Crit Multiplier:  {critMultiplier * 100f:F0}%\n" +
-            $"Knockback Force:  {knockbackForce:F1}\n" +
-            $"Burn Strength:    {burnStrength * 100f:F0}%\n" +
-            $"Freeze Strength:  {freezeStrength * 100f:F0}%\n" +
-            $"Holy Strength:    {holyStrength * 100f:F0}%\n" +
-            $"Shock Strength:   {shockStrength * 100f:F0}%\n" +
-            "\n=== MOVEMENT ===\n" +
-            $"Move Speed:       {moveSpeed:F1}\n" +
-            $"Jump Force:       {jumpForce:F1}\n" +
-            $"Max Jumps:        {maxJumps}\n" +
-            $"Dash Distance:    {dashDistance:F1}\n" +
-            $"Dash Cost:        {dashCost:F1}\n" +
-            $"Max Energy:       {maxEnergy:F1}\n" +
-            $"Hover Drain/s:    {hoverDrainRate:F1}\n" +
-            $"Charge Drain/s:   {arrowChargeDrainRate:F1}\n" +
-            "\n=== AMMO ===\n" +
-            $"Arrows:           {CurrentArrows} / {MaxArrows}\n";
+        switch (rarity)
+        {
+            case ChestRarity.Common: chestsOpenedCommon++; break;
+            case ChestRarity.Rare: chestsOpenedRare++; break;
+            case ChestRarity.Legendary: chestsOpenedLegendary++; break;
+        }
     }
+
+    public void RecordDamageTaken(float amount) { damageTaken += amount; timesHit++; }
+    public void RecordHPRestored(int amount) => hpRestored += amount;
+    public void RecordLayerCompleted() => layersCompleted++;
+    public void RecordReviveUsed() => reviveUsed = true;
 }
 
 // ================================================================
-//  SUPPORTING ENUM
+//  SUPPORTING ENUMS
 // ================================================================
 
-public enum DamageSource
-{
-    Arrow,
-    Dash,
-    Status,
-    Explosion
-}
+public enum DamageSource { Arrow, Dash, Status, Explosion }
+public enum EnergySpentSource { Dash, Hover, Charging }
+public enum ArrowFireType { Weak, Medium, Charged, Extra }

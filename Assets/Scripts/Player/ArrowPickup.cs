@@ -2,12 +2,16 @@
 
 public class ArrowPickup : MonoBehaviour
 {
+    // canPickUp is only set to true once the arrow has landed on a wall
     public bool canPickUp = false;
-    public float pickupDelay = 0.2f;
 
     public bool isBeingSucked = false;
-    private Transform target; // player
-    private float suckSpeed = 15f;
+    private Transform target;
+
+    [Header("Suck Settings")]
+    public float minSuckSpeed = 8f;
+    public float maxSuckSpeed = 25f;
+    public float maxSuckDistance = 15f;   // distance at which speed is maxSuckSpeed
 
     private Arrow arrow;
 
@@ -18,20 +22,21 @@ public class ArrowPickup : MonoBehaviour
 
     private void Start()
     {
-        // Pre-placed arrow = instantly collectible
+        // Pre-placed arrow (speed = 0) → instantly collectible
         if (arrow == null || arrow.speed == 0)
         {
             canPickUp = true;
-            return;
         }
-
-        // Shot arrow gets collectible after short delay
-        StartCoroutine(EnablePickupDelayed());
+        // Shot arrows: canPickUp is set to true by Arrow.cs when it hits a wall
+        // (see Arrow.StickToSurface → ArrowPickup.OnArrowLanded)
     }
 
-    private System.Collections.IEnumerator EnablePickupDelayed()
+    /// <summary>
+    /// Called by Arrow when it sticks to a surface.
+    /// Only at this point does the arrow become collectible.
+    /// </summary>
+    public void OnArrowLanded()
     {
-        yield return new WaitForSeconds(pickupDelay);
         canPickUp = true;
     }
 
@@ -40,11 +45,9 @@ public class ArrowPickup : MonoBehaviour
         target = targetPlayer;
         isBeingSucked = true;
 
-        // Disable collision so arrow doesn’t hit walls again
         Collider col = GetComponent<Collider>();
         if (col) col.enabled = false;
 
-        // stop arrow movement logic
         if (arrow != null)
             arrow.enabled = false;
     }
@@ -53,13 +56,27 @@ public class ArrowPickup : MonoBehaviour
     {
         if (!isBeingSucked || target == null) return;
 
-        // Smooth ease-in sucking motion
-        transform.position = Vector3.Lerp(transform.position, target.position, suckSpeed * Time.deltaTime);
+        // Speed scales with distance — faster when far, but never slower than min
+        float dist = Vector3.Distance(transform.position, target.position);
+        float t = Mathf.Clamp01(dist / maxSuckDistance);
+        float suckSpeed = Mathf.Lerp(minSuckSpeed, maxSuckSpeed, t);
 
-        // When close enough → pickup complete
+        transform.position = Vector3.MoveTowards(
+            transform.position,
+            target.position,
+            suckSpeed * Time.deltaTime
+        );
+
         if (Vector3.Distance(transform.position, target.position) < 0.4f)
         {
-            target.GetComponent<PlayerShooting>().RestoreArrow();
+            PlayerShooting shooting = target.GetComponent<PlayerShooting>();
+            PlayerStats stats = target.GetComponent<PlayerStats>();
+            PlayerUpgradeManager mgr = target.GetComponent<PlayerUpgradeManager>();
+
+            shooting?.RestoreArrow();
+            stats?.RecordArrowPickedUp();
+            mgr?.ArrowPickedUp();
+
             Destroy(gameObject);
         }
     }

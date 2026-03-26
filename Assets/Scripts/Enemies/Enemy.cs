@@ -36,6 +36,14 @@ public class Enemy : MonoBehaviour
         currentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
 
+        // Freeze rotation on all axes so knockback never tips or rotates enemies
+        // Freeze Z position so enemies stay on the 2.5D plane
+        if (rb != null)
+        {
+            rb.constraints = RigidbodyConstraints.FreezeRotation |
+                             RigidbodyConstraints.FreezePositionZ;
+        }
+
         if (enemyRenderer == null)
             enemyRenderer = GetComponentInChildren<Renderer>();
     }
@@ -43,6 +51,9 @@ public class Enemy : MonoBehaviour
     // ================================================================
     //  PUBLIC API
     // ================================================================
+
+    /// <summary>Returns true if this amount of damage would kill the enemy.</summary>
+    public bool WillDie(int amount) => currentHealth - amount <= 0;
 
     /// <summary>
     /// Simple overload — used by existing code that just passes an int.
