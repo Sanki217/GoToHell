@@ -45,9 +45,6 @@ public class Enemy : MonoBehaviour
         horizontalMovement = GetComponent<HorizontalMovement>();
         verticalMovement = GetComponent<VerticalMovement>();
 
-        // Make Rigidbody kinematic — enemies use transform movement,
-        // not physics. This prevents any physics impulse from bypassing
-        // the bounds system and pushing enemies through walls.
         if (rb != null)
         {
             rb.isKinematic = true;
@@ -76,6 +73,15 @@ public class Enemy : MonoBehaviour
                            bool isCrit,
                            FloatingTextManager.HitType hitType)
     {
+        // --- Shock: consume before applying damage, boost amount ---
+        ShockEffect shock = GetComponent<ShockEffect>();
+        if (shock != null)
+        {
+            float bonusDmg = shock.ConsumeShock(amount);
+            amount += Mathf.Max(0, Mathf.RoundToInt(bonusDmg));
+            hitType = FloatingTextManager.HitType.ShockConsume;
+        }
+
         currentHealth -= amount;
 
         FloatingTextManager.Show(
@@ -84,7 +90,6 @@ public class Enemy : MonoBehaviour
             isCrit ? FloatingTextManager.HitType.Critical : hitType
         );
 
-        // Transform-based knockback — respects bounds, never bypasses walls
         if (knockbackForce > 0f && knockbackDir != Vector3.zero)
             StartCoroutine(ApplyKnockback(knockbackDir.normalized * knockbackForce));
 
@@ -96,35 +101,57 @@ public class Enemy : MonoBehaviour
     }
 
     // ================================================================
+    //  STATUS EFFECTS
+    // ================================================================
+
+    /// <summary>
+    /// Apply a status effect to this enemy.
+    /// If the status is already active, refreshes its duration instead of stacking.
+    /// </summary>
+    public void ApplyStatus(StatusType type, PlayerStats playerStats,
+                             PlayerUpgradeManager upgradeManager)
+    {
+        switch (type)
+        {
+            case StatusType.Burn: ApplyOrRefresh<BurnEffect>(playerStats, upgradeManager); break;
+            case StatusType.Freeze: ApplyOrRefresh<FreezeEffect>(playerStats, upgradeManager); break;
+            case StatusType.Holy: ApplyOrRefresh<HolyEffect>(playerStats, upgradeManager); break;
+            case StatusType.Shock: ApplyOrRefresh<ShockEffect>(playerStats, upgradeManager); break;
+        }
+    }
+
+    private void ApplyOrRefresh<T>(PlayerStats ps, PlayerUpgradeManager mgr)
+        where T : StatusEffect
+    {
+        T existing = GetComponent<T>();
+        if (existing != null)
+            existing.Initialize(0f, ps, mgr); // re-initialise = refresh
+        else
+        {
+            T effect = gameObject.AddComponent<T>();
+            effect.Initialize(0f, ps, mgr);
+        }
+    }
+
+    // ================================================================
     //  PRIVATE
     // ================================================================
 
     private IEnumerator ApplyKnockback(Vector3 impulse)
     {
         float elapsed = 0f;
-
         while (elapsed < knockbackDuration)
         {
             elapsed += Time.deltaTime;
-
-            // Ease out: fast at start, slows to zero
             float t = elapsed / knockbackDuration;
             Vector3 frameMove = impulse * (1f - t) * Time.deltaTime;
-
             Vector3 newPos = transform.position + frameMove;
-            newPos.z = transform.position.z;  // keep Z locked
+            newPos.z = transform.position.z;
 
-            // Clamp to horizontal bounds
             if (horizontalMovement != null && horizontalMovement.useBounds)
-                newPos.x = Mathf.Clamp(newPos.x,
-                                       horizontalMovement.minX,
-                                       horizontalMovement.maxX);
-
-            // Clamp to vertical bounds
+                newPos.x = Mathf.Clamp(newPos.x, horizontalMovement.minX, horizontalMovement.maxX);
             if (verticalMovement != null && verticalMovement.useBounds)
-                newPos.y = Mathf.Clamp(newPos.y,
-                                       verticalMovement.minY,
-                                       verticalMovement.maxY);
+                newPos.y = Mathf.Clamp(newPos.y, verticalMovement.minY, verticalMovement.maxY);
 
             transform.position = newPos;
             yield return null;
@@ -134,7 +161,6 @@ public class Enemy : MonoBehaviour
     private void Die()
     {
         int soulCount = Random.Range(minimumSouls, maximumSouls + 1);
-
         for (int i = 0; i < soulCount; i++)
         {
             if (!soulPrefab) break;

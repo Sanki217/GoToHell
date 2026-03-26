@@ -8,7 +8,8 @@ public class UpgradeOrb : MonoBehaviour
         DashPulse,
         WallSlideDamage,
         HoverRegen,
-        EnemyExplosion
+        EnemyExplosion,
+        BurningArrow
     }
 
     public UpgradeType type;
@@ -22,6 +23,7 @@ public class UpgradeOrb : MonoBehaviour
             UpgradeType.WallSlideDamage => new Upgrade_WallSlide_Damage(),
             UpgradeType.HoverRegen => new Upgrade_Hover_Regen(),
             UpgradeType.EnemyExplosion => new Upgrade_Enemy_Explosion(),
+            UpgradeType.BurningArrow => new UpgradeBurningArrow(),
             _ => null
         };
 
