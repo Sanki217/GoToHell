@@ -33,6 +33,10 @@ public class PlayerStats : MonoBehaviour
     //  1. COMBAT STATS  (live — upgrades modify these)
     // ================================================================
 
+    [Header("--- LEVEL ---")]
+    [Tooltip("Current player level. Read-only — driven by PlayerLevelSystem.")]
+    public int currentLevel = 1;
+
     [Header("--- COMBAT STATS ---")]
     public int maxHP = 100;
     public float arrowDamage = 1f;
@@ -332,6 +336,7 @@ public class PlayerStats : MonoBehaviour
         }
     }
 
+    public void RecordPlayerLevelUp(int newLevel) { currentLevel = newLevel; }
     public void RecordEnemyKilled() => enemiesKilled++;
     public void RecordCritLanded() => critsLanded++;
 

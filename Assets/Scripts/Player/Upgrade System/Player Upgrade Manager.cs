@@ -28,6 +28,13 @@ public class PlayerUpgradeManager : MonoBehaviour
     public int GetUpgradeLevel(string id)
         => activeUpgrades.TryGetValue(id, out var inst) ? inst.level : 0;
 
+    /// <summary>Returns a snapshot of all active upgrades as (id, level) pairs for the UI.</summary>
+    public System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, int>> GetActiveUpgrades()
+    {
+        foreach (var kv in activeUpgrades)
+            yield return new System.Collections.Generic.KeyValuePair<string, int>(kv.Key, kv.Value.level);
+    }
+
     // ============================================================
     //  EVENTS — Shooting
     // ============================================================

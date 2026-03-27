@@ -2,15 +2,13 @@
 using TMPro;
 
 /// <summary>
-/// TAB-toggled stats panel. Shows all live stats and run history.
+/// TAB-toggled stats panel. Shows all live stats, level/XP, and active upgrades.
 ///
 /// Setup:
 ///   1. Create a UI Panel in your Canvas, name it "StatsPanel"
-///   2. Add a TMP_Text child inside it for the content
+///   2. Add a TMP_Text child inside it — set it to scroll or overflow as needed
 ///   3. Add this script to any GameObject in the scene
-///   4. Drag StatsPanel into the statsPanel field
-///   5. Drag the TMP_Text into the statsText field
-///   6. Drag the Player into the player field
+///   4. Drag StatsPanel, the TMP_Text, and Player into the Inspector fields
 /// </summary>
 public class StatsUI : MonoBehaviour
 {
@@ -23,9 +21,11 @@ public class StatsUI : MonoBehaviour
     public KeyCode toggleKey = KeyCode.Tab;
 
     private PlayerStats playerStats;
+    private PlayerLevelSystem levelSystem;
     private PlayerHealth playerHealth;
     private PlayerEnergy playerEnergy;
     private PlayerShooting playerShooting;
+    private PlayerUpgradeManager upgradeManager;
     private bool isVisible = false;
 
     private void Start()
@@ -39,6 +39,8 @@ public class StatsUI : MonoBehaviour
             playerHealth = player.GetComponent<PlayerHealth>();
             playerEnergy = player.GetComponent<PlayerEnergy>();
             playerShooting = player.GetComponent<PlayerShooting>();
+            levelSystem = player.GetComponent<PlayerLevelSystem>();
+            upgradeManager = player.GetComponent<PlayerUpgradeManager>();
         }
 
         if (statsPanel != null)
@@ -64,7 +66,43 @@ public class StatsUI : MonoBehaviour
         var hp = playerHealth;
         var en = playerEnergy;
 
-        return
+        // ── Level / XP ──────────────────────────────────────────────
+        string levelBlock = "<b><color=#00FF99>══ LEVEL ══</color></b>\n";
+        if (levelSystem != null)
+        {
+            bool maxed = levelSystem.CurrentLevel >= PlayerLevelSystem.MaxLevel;
+            levelBlock +=
+                $"Level:             {(maxed ? "MAX" : levelSystem.CurrentLevel.ToString())}\n" +
+                $"Current XP:        {(maxed ? "—" : $"{Mathf.FloorToInt(levelSystem.CurrentXP)}")}\n" +
+                $"XP to Next Level:  {(maxed ? "—" : $"{Mathf.FloorToInt(levelSystem.XPToNextLevel)}")}\n" +
+                $"XP Multiplier:     {levelSystem.xpMultiplier:F2}×\n";
+        }
+        else
+        {
+            levelBlock += "PlayerLevelSystem not found\n";
+        }
+        levelBlock += "\n";
+
+        // ── Active Upgrades ──────────────────────────────────────────
+        string upgradeBlock = "<b><color=#FF99FF>══ ACTIVE UPGRADES ══</color></b>\n";
+        if (upgradeManager != null)
+        {
+            bool any = false;
+            foreach (var kv in upgradeManager.GetActiveUpgrades())
+            {
+                upgradeBlock += $"  {kv.Key,-28} Lv {kv.Value}\n";
+                any = true;
+            }
+            if (!any) upgradeBlock += "  None\n";
+        }
+        else
+        {
+            upgradeBlock += "  —\n";
+        }
+        upgradeBlock += "\n";
+
+        // ── Combat Stats ─────────────────────────────────────────────
+        string combat =
             "<b><color=#FFD700>══ COMBAT STATS ══</color></b>\n" +
             $"HP:                {(hp != null ? hp.CurrentHP : 0)} / {s.maxHP}\n" +
             $"Arrow Damage:      {s.arrowDamage:F1}\n" +
@@ -77,7 +115,10 @@ public class StatsUI : MonoBehaviour
             $"Freeze Strength:   {s.freezeStrength * 100f:F0}%\n" +
             $"Holy Strength:     {s.holyStrength * 100f:F0}%\n" +
             $"Shock Strength:    {s.shockStrength * 100f:F0}%\n" +
-            "\n" +
+            "\n";
+
+        // ── Movement Stats ───────────────────────────────────────────
+        string movement =
             "<b><color=#FFD700>══ MOVEMENT STATS ══</color></b>\n" +
             $"Move Speed:        {s.moveSpeed:F1}\n" +
             $"Jump Force:        {s.jumpForce:F1}\n" +
@@ -92,10 +133,17 @@ public class StatsUI : MonoBehaviour
             $"Charge Duration:   {s.arrowChargeDuration:F2}s\n" +
             $"Wall Slide Speed:  {s.wallSlideSpeed:F1}\n" +
             $"Loot Range:        {s.lootRange:F1}\n" +
-            "\n" +
+            $"Luck:              {s.luck:F1}\n" +
+            "\n";
+
+        // ── Ammo ─────────────────────────────────────────────────────
+        string ammo =
             "<b><color=#FFD700>══ AMMO ══</color></b>\n" +
             $"Arrows:            {s.CurrentArrows} / {s.MaxArrows}\n" +
-            "\n" +
+            "\n";
+
+        // ── Run History ──────────────────────────────────────────────
+        string history =
             "<b><color=#FF6666>══ RUN HISTORY: MOVEMENT ══</color></b>\n" +
             $"Total Distance:    {s.totalDistance:F0}m\n" +
             $"Jumps:             {s.jumpsPerformed}\n" +
@@ -130,5 +178,7 @@ public class StatsUI : MonoBehaviour
             $"  From Lava:       {s.energyFromLava:F0}\n" +
             $"  From WallSlide:  {s.energyFromWallSlide:F0}\n" +
             $"Chests Opened:     Common:{s.chestsOpenedCommon}  Rare:{s.chestsOpenedRare}  Leg:{s.chestsOpenedLegendary}\n";
+
+        return levelBlock + upgradeBlock + combat + movement + ammo + history;
     }
 }

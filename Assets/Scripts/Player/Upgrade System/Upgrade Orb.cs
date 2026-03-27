@@ -1,15 +1,15 @@
 using UnityEngine;
 
+/// <summary>
+/// Dev testing tool — drop in scene to apply a specific upgrade without going through level-up UI.
+/// Add new entries here as you implement and want to test each upgrade.
+/// </summary>
 public class UpgradeOrb : MonoBehaviour
 {
     public enum UpgradeType
     {
-        BowExtraArrow,
-        DashPulse,
-        WallSlideDamage,
-        HoverRegen,
-        EnemyExplosion,
         BurningArrow
+        // Add more entries here as upgrades are implemented
     }
 
     public UpgradeType type;
@@ -18,11 +18,6 @@ public class UpgradeOrb : MonoBehaviour
     {
         PlayerUpgrade upgrade = type switch
         {
-            UpgradeType.BowExtraArrow => new UpgradeBowExtraArrow(),
-            UpgradeType.DashPulse => new UpgradeDashPulse(),
-            UpgradeType.WallSlideDamage => new Upgrade_WallSlide_Damage(),
-            UpgradeType.HoverRegen => new Upgrade_Hover_Regen(),
-            UpgradeType.EnemyExplosion => new Upgrade_Enemy_Explosion(),
             UpgradeType.BurningArrow => new UpgradeBurningArrow(),
             _ => null
         };

@@ -17,7 +17,7 @@ public static class UpgradeFactory
         switch (upgradeId)
         {
             // ── Bow / Arrow ──────────────────────────────────────────
-            case "Bow_ExtraArrow": return new UpgradeBowExtraArrow();
+          //  case "Bow_ExtraArrow": return new UpgradeBowExtraArrow();
             case "Arrow_Burn": return new UpgradeBurningArrow();
             //case "Arrow_Pierce": return new UpgradeArrowPierce();
            // case "Arrow_Bounce": return new UpgradeArrowBounce();
