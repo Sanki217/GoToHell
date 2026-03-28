@@ -2,19 +2,26 @@
 using TMPro;
 
 /// <summary>
-/// TAB-toggled stats panel. Shows all live stats, level/XP, and active upgrades.
+/// TAB-toggled stats panel. Laid out in two columns to fit on screen.
 ///
 /// Setup:
-///   1. Create a UI Panel in your Canvas, name it "StatsPanel"
-///   2. Add a TMP_Text child inside it — set it to scroll or overflow as needed
-///   3. Add this script to any GameObject in the scene
-///   4. Drag StatsPanel, the TMP_Text, and Player into the Inspector fields
+///   Create a Canvas Panel with TWO TMP_Text children side by side.
+///   Wire leftStatsText and rightStatsText in Inspector.
+///   Or use a single statsText — it will render as one block (legacy).
 /// </summary>
 public class StatsUI : MonoBehaviour
 {
     [Header("References")]
     public GameObject player;
     public GameObject statsPanel;
+
+    [Tooltip("Left column — Level, Combat, Ammo")]
+    public TMP_Text leftStatsText;
+
+    [Tooltip("Right column — Movement, Run History, Upgrades")]
+    public TMP_Text rightStatsText;
+
+    [Tooltip("Legacy single-text fallback — only used if left/right are not assigned")]
     public TMP_Text statsText;
 
     [Header("Settings")]
@@ -24,7 +31,6 @@ public class StatsUI : MonoBehaviour
     private PlayerLevelSystem levelSystem;
     private PlayerHealth playerHealth;
     private PlayerEnergy playerEnergy;
-    private PlayerShooting playerShooting;
     private PlayerUpgradeManager upgradeManager;
     private bool isVisible = false;
 
@@ -38,13 +44,11 @@ public class StatsUI : MonoBehaviour
             playerStats = player.GetComponent<PlayerStats>();
             playerHealth = player.GetComponent<PlayerHealth>();
             playerEnergy = player.GetComponent<PlayerEnergy>();
-            playerShooting = player.GetComponent<PlayerShooting>();
             levelSystem = player.GetComponent<PlayerLevelSystem>();
             upgradeManager = player.GetComponent<PlayerUpgradeManager>();
         }
 
-        if (statsPanel != null)
-            statsPanel.SetActive(false);
+        if (statsPanel != null) statsPanel.SetActive(false);
     }
 
     private void Update()
@@ -52,133 +56,143 @@ public class StatsUI : MonoBehaviour
         if (Input.GetKeyDown(toggleKey))
         {
             isVisible = !isVisible;
-            if (statsPanel != null)
-                statsPanel.SetActive(isVisible);
+            if (statsPanel != null) statsPanel.SetActive(isVisible);
         }
 
-        if (isVisible && statsText != null && playerStats != null)
-            statsText.text = BuildStatString();
+        if (!isVisible || playerStats == null) return;
+
+        if (leftStatsText != null && rightStatsText != null)
+        {
+            leftStatsText.text = BuildLeftColumn();
+            rightStatsText.text = BuildRightColumn();
+        }
+        else if (statsText != null)
+        {
+            statsText.text = BuildLeftColumn() + "\n" + BuildRightColumn();
+        }
     }
 
-    private string BuildStatString()
+    // ================================================================
+    //  LEFT COLUMN — Level, Combat, Ammo
+    // ================================================================
+
+    private string BuildLeftColumn()
     {
         var s = playerStats;
         var hp = playerHealth;
-        var en = playerEnergy;
 
-        // ── Level / XP ──────────────────────────────────────────────
-        string levelBlock = "<b><color=#00FF99>══ LEVEL ══</color></b>\n";
+        // ── Level ────────────────────────────────────────────────────
+        string left = "<b><color=#00FF99>══ LEVEL ══</color></b>\n";
         if (levelSystem != null)
         {
             bool maxed = levelSystem.CurrentLevel >= PlayerLevelSystem.MaxLevel;
-            levelBlock +=
-                $"Level:             {(maxed ? "MAX" : levelSystem.CurrentLevel.ToString())}\n" +
-                $"Current XP:        {(maxed ? "—" : $"{Mathf.FloorToInt(levelSystem.CurrentXP)}")}\n" +
-                $"XP to Next Level:  {(maxed ? "—" : $"{Mathf.FloorToInt(levelSystem.XPToNextLevel)}")}\n" +
-                $"XP Multiplier:     {levelSystem.xpMultiplier:F2}×\n";
+            left +=
+                $"Level:          {(maxed ? "MAX" : levelSystem.CurrentLevel.ToString())}\n" +
+                $"Current XP:     {(maxed ? "—" : Mathf.FloorToInt(levelSystem.CurrentXP).ToString())}\n" +
+                $"XP to Next:     {(maxed ? "—" : Mathf.FloorToInt(levelSystem.XPToNextLevel).ToString())}\n" +
+                $"XP Multiplier:  {levelSystem.xpMultiplier:F2}×\n";
         }
-        else
-        {
-            levelBlock += "PlayerLevelSystem not found\n";
-        }
-        levelBlock += "\n";
+        else left += "PlayerLevelSystem not found\n";
+        left += "\n";
+
+        // ── Combat ───────────────────────────────────────────────────
+        left +=
+            "<b><color=#FFD700>══ COMBAT ══</color></b>\n" +
+            $"HP:             {(hp != null ? hp.CurrentHP : 0)} / {s.maxHP}\n" +
+            $"Arrow Damage:   {s.arrowDamage:F1}\n" +
+            $"Dash Damage:    {s.dashDamage:F1}\n" +
+            $"Crit Chance:    {s.critChance * 100f:F1}%\n" +
+            $"Crit Multi:     {s.critMultiplier * 100f:F0}%\n" +
+            $"Knockback:      {s.knockbackForce:F1}\n" +
+            $"Lifesteal:      {s.lifeSteal * 100f:F1}%\n" +
+            $"Burn:           {s.burnStrength * 100f:F0}%\n" +
+            $"Freeze:         {s.freezeStrength * 100f:F0}%\n" +
+            $"Holy:           {s.holyStrength * 100f:F0}%\n" +
+            $"Shock:          {s.shockStrength * 100f:F0}%\n" +
+            "\n";
+
+        // ── Ammo ─────────────────────────────────────────────────────
+        left +=
+            "<b><color=#FFD700>══ AMMO ══</color></b>\n" +
+            $"Arrows:         {s.CurrentArrows} / {s.MaxArrows}\n" +
+            "\n";
 
         // ── Active Upgrades ──────────────────────────────────────────
-        string upgradeBlock = "<b><color=#FF99FF>══ ACTIVE UPGRADES ══</color></b>\n";
+        left += "<b><color=#FF99FF>══ UPGRADES ══</color></b>\n";
         if (upgradeManager != null)
         {
             bool any = false;
             foreach (var kv in upgradeManager.GetActiveUpgrades())
             {
-                upgradeBlock += $"  {kv.Key,-28} Lv {kv.Value}\n";
+                left += $"  {kv.Key,-22} Lv{kv.Value}\n";
                 any = true;
             }
-            if (!any) upgradeBlock += "  None\n";
+            if (!any) left += "  None\n";
         }
-        else
-        {
-            upgradeBlock += "  —\n";
-        }
-        upgradeBlock += "\n";
 
-        // ── Combat Stats ─────────────────────────────────────────────
-        string combat =
-            "<b><color=#FFD700>══ COMBAT STATS ══</color></b>\n" +
-            $"HP:                {(hp != null ? hp.CurrentHP : 0)} / {s.maxHP}\n" +
-            $"Arrow Damage:      {s.arrowDamage:F1}\n" +
-            $"Dash Damage:       {s.dashDamage:F1}\n" +
-            $"Crit Chance:       {s.critChance * 100f:F1}%\n" +
-            $"Crit Multiplier:   {s.critMultiplier * 100f:F0}%\n" +
-            $"Knockback Force:   {s.knockbackForce:F1}\n" +
-            $"Lifesteal:         {s.lifeSteal * 100f:F1}%\n" +
-            $"Burn Strength:     {s.burnStrength * 100f:F0}%\n" +
-            $"Freeze Strength:   {s.freezeStrength * 100f:F0}%\n" +
-            $"Holy Strength:     {s.holyStrength * 100f:F0}%\n" +
-            $"Shock Strength:    {s.shockStrength * 100f:F0}%\n" +
-            "\n";
+        return left;
+    }
 
-        // ── Movement Stats ───────────────────────────────────────────
-        string movement =
-            "<b><color=#FFD700>══ MOVEMENT STATS ══</color></b>\n" +
-            $"Move Speed:        {s.moveSpeed:F1}\n" +
-            $"Jump Force:        {s.jumpForce:F1}\n" +
-            $"Max Jumps:         {s.maxJumps}\n" +
-            $"Dash Distance:     {s.dashDistance:F1}\n" +
-            $"Dash Cost:         {s.dashCost:F1}\n" +
-            $"Dash Invincibility:{s.dashInvincibilityWindow:F2}s\n" +
-            $"Max Energy:        {s.maxEnergy:F1}\n" +
-            $"Current Energy:    {(en != null ? en.currentEnergy : 0f):F0}\n" +
-            $"Hover Drain/s:     {s.hoverDrainRate:F1}\n" +
-            $"Charge Drain/s:    {s.arrowChargeDrainRate:F1}\n" +
-            $"Charge Duration:   {s.arrowChargeDuration:F2}s\n" +
-            $"Wall Slide Speed:  {s.wallSlideSpeed:F1}\n" +
-            $"Loot Range:        {s.lootRange:F1}\n" +
-            $"Luck:              {s.luck:F1}\n" +
-            "\n";
+    // ================================================================
+    //  RIGHT COLUMN — Movement, Run History
+    // ================================================================
 
-        // ── Ammo ─────────────────────────────────────────────────────
-        string ammo =
-            "<b><color=#FFD700>══ AMMO ══</color></b>\n" +
-            $"Arrows:            {s.CurrentArrows} / {s.MaxArrows}\n" +
+    private string BuildRightColumn()
+    {
+        var s = playerStats;
+        var en = playerEnergy;
+
+        // ── Movement ─────────────────────────────────────────────────
+        string right =
+            "<b><color=#FFD700>══ MOVEMENT ══</color></b>\n" +
+            $"Move Speed:     {s.moveSpeed:F1}\n" +
+            $"Jump Force:     {s.jumpForce:F1}\n" +
+            $"Max Jumps:      {s.maxJumps}\n" +
+            $"Dash Distance:  {s.dashDistance:F1}\n" +
+            $"Dash Cost:      {s.dashCost:F1}\n" +
+            $"Dash Invinc:    {s.dashInvincibilityWindow:F2}s\n" +
+            $"Max Energy:     {s.maxEnergy:F1}\n" +
+            $"Energy:         {(en != null ? en.currentEnergy : 0f):F0}\n" +
+            $"Hover Drain:    {s.hoverDrainRate:F1}/s\n" +
+            $"Charge Drain:   {s.arrowChargeDrainRate:F1}/s\n" +
+            $"Charge Time:    {s.arrowChargeDuration:F2}s\n" +
+            $"Wall Slide:     {s.wallSlideSpeed:F1}\n" +
+            $"Loot Range:     {s.lootRange:F1}\n" +
+            $"Luck:           {s.luck:F1}\n" +
             "\n";
 
         // ── Run History ──────────────────────────────────────────────
-        string history =
-            "<b><color=#FF6666>══ RUN HISTORY: MOVEMENT ══</color></b>\n" +
-            $"Total Distance:    {s.totalDistance:F0}m\n" +
-            $"Jumps:             {s.jumpsPerformed}\n" +
-            $"Wall Slides:       {s.wallSlideCount}  ({s.totalWallSlideDuration:F1}s)\n" +
-            $"Hovers:            {s.hoverCount}  ({s.totalHoverDuration:F1}s)\n" +
-            $"Dashes:            {s.dashCount}  (hit enemy: {s.dashesHitEnemy}  wall: {s.dashesHitWall})\n" +
+        right +=
+            "<b><color=#FF6666>══ HISTORY: MOVEMENT ══</color></b>\n" +
+            $"Distance:       {s.totalDistance:F0}m\n" +
+            $"Jumps:          {s.jumpsPerformed}\n" +
+            $"Wall Slides:    {s.wallSlideCount} ({s.totalWallSlideDuration:F1}s)\n" +
+            $"Hovers:         {s.hoverCount} ({s.totalHoverDuration:F1}s)\n" +
+            $"Dashes:         {s.dashCount} (E:{s.dashesHitEnemy} W:{s.dashesHitWall})\n" +
             "\n" +
-            "<b><color=#FF6666>══ RUN HISTORY: COMBAT ══</color></b>\n" +
-            $"Arrows Fired:      {s.totalArrowsFired}  (L:{s.weakArrowsFired} M:{s.mediumArrowsFired} S:{s.chargedArrowsFired} X:{s.extraArrowsFired})\n" +
-            $"Arrows Hit Enemy:  {s.arrowsHitEnemy}\n" +
-            $"Enemies Killed:    {s.enemiesKilled}\n" +
-            $"Total Dmg Dealt:   {s.totalDamageDealt:F0}\n" +
-            $"Crits Landed:      {s.critsLanded}\n" +
-            $"Burn Applied:      {s.burnApplied}\n" +
-            $"Freeze Applied:    {s.freezeApplied}\n" +
-            $"Holy Applied:      {s.holyApplied}\n" +
-            $"Shock Applied:     {s.shockApplied}\n" +
+            "<b><color=#FF6666>══ HISTORY: COMBAT ══</color></b>\n" +
+            $"Arrows Fired:   {s.totalArrowsFired} (L:{s.weakArrowsFired} M:{s.mediumArrowsFired} S:{s.chargedArrowsFired})\n" +
+            $"Arrows Hit:     {s.arrowsHitEnemy}\n" +
+            $"Kills:          {s.enemiesKilled}\n" +
+            $"Dmg Dealt:      {s.totalDamageDealt:F0}\n" +
+            $"Crits:          {s.critsLanded}\n" +
+            $"Status Applied: B:{s.burnApplied} F:{s.freezeApplied} H:{s.holyApplied} S:{s.shockApplied}\n" +
             "\n" +
-            "<b><color=#FF6666>══ RUN HISTORY: SURVIVAL ══</color></b>\n" +
-            $"Damage Taken:      {s.damageTaken:F0}\n" +
-            $"Times Hit:         {s.timesHit}\n" +
-            $"HP Restored:       {s.hpRestored:F0}\n" +
-            $"Layers Completed:  {s.layersCompleted}\n" +
-            $"Revive Used:       {s.reviveUsed}\n" +
+            "<b><color=#FF6666>══ HISTORY: RESOURCES ══</color></b>\n" +
+            $"Souls:          {s.soulsCollected}\n" +
+            $"XP:             {s.xpGained:F0}\n" +
+            $"Energy Gained:  {s.energyGainedTotal:F0}\n" +
+            $"  Kills:        {s.energyFromKills:F0}\n" +
+            $"  Falling:      {s.energyFromFalling:F0}\n" +
+            $"  Lava:         {s.energyFromLava:F0}\n" +
+            $"  Wall Slide:   {s.energyFromWallSlide:F0}\n" +
             "\n" +
-            "<b><color=#FF6666>══ RUN HISTORY: RESOURCES ══</color></b>\n" +
-            $"Souls Collected:   {s.soulsCollected}\n" +
-            $"XP Gained:         {s.xpGained:F0}\n" +
-            $"Energy Gained:     {s.energyGainedTotal:F0}\n" +
-            $"  From Kills:      {s.energyFromKills:F0}\n" +
-            $"  From Falling:    {s.energyFromFalling:F0}\n" +
-            $"  From Lava:       {s.energyFromLava:F0}\n" +
-            $"  From WallSlide:  {s.energyFromWallSlide:F0}\n" +
-            $"Chests Opened:     Common:{s.chestsOpenedCommon}  Rare:{s.chestsOpenedRare}  Leg:{s.chestsOpenedLegendary}\n";
+            "<b><color=#FF6666>══ HISTORY: SURVIVAL ══</color></b>\n" +
+            $"Dmg Taken:      {s.damageTaken:F0}\n" +
+            $"Times Hit:      {s.timesHit}\n" +
+            $"HP Restored:    {s.hpRestored:F0}\n" +
+            $"Layers Done:    {s.layersCompleted}\n";
 
-        return levelBlock + upgradeBlock + combat + movement + ammo + history;
+        return right;
     }
 }

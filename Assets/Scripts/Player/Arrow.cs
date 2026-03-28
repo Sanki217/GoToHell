@@ -122,7 +122,7 @@ public class Arrow : MonoBehaviour
         upgradeManager?.ArrowHitEnemy(other.gameObject, chargeAmount, isCrit);
 
         // Pierce logic: stop on surviving enemy, continue through killed enemy
-        if (!willKill)
+        if (!willKill && (playerStats == null || !playerStats.arrowPierces))
             Destroy(gameObject);
     }
 }
