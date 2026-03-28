@@ -19,45 +19,46 @@ public static class UpgradeFactory
             // ── Bow / Arrow ──────────────────────────────────────────
           //  case "Bow_ExtraArrow": return new UpgradeBowExtraArrow();
             case "Arrow_Burn": return new UpgradeBurningArrow();
-            //case "Arrow_Pierce": return new UpgradeArrowPierce();
-           // case "Arrow_Bounce": return new UpgradeArrowBounce();
-           // case "Arrow_Ricochet": return new UpgradeArrowRicochet();
-           // case "Arrow_Split": return new UpgradeArrowSplit();
-           // case "Arrow_Explode": return new UpgradeArrowExplode();
-          //  case "Arrow_Implode": return new UpgradeArrowImplode();
-          //  case "Arrow_Deflect": return new UpgradeDeflect();
+            case "Arrow_Pierce": return new UpgradeArrowPierce();
+            case "Status_Burn": return new UpgradeStatusOnHitBurn();
+            case "Status_Freeze": return new UpgradeStatusOnHitFreeze();
+            case "Status_Holy": return new UpgradeStatusOnHitHoly();
+            case "Status_Shock": return new UpgradeStatusOnHitShock();
+            case "Enemy_Explosion": return new UpgradeEnemyExplosion();
+            case "SoulBonus": return new UpgradeSoulBonus();
+            case "Immunity": return new UpgradeImmunity();
 
             // ── Arrow Trails ─────────────────────────────────────────
-          //  case "Arrow_Trail_Burn": return new UpgradeArrowTrailBurn();
-          //  case "Arrow_Trail_Freeze": return new UpgradeArrowTrailFreeze();
-          //  case "Arrow_Trail_Holy": return new UpgradeArrowTrailHoly();
-          //  case "Arrow_Trail_Shock": return new UpgradeArrowTrailShock();
+            //  case "Arrow_Trail_Burn": return new UpgradeArrowTrailBurn();
+            //  case "Arrow_Trail_Freeze": return new UpgradeArrowTrailFreeze();
+            //  case "Arrow_Trail_Holy": return new UpgradeArrowTrailHoly();
+            //  case "Arrow_Trail_Shock": return new UpgradeArrowTrailShock();
 
             // ── Status on Damage ─────────────────────────────────────
-          //  case "Status_Burn": return new UpgradeStatusOnHitBurn();
-          //  case "Status_Freeze": return new UpgradeStatusOnHitFreeze();
-          //  case "Status_Holy": return new UpgradeStatusOnHitHoly();
-          //  case "Status_Shock": return new UpgradeStatusOnHitShock();
+            //  case "Status_Burn": return new UpgradeStatusOnHitBurn();
+            //  case "Status_Freeze": return new UpgradeStatusOnHitFreeze();
+            //  case "Status_Holy": return new UpgradeStatusOnHitHoly();
+            //  case "Status_Shock": return new UpgradeStatusOnHitShock();
 
             // ── Dash ─────────────────────────────────────────────────
-         //   case "Dash_Pulse": return new UpgradeDashPulse();
-         //   case "Dash_Trail_Burn": return new UpgradeDashTrailBurn();
-         //   case "Dash_Trail_Freeze": return new UpgradeDashTrailFreeze();
-         //   case "Dash_Trail_Holy": return new UpgradeDashTrailHoly();
-         //   case "Dash_Trail_Shock": return new UpgradeDashTrailShock();
+            //   case "Dash_Pulse": return new UpgradeDashPulse();
+            //   case "Dash_Trail_Burn": return new UpgradeDashTrailBurn();
+            //   case "Dash_Trail_Freeze": return new UpgradeDashTrailFreeze();
+            //   case "Dash_Trail_Holy": return new UpgradeDashTrailHoly();
+            //   case "Dash_Trail_Shock": return new UpgradeDashTrailShock();
 
             // ── Hover ────────────────────────────────────────────────
-          //  case "Hover_Regen": return new Upgrade_Hover_Regen();
-          //  case "Hover_Damage": return new UpgradeHoverDamage();
+            //  case "Hover_Regen": return new Upgrade_Hover_Regen();
+            //  case "Hover_Damage": return new UpgradeHoverDamage();
 
             // ── Wall Slide ───────────────────────────────────────────
-          //  case "WallSlide_Damage": return new Upgrade_WallSlide_Damage();
+            //  case "WallSlide_Damage": return new Upgrade_WallSlide_Damage();
 
             // ── Passive ──────────────────────────────────────────────
-         //   case "Enemy_Explosion": return new Upgrade_Enemy_Explosion();
-         //   case "HomingProjectile": return new UpgradeHomingProjectile();
-         //   case "Immunity": return new UpgradeImmunity();
-        //    case "SoulBonus": return new UpgradeSoulBonus();
+            //   case "Enemy_Explosion": return new Upgrade_Enemy_Explosion();
+            //   case "HomingProjectile": return new UpgradeHomingProjectile();
+            //   case "Immunity": return new UpgradeImmunity();
+            //    case "SoulBonus": return new UpgradeSoulBonus();
 
             default:
                 UnityEngine.Debug.LogWarning(
