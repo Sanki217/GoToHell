@@ -583,13 +583,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f7f2a2f887916340b3fd685b79be241, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cardBackground: {fileID: 247267860}
+  cardBackground: {fileID: 0}
   iconImage: {fileID: 0}
   rarityLabel: {fileID: 1536149357}
   nameLabel: {fileID: 491308506}
   descriptionLabel: {fileID: 111242530}
-  statBonusContainer: {fileID: 0}
-  statBonusLinePrefab: {fileID: 850668097}
+  statBonusContainer: {fileID: 850668098}
+  statBonusLinePrefab: {fileID: 1045646799145302456, guid: 3e88ebde585721c498cfa53d6220d9c8, type: 3}
   pickButton: {fileID: 1480841292}
   backgroundAlpha: 0.83
   offer:
@@ -661,13 +661,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f7f2a2f887916340b3fd685b79be241, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cardBackground: {fileID: 610466513}
+  cardBackground: {fileID: 0}
   iconImage: {fileID: 0}
   rarityLabel: {fileID: 784077056}
   nameLabel: {fileID: 2501073}
   descriptionLabel: {fileID: 1311915444}
-  statBonusContainer: {fileID: 0}
-  statBonusLinePrefab: {fileID: 0}
+  statBonusContainer: {fileID: 287063733}
+  statBonusLinePrefab: {fileID: 1045646799145302456, guid: 3e88ebde585721c498cfa53d6220d9c8, type: 3}
   pickButton: {fileID: 1904833325}
   backgroundAlpha: 0.83
   offer:
@@ -1904,8 +1904,8 @@ RectTransform:
   - {fileID: 491308505}
   - {fileID: 1536149356}
   - {fileID: 111242529}
-  - {fileID: 850668098}
   - {fileID: 1480841291}
+  - {fileID: 850668098}
   m_Father: {fileID: 66627209}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -4552,7 +4552,6 @@ GameObject:
   m_Component:
   - component: {fileID: 850668098}
   - component: {fileID: 850668100}
-  - component: {fileID: 850668099}
   m_Layer: 5
   m_Name: Stat Bonus
   m_TagString: Untagged
@@ -4579,97 +4578,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -9}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &850668099
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 850668097}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_text: 
-  m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_fontSharedMaterials: []
-  m_fontMaterial: {fileID: 0}
-  m_fontMaterials: []
-  m_fontColor32:
-    serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
-  m_enableVertexGradient: 0
-  m_colorMode: 3
-  m_fontColorGradient:
-    topLeft: {r: 1, g: 1, b: 1, a: 1}
-    topRight: {r: 1, g: 1, b: 1, a: 1}
-    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
-    bottomRight: {r: 1, g: 1, b: 1, a: 1}
-  m_fontColorGradientPreset: {fileID: 0}
-  m_spriteAsset: {fileID: 0}
-  m_tintAllSprites: 0
-  m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
-  m_overrideHtmlColors: 0
-  m_faceColor:
-    serializedVersion: 2
-    rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
-  m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
-  m_fontStyle: 0
-  m_HorizontalAlignment: 2
-  m_VerticalAlignment: 256
-  m_textAlignment: 65535
-  m_characterSpacing: 0
-  m_wordSpacing: 0
-  m_lineSpacing: 0
-  m_lineSpacingMax: 0
-  m_paragraphSpacing: 0
-  m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
-  m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
-  m_linkedTextComponent: {fileID: 0}
-  parentLinkedComponent: {fileID: 0}
-  m_enableKerning: 0
-  m_ActiveFontFeatures: 6e72656b
-  m_enableExtraPadding: 0
-  checkPaddingRequired: 0
-  m_isRichText: 1
-  m_EmojiFallbackSupport: 1
-  m_parseCtrlCharacters: 1
-  m_isOrthographic: 1
-  m_isCullingEnabled: 0
-  m_horizontalMapping: 0
-  m_verticalMapping: 0
-  m_uvLineOffset: 0
-  m_geometrySortingOrder: 0
-  m_IsTextObjectScaleStatic: 0
-  m_VertexBufferAutoSizeReduction: 0
-  m_useMaxVisibleDescender: 1
-  m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
-  m_isUsingLegacyAnimationComponent: 0
-  m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
-  m_baseMaterial: {fileID: 0}
-  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &850668100
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -9752,13 +9660,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f7f2a2f887916340b3fd685b79be241, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cardBackground: {fileID: 838072574}
+  cardBackground: {fileID: 0}
   iconImage: {fileID: 0}
   rarityLabel: {fileID: 1264430601}
   nameLabel: {fileID: 37509714}
   descriptionLabel: {fileID: 1726480021}
-  statBonusContainer: {fileID: 0}
-  statBonusLinePrefab: {fileID: 1548609061}
+  statBonusContainer: {fileID: 2124079789}
+  statBonusLinePrefab: {fileID: 1045646799145302456, guid: 3e88ebde585721c498cfa53d6220d9c8, type: 3}
   pickButton: {fileID: 1363352939}
   backgroundAlpha: 0.83
   offer:
@@ -12321,7 +12229,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 600, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2133932796
