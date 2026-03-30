@@ -17,31 +17,40 @@ MonoBehaviour:
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
   isPureStatUpgrade: 0
-  descriptionCommon: Arrows set targets on fire
-  descriptionRare: Arrows set targets on fire
-  descriptionEpic: Arrows set targets on fire
-  descriptionLegendary: Arrows set targets on fire
+  descriptionCommon: Arrows apply burn to enemies
+  descriptionRare: Arrows apply burn to enemies
+  descriptionEpic: Arrows apply burn to enemies
+  descriptionLegendary: Arrows apply burn to enemies
   hasMythic: 0
   mythicDescription: 
   statRanges:
   - statType: 6
-    minCommon: 1
-    maxCommon: 5
-    minRare: 3
-    maxRare: 8
-    minEpic: 5
-    maxEpic: 10
-    minLegendary: 11
-    maxLegendary: 15
+    minCommon: 0.05
+    maxCommon: 0.1
+    minRare: 0.1
+    maxRare: 0.2
+    minEpic: 0.2
+    maxEpic: 0.3
+    minLegendary: 0.4
+    maxLegendary: 0.6
   - statType: 1
-    minCommon: -5
-    maxCommon: 5
-    minRare: -5
-    maxRare: 5
-    minEpic: -5
-    maxEpic: 5
-    minLegendary: -5
-    maxLegendary: 5
+    minCommon: 0.5
+    maxCommon: 1
+    minRare: 1
+    maxRare: 2
+    minEpic: 2
+    maxEpic: 3
+    minLegendary: 4
+    maxLegendary: 6
+  - statType: 0
+    minCommon: 1
+    maxCommon: 2
+    minRare: 3
+    maxRare: 4
+    minEpic: 5
+    maxEpic: 6
+    minLegendary: 7
+    maxLegendary: 8
   statCountCommon: 0
   statCountRare: 1
   statCountEpic: 2

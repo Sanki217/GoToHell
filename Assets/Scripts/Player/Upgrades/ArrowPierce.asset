@@ -25,23 +25,23 @@ MonoBehaviour:
   mythicDescription: 
   statRanges:
   - statType: 1
-    minCommon: 0
-    maxCommon: 5
-    minRare: 1
-    maxRare: 6
-    minEpic: 2
-    maxEpic: 7
-    minLegendary: 3
+    minCommon: 1
+    maxCommon: 2
+    minRare: 3
+    maxRare: 4
+    minEpic: 5
+    maxEpic: 6
+    minLegendary: 7
     maxLegendary: 10
   - statType: 17
-    minCommon: 1
-    maxCommon: 5
-    minRare: 1
-    maxRare: 6
-    minEpic: 2
-    maxEpic: 7
-    minLegendary: 3
-    maxLegendary: 10
+    minCommon: -0.05
+    maxCommon: -0.1
+    minRare: -0.1
+    maxRare: -0.15
+    minEpic: -0.15
+    maxEpic: -0.2
+    minLegendary: -0.25
+    maxLegendary: -0.4
   statCountCommon: 0
   statCountRare: 1
   statCountEpic: 2
