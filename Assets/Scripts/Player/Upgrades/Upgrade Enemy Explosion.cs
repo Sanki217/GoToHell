@@ -1,23 +1,22 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Enemy Explosion — enemies deal AoE damage in a radius when they die.
-/// Level 1: 15 damage, radius 4
-/// Each level: +5 damage, +1 radius
+/// Enemy Explosion — enemies explode on death dealing AoE damage.
 ///
-/// FIX: Previous version caused chain explosions (A dies → explodes → kills B →
-/// B dies → explodes → kills C → ...) generating exponential souls and XP.
-///
-/// Now each enemy can only be the SOURCE of one explosion. Enemies hit by an
-/// explosion are marked with a frame-safe flag so they don't re-trigger
-/// the explosion upgrade when they die from explosion damage.
+/// Configure in PlayerUpgradeData.behaviourSettings:
+///   "damage"          — base explosion damage (default 15)
+///   "radius"          — explosion radius (default 4)
+///   "damagePerLevel"  — damage added per level (default 5)
+///   "radiusPerLevel"  — radius added per level (default 1)
 /// </summary>
 public class UpgradeEnemyExplosion : PlayerUpgrade
 {
     public override string Id => "Enemy_Explosion";
 
-    private float explosionDamage = 15f;
-    private float explosionRadius = 4f;
+    private float explosionDamage;
+    private float explosionRadius;
+    private float damagePerLevel;
+    private float radiusPerLevel;
 
     private PlayerStats playerStats;
     private PlayerUpgradeManager upgradeManager;
@@ -26,35 +25,37 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
     {
         playerStats = mgr.GetComponent<PlayerStats>();
         upgradeManager = mgr;
+
+        // Read configuration from ScriptableObject — set via behaviourSettings in Inspector
+        var data = mgr.GetUpgradeData(Id);
+        explosionDamage = data?.GetSetting("damage", 15f) ?? 15f;
+        explosionRadius = data?.GetSetting("radius", 4f) ?? 4f;
+        damagePerLevel = data?.GetSetting("damagePerLevel", 5f) ?? 5f;
+        radiusPerLevel = data?.GetSetting("radiusPerLevel", 1f) ?? 1f;
+
         mgr.OnEnemyKilled += OnEnemyKilled;
     }
 
     public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel)
     {
-        explosionDamage += 5f;
-        explosionRadius += 1f;
+        explosionDamage += damagePerLevel;
+        explosionRadius += radiusPerLevel;
     }
 
     private void OnEnemyKilled(GameObject enemyGO)
     {
         if (enemyGO == null) return;
-
-        // If this enemy was killed BY an explosion, don't chain
         if (enemyGO.TryGetComponent<ExplosionVictim>(out _)) return;
 
         Vector3 pos = enemyGO.transform.position;
-
         Collider[] hits = Physics.OverlapSphere(pos, explosionRadius);
+
         foreach (var hit in hits)
         {
             if (!hit.CompareTag("Enemy")) continue;
-
             Enemy nearby = hit.GetComponent<Enemy>();
-            if (nearby == null) continue;
-            // Don't hit the already-dead source enemy
-            if (hit.gameObject == enemyGO) continue;
+            if (nearby == null || hit.gameObject == enemyGO) continue;
 
-            // Mark this enemy as an explosion victim so it doesn't chain if it dies
             if (!hit.gameObject.TryGetComponent<ExplosionVictim>(out _))
                 hit.gameObject.AddComponent<ExplosionVictim>();
 
@@ -62,19 +63,13 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
             float falloff = 1f - Mathf.Clamp01(dist / explosionRadius);
             float dmg = explosionDamage * falloff;
             int rounded = Mathf.Max(1, Mathf.RoundToInt(dmg));
-
             Vector3 dir = hit.transform.position - pos;
             dir.z = 0f;
             if (dir.sqrMagnitude < 0.001f) dir = Vector3.right;
 
-            nearby.TakeDamage(
-                rounded,
-                pos,
-                dir.normalized,
+            nearby.TakeDamage(rounded, pos, dir.normalized,
                 playerStats != null ? playerStats.knockbackForce : 0f,
-                false,
-                FloatingTextManager.HitType.Normal
-            );
+                false, FloatingTextManager.HitType.Normal);
 
             playerStats?.RecordDamageDealt(dmg, DamageSource.Explosion);
         }
@@ -83,9 +78,4 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
     }
 }
 
-/// <summary>
-/// Marker component added to enemies hit by an explosion.
-/// Prevents them from triggering a second explosion if they die from it.
-/// Automatically destroyed with the enemy — no cleanup needed.
-/// </summary>
 public class ExplosionVictim : UnityEngine.MonoBehaviour { }

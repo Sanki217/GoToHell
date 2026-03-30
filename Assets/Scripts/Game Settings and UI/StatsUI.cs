@@ -2,12 +2,12 @@
 using TMPro;
 
 /// <summary>
-/// TAB-toggled stats panel. Laid out in two columns to fit on screen.
+/// TAB-toggled two-column stats panel.
+/// Left:  Level, Movement, Ammo, Combat
+/// Right: Active Upgrades, Run History
 ///
-/// Setup:
-///   Create a Canvas Panel with TWO TMP_Text children side by side.
-///   Wire leftStatsText and rightStatsText in Inspector.
-///   Or use a single statsText — it will render as one block (legacy).
+/// Stats show as: BaseName  BaseValue (+BonusValue)
+/// White = base, Green = positive bonus, Red = negative bonus.
 /// </summary>
 public class StatsUI : MonoBehaviour
 {
@@ -15,18 +15,19 @@ public class StatsUI : MonoBehaviour
     public GameObject player;
     public GameObject statsPanel;
 
-    [Tooltip("Left column — Level, Combat, Ammo")]
+    [Tooltip("Left column — Level, Movement, Combat, Ammo")]
     public TMP_Text leftStatsText;
 
-    [Tooltip("Right column — Movement, Run History, Upgrades")]
+    [Tooltip("Right column — Active Upgrades, Run History")]
     public TMP_Text rightStatsText;
 
-    [Tooltip("Legacy single-text fallback — only used if left/right are not assigned")]
+    [Tooltip("Legacy fallback — only used if left/right are not assigned")]
     public TMP_Text statsText;
 
     [Header("Settings")]
     public KeyCode toggleKey = KeyCode.Tab;
 
+    // Components
     private PlayerStats playerStats;
     private PlayerLevelSystem levelSystem;
     private PlayerHealth playerHealth;
@@ -34,10 +35,19 @@ public class StatsUI : MonoBehaviour
     private PlayerUpgradeManager upgradeManager;
     private bool isVisible = false;
 
+    // Base values — snapshot on Start, before any upgrades apply
+    private int baseMaxHP;
+    private float baseArrowDamage, baseDashDamage, baseCritChance, baseCritMultiplier;
+    private float baseKnockback, baseLifesteal;
+    private float baseBurn, baseFreeze, baseHoly, baseShock;
+    private float baseMoveSpeed, baseJumpForce, baseDashDist, baseDashCost;
+    private float baseDashInvinc, baseMaxEnergy, baseHoverDrain;
+    private float baseChargeDrain, baseChargeDur, baseWallSlide, baseLootRange, baseLuck;
+    private int baseMaxArrows;
+
     private void Start()
     {
-        if (player == null)
-            player = GameObject.FindWithTag("Player");
+        if (player == null) player = GameObject.FindWithTag("Player");
 
         if (player != null)
         {
@@ -49,6 +59,38 @@ public class StatsUI : MonoBehaviour
         }
 
         if (statsPanel != null) statsPanel.SetActive(false);
+
+        // Snapshot base values before any upgrades are applied
+        if (playerStats != null) SnapshotBase();
+    }
+
+    private void SnapshotBase()
+    {
+        var s = playerStats;
+        baseMaxHP = s.maxHP;
+        baseArrowDamage = s.arrowDamage;
+        baseDashDamage = s.dashDamage;
+        baseCritChance = s.critChance;
+        baseCritMultiplier = s.critMultiplier;
+        baseKnockback = s.knockbackForce;
+        baseLifesteal = s.lifeSteal;
+        baseBurn = s.burnStrength;
+        baseFreeze = s.freezeStrength;
+        baseHoly = s.holyStrength;
+        baseShock = s.shockStrength;
+        baseMoveSpeed = s.moveSpeed;
+        baseJumpForce = s.jumpForce;
+        baseDashDist = s.dashDistance;
+        baseDashCost = s.dashCost;
+        baseDashInvinc = s.dashInvincibilityWindow;
+        baseMaxEnergy = s.maxEnergy;
+        baseHoverDrain = s.hoverDrainRate;
+        baseChargeDrain = s.arrowChargeDrainRate;
+        baseChargeDur = s.arrowChargeDuration;
+        baseWallSlide = s.wallSlideSpeed;
+        baseLootRange = s.lootRange;
+        baseLuck = s.luck;
+        baseMaxArrows = s.MaxArrows;
     }
 
     private void Update()
@@ -63,20 +105,60 @@ public class StatsUI : MonoBehaviour
 
         if (leftStatsText != null && rightStatsText != null)
         {
-            leftStatsText.text = BuildLeftColumn();
-            rightStatsText.text = BuildRightColumn();
+            leftStatsText.text = BuildLeft();
+            rightStatsText.text = BuildRight();
         }
         else if (statsText != null)
         {
-            statsText.text = BuildLeftColumn() + "\n" + BuildRightColumn();
+            statsText.text = BuildLeft() + "\n" + BuildRight();
         }
     }
 
     // ================================================================
-    //  LEFT COLUMN — Level, Combat, Ammo
+    //  HELPERS — stat display with base + bonus
     // ================================================================
 
-    private string BuildLeftColumn()
+    /// <summary>Formats a float stat showing base value + bonus if any.</summary>
+    private string Stat(string label, float current, float baseVal, string fmt = "F1")
+    {
+        string baseStr = current.ToString(fmt);
+        float bonus = current - baseVal;
+        if (Mathf.Abs(bonus) < 0.001f)
+            return $"{label,-18}<color=#FFFFFF>{baseStr}</color>\n";
+        string bonusStr = bonus > 0
+            ? $"<color=#00FF66>(+{bonus.ToString(fmt)})</color>"
+            : $"<color=#FF4444>({bonus.ToString(fmt)})</color>";
+        return $"{label,-18}<color=#FFFFFF>{baseStr}</color> {bonusStr}\n";
+    }
+
+    private string StatPct(string label, float current, float baseVal)
+    {
+        string baseStr = $"{current * 100f:F0}%";
+        float bonus = current - baseVal;
+        if (Mathf.Abs(bonus) < 0.0001f)
+            return $"{label,-18}<color=#FFFFFF>{baseStr}</color>\n";
+        string bonusStr = bonus > 0
+            ? $"<color=#00FF66>(+{bonus * 100f:F0}%)</color>"
+            : $"<color=#FF4444>({bonus * 100f:F0}%)</color>";
+        return $"{label,-18}<color=#FFFFFF>{baseStr}</color> {bonusStr}\n";
+    }
+
+    private string StatInt(string label, int current, int baseVal)
+    {
+        int bonus = current - baseVal;
+        if (bonus == 0)
+            return $"{label,-18}<color=#FFFFFF>{current}</color>\n";
+        string bonusStr = bonus > 0
+            ? $"<color=#00FF66>(+{bonus})</color>"
+            : $"<color=#FF4444>({bonus})</color>";
+        return $"{label,-18}<color=#FFFFFF>{current}</color> {bonusStr}\n";
+    }
+
+    // ================================================================
+    //  LEFT COLUMN — Level, Movement, Combat, Ammo
+    // ================================================================
+
+    private string BuildLeft()
     {
         var s = playerStats;
         var hp = playerHealth;
@@ -86,112 +168,108 @@ public class StatsUI : MonoBehaviour
         if (levelSystem != null)
         {
             bool maxed = levelSystem.CurrentLevel >= PlayerLevelSystem.MaxLevel;
-            left +=
-                $"Level:          {(maxed ? "MAX" : levelSystem.CurrentLevel.ToString())}\n" +
-                $"Current XP:     {(maxed ? "—" : Mathf.FloorToInt(levelSystem.CurrentXP).ToString())}\n" +
-                $"XP to Next:     {(maxed ? "—" : Mathf.FloorToInt(levelSystem.XPToNextLevel).ToString())}\n" +
-                $"XP Multiplier:  {levelSystem.xpMultiplier:F2}×\n";
+            left += $"{"Level",-18}<color=#FFFFFF>{(maxed ? "MAX" : levelSystem.CurrentLevel.ToString())}</color>\n";
+            left += $"{"Current XP",-18}<color=#FFFFFF>{(maxed ? "—" : Mathf.FloorToInt(levelSystem.CurrentXP).ToString())}</color>\n";
+            left += $"{"XP to Next",-18}<color=#FFFFFF>{(maxed ? "—" : Mathf.FloorToInt(levelSystem.XPToNextLevel).ToString())}</color>\n";
+            left += $"{"XP Multiplier",-18}<color=#FFFFFF>{levelSystem.xpMultiplier:F2}×</color>\n";
         }
-        else left += "PlayerLevelSystem not found\n";
+        left += "\n";
+
+        // ── Movement ─────────────────────────────────────────────────
+        left += "<b><color=#FFD700>══ MOVEMENT ══</color></b>\n";
+        left += Stat("Move Speed", s.moveSpeed, baseMoveSpeed);
+        left += Stat("Jump Force", s.jumpForce, baseJumpForce);
+        left += $"{"Max Jumps",-18}<color=#FFFFFF>{s.maxJumps}</color>\n";
+        left += Stat("Dash Distance", s.dashDistance, baseDashDist);
+        left += Stat("Dash Cost", s.dashCost, baseDashCost);
+        left += Stat("Dash Invinc", s.dashInvincibilityWindow, baseDashInvinc, "F2");
+        left += Stat("Max Energy", s.maxEnergy, baseMaxEnergy);
+        left += $"{"Energy",-18}<color=#FFFFFF>{(playerEnergy != null ? playerEnergy.currentEnergy : 0f):F0}</color>\n";
+        left += Stat("Hover Drain/s", s.hoverDrainRate, baseHoverDrain);
+        left += Stat("Charge Drain/s", s.arrowChargeDrainRate, baseChargeDrain);
+        left += Stat("Charge Time", s.arrowChargeDuration, baseChargeDur, "F2");
+        left += Stat("Wall Slide", s.wallSlideSpeed, baseWallSlide);
+        left += Stat("Loot Range", s.lootRange, baseLootRange);
+        left += Stat("Luck", s.luck, baseLuck);
         left += "\n";
 
         // ── Combat ───────────────────────────────────────────────────
-        left +=
-            "<b><color=#FFD700>══ COMBAT ══</color></b>\n" +
-            $"HP:             {(hp != null ? hp.CurrentHP : 0)} / {s.maxHP}\n" +
-            $"Arrow Damage:   {s.arrowDamage:F1}\n" +
-            $"Dash Damage:    {s.dashDamage:F1}\n" +
-            $"Crit Chance:    {s.critChance * 100f:F1}%\n" +
-            $"Crit Multi:     {s.critMultiplier * 100f:F0}%\n" +
-            $"Knockback:      {s.knockbackForce:F1}\n" +
-            $"Lifesteal:      {s.lifeSteal * 100f:F1}%\n" +
-            $"Burn:           {s.burnStrength * 100f:F0}%\n" +
-            $"Freeze:         {s.freezeStrength * 100f:F0}%\n" +
-            $"Holy:           {s.holyStrength * 100f:F0}%\n" +
-            $"Shock:          {s.shockStrength * 100f:F0}%\n" +
-            "\n";
+        left += "<b><color=#FFD700>══ COMBAT ══</color></b>\n";
+        left += $"{"HP",-18}<color=#FFFFFF>{(hp != null ? hp.CurrentHP : 0)} / {s.maxHP}</color>\n";
+        left += Stat("Arrow Damage", s.arrowDamage, baseArrowDamage);
+        left += Stat("Dash Damage", s.dashDamage, baseDashDamage);
+        left += StatPct("Crit Chance", s.critChance, baseCritChance);
+        left += StatPct("Crit Multi", s.critMultiplier, baseCritMultiplier);
+        left += Stat("Knockback", s.knockbackForce, baseKnockback);
+        left += StatPct("Lifesteal", s.lifeSteal, baseLifesteal);
+        left += StatPct("Burn", s.burnStrength, baseBurn);
+        left += StatPct("Freeze", s.freezeStrength, baseFreeze);
+        left += StatPct("Holy", s.holyStrength, baseHoly);
+        left += StatPct("Shock", s.shockStrength, baseShock);
+        left += "\n";
 
         // ── Ammo ─────────────────────────────────────────────────────
-        left +=
-            "<b><color=#FFD700>══ AMMO ══</color></b>\n" +
-            $"Arrows:         {s.CurrentArrows} / {s.MaxArrows}\n" +
-            "\n";
-
-        // ── Active Upgrades ──────────────────────────────────────────
-        left += "<b><color=#FF99FF>══ UPGRADES ══</color></b>\n";
-        if (upgradeManager != null)
-        {
-            bool any = false;
-            foreach (var kv in upgradeManager.GetActiveUpgrades())
-            {
-                left += $"  {kv.Key,-22} Lv{kv.Value}\n";
-                any = true;
-            }
-            if (!any) left += "  None\n";
-        }
+        left += "<b><color=#FFD700>══ AMMO ══</color></b>\n";
+        left += StatInt("Arrows", s.CurrentArrows, s.CurrentArrows); // current always white (changes constantly)
+        left += $"{"Max Arrows",-18}";
+        left += StatInt("", s.MaxArrows, baseMaxArrows).TrimStart();
 
         return left;
     }
 
     // ================================================================
-    //  RIGHT COLUMN — Movement, Run History
+    //  RIGHT COLUMN — Active Upgrades + Run History
     // ================================================================
 
-    private string BuildRightColumn()
+    private string BuildRight()
     {
         var s = playerStats;
-        var en = playerEnergy;
 
-        // ── Movement ─────────────────────────────────────────────────
-        string right =
-            "<b><color=#FFD700>══ MOVEMENT ══</color></b>\n" +
-            $"Move Speed:     {s.moveSpeed:F1}\n" +
-            $"Jump Force:     {s.jumpForce:F1}\n" +
-            $"Max Jumps:      {s.maxJumps}\n" +
-            $"Dash Distance:  {s.dashDistance:F1}\n" +
-            $"Dash Cost:      {s.dashCost:F1}\n" +
-            $"Dash Invinc:    {s.dashInvincibilityWindow:F2}s\n" +
-            $"Max Energy:     {s.maxEnergy:F1}\n" +
-            $"Energy:         {(en != null ? en.currentEnergy : 0f):F0}\n" +
-            $"Hover Drain:    {s.hoverDrainRate:F1}/s\n" +
-            $"Charge Drain:   {s.arrowChargeDrainRate:F1}/s\n" +
-            $"Charge Time:    {s.arrowChargeDuration:F2}s\n" +
-            $"Wall Slide:     {s.wallSlideSpeed:F1}\n" +
-            $"Loot Range:     {s.lootRange:F1}\n" +
-            $"Luck:           {s.luck:F1}\n" +
-            "\n";
+        // ── Active Upgrades ──────────────────────────────────────────
+        string right = "<b><color=#FF99FF>══ ACTIVE UPGRADES ══</color></b>\n";
+        if (upgradeManager != null)
+        {
+            bool any = false;
+            foreach (var kv in upgradeManager.GetActiveUpgrades())
+            {
+                right += $"  {kv.Key,-24} <color=#AAFFAA>Lv {kv.Value}</color>\n";
+                any = true;
+            }
+            if (!any) right += "  <color=#888888>None</color>\n";
+        }
+        right += "\n";
 
         // ── Run History ──────────────────────────────────────────────
         right +=
             "<b><color=#FF6666>══ HISTORY: MOVEMENT ══</color></b>\n" +
-            $"Distance:       {s.totalDistance:F0}m\n" +
-            $"Jumps:          {s.jumpsPerformed}\n" +
-            $"Wall Slides:    {s.wallSlideCount} ({s.totalWallSlideDuration:F1}s)\n" +
-            $"Hovers:         {s.hoverCount} ({s.totalHoverDuration:F1}s)\n" +
-            $"Dashes:         {s.dashCount} (E:{s.dashesHitEnemy} W:{s.dashesHitWall})\n" +
+            $"{"Distance",-18}{s.totalDistance:F0}m\n" +
+            $"{"Jumps",-18}{s.jumpsPerformed}\n" +
+            $"{"Wall Slides",-18}{s.wallSlideCount} ({s.totalWallSlideDuration:F1}s)\n" +
+            $"{"Hovers",-18}{s.hoverCount} ({s.totalHoverDuration:F1}s)\n" +
+            $"{"Dashes",-18}{s.dashCount} (E:{s.dashesHitEnemy} W:{s.dashesHitWall})\n" +
             "\n" +
             "<b><color=#FF6666>══ HISTORY: COMBAT ══</color></b>\n" +
-            $"Arrows Fired:   {s.totalArrowsFired} (L:{s.weakArrowsFired} M:{s.mediumArrowsFired} S:{s.chargedArrowsFired})\n" +
-            $"Arrows Hit:     {s.arrowsHitEnemy}\n" +
-            $"Kills:          {s.enemiesKilled}\n" +
-            $"Dmg Dealt:      {s.totalDamageDealt:F0}\n" +
-            $"Crits:          {s.critsLanded}\n" +
-            $"Status Applied: B:{s.burnApplied} F:{s.freezeApplied} H:{s.holyApplied} S:{s.shockApplied}\n" +
+            $"{"Arrows Fired",-18}{s.totalArrowsFired} (L:{s.weakArrowsFired} M:{s.mediumArrowsFired} S:{s.chargedArrowsFired})\n" +
+            $"{"Arrows Hit",-18}{s.arrowsHitEnemy}\n" +
+            $"{"Kills",-18}{s.enemiesKilled}\n" +
+            $"{"Dmg Dealt",-18}{s.totalDamageDealt:F0}\n" +
+            $"{"Crits",-18}{s.critsLanded}\n" +
+            $"{"Status",-18}B:{s.burnApplied} F:{s.freezeApplied} H:{s.holyApplied} S:{s.shockApplied}\n" +
             "\n" +
             "<b><color=#FF6666>══ HISTORY: RESOURCES ══</color></b>\n" +
-            $"Souls:          {s.soulsCollected}\n" +
-            $"XP:             {s.xpGained:F0}\n" +
-            $"Energy Gained:  {s.energyGainedTotal:F0}\n" +
-            $"  Kills:        {s.energyFromKills:F0}\n" +
-            $"  Falling:      {s.energyFromFalling:F0}\n" +
-            $"  Lava:         {s.energyFromLava:F0}\n" +
-            $"  Wall Slide:   {s.energyFromWallSlide:F0}\n" +
+            $"{"Souls",-18}{s.soulsCollected}\n" +
+            $"{"XP",-18}{s.xpGained:F0}\n" +
+            $"{"Energy",-18}{s.energyGainedTotal:F0}\n" +
+            $"{"  Kills",-18}{s.energyFromKills:F0}\n" +
+            $"{"  Falling",-18}{s.energyFromFalling:F0}\n" +
+            $"{"  Lava",-18}{s.energyFromLava:F0}\n" +
+            $"{"  Wall Slide",-18}{s.energyFromWallSlide:F0}\n" +
             "\n" +
             "<b><color=#FF6666>══ HISTORY: SURVIVAL ══</color></b>\n" +
-            $"Dmg Taken:      {s.damageTaken:F0}\n" +
-            $"Times Hit:      {s.timesHit}\n" +
-            $"HP Restored:    {s.hpRestored:F0}\n" +
-            $"Layers Done:    {s.layersCompleted}\n";
+            $"{"Dmg Taken",-18}{s.damageTaken:F0}\n" +
+            $"{"Times Hit",-18}{s.timesHit}\n" +
+            $"{"HP Restored",-18}{s.hpRestored:F0}\n" +
+            $"{"Layers Done",-18}{s.layersCompleted}\n";
 
         return right;
     }

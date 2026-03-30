@@ -16,19 +16,47 @@ MonoBehaviour:
   displayName: Exploding Enemies
   icon: {fileID: 0}
   category: 5
-  descriptionCommon: "nothing special\t"
-  descriptionRare: cool
-  descriptionEpic: amazing
-  descriptionLegendary: lets gooo
+  isPureStatUpgrade: 0
+  descriptionCommon: Enemies Explode on death
+  descriptionRare: Enemies Explode on death
+  descriptionEpic: Enemies Explode on death
+  descriptionLegendary: Enemies Explode on death
   hasMythic: 0
   mythicDescription: 
-  statBonusCountCommon: 0
-  statBonusCountRare: 1
-  statBonusCountEpic: 2
-  statBonusCountLegendary: 3
-  statMultiplierCommon: 1
-  statMultiplierRare: 1.2
-  statMultiplierEpic: 1.4
-  statMultiplierLegendary: 1.8
-  isPureStatUpgrade: 0
-  fixedStatBonuses: []
+  statRanges:
+  - statType: 18
+    minCommon: 0
+    maxCommon: 0
+    minRare: 0
+    maxRare: 0
+    minEpic: 0
+    maxEpic: 0
+    minLegendary: 0
+    maxLegendary: 0
+  - statType: 0
+    minCommon: 1
+    maxCommon: 1
+    minRare: 2
+    maxRare: 2
+    minEpic: 3
+    maxEpic: 3
+    minLegendary: 4
+    maxLegendary: 4
+  - statType: 19
+    minCommon: 1
+    maxCommon: 1
+    minRare: 2
+    maxRare: 2
+    minEpic: 3
+    maxEpic: 3
+    minLegendary: 4
+    maxLegendary: 4
+  statCountCommon: 0
+  statCountRare: 1
+  statCountEpic: 2
+  statCountLegendary: 3
+  behaviourSettings:
+  - key: radius
+    value: 5
+  - key: damage
+    value: 5

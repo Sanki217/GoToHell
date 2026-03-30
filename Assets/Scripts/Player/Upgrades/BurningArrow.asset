@@ -16,19 +16,34 @@ MonoBehaviour:
   displayName: Burning Arrow
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
-  descriptionCommon: common card low damage
-  descriptionRare: rare high damage
-  descriptionEpic: epic kurwa epic games
-  descriptionLegendary: legendary legendary damage
+  isPureStatUpgrade: 0
+  descriptionCommon: Arrows set targets on fire
+  descriptionRare: Arrows set targets on fire
+  descriptionEpic: Arrows set targets on fire
+  descriptionLegendary: Arrows set targets on fire
   hasMythic: 0
   mythicDescription: 
-  statBonusCountCommon: 0
-  statBonusCountRare: 1
-  statBonusCountEpic: 2
-  statBonusCountLegendary: 3
-  statMultiplierCommon: 1
-  statMultiplierRare: 1.2
-  statMultiplierEpic: 1.4
-  statMultiplierLegendary: 1.8
-  isPureStatUpgrade: 0
-  fixedStatBonuses: []
+  statRanges:
+  - statType: 6
+    minCommon: 1
+    maxCommon: 5
+    minRare: 3
+    maxRare: 8
+    minEpic: 5
+    maxEpic: 10
+    minLegendary: 11
+    maxLegendary: 15
+  - statType: 1
+    minCommon: -5
+    maxCommon: 5
+    minRare: -5
+    maxRare: 5
+    minEpic: -5
+    maxEpic: 5
+    minLegendary: -5
+    maxLegendary: 5
+  statCountCommon: 0
+  statCountRare: 1
+  statCountEpic: 2
+  statCountLegendary: 3
+  behaviourSettings: []

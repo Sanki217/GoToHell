@@ -1,30 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// ScriptableObject that holds every upgrade in the game.
-/// Create ONE of these: Assets → Create → Upgrades → Upgrade Pool
-/// Drag all your PlayerUpgradeData assets into the "upgrades" list.
-///
-/// Handles building random offers for level-up, chests, and merchant.
-/// </summary>
 [CreateAssetMenu(menuName = "Upgrades/Upgrade Pool")]
 public class PlayerUpgradePool : ScriptableObject
 {
-    [Header("All upgrades in the game — drag every asset here")]
+    [Header("All upgrades — drag every PlayerUpgradeData asset here")]
     public List<PlayerUpgradeData> upgrades = new List<PlayerUpgradeData>();
-
-    // All 21 stat types in a flat array for random selection
-    private static readonly StatType[] AllStats = (StatType[])System.Enum.GetValues(typeof(StatType));
 
     // ================================================================
     //  PUBLIC API
     // ================================================================
 
-    /// <summary>
-    /// Build 3 offers for the level-up screen.
-    /// Each offer is a different upgrade (no duplicates) at a rolled rarity.
-    /// </summary>
     public List<UpgradeOffer> RollLevelUpOffers(int layer, float luck, int count = 3)
     {
         var offers = new List<UpgradeOffer>();
@@ -36,23 +22,17 @@ public class PlayerUpgradePool : ScriptableObject
         {
             attempts++;
             int idx = Random.Range(0, pool.Count);
-            PlayerUpgradeData data = pool[idx];
+            PlayerUpgradeData d = pool[idx];
             pool.RemoveAt(idx);
-
-            if (usedIds.Contains(data.upgradeId)) continue;
+            if (usedIds.Contains(d.upgradeId)) continue;
 
             UpgradeRarity rarity = UpgradeRarityRoller.Roll(layer, luck);
-            offers.Add(BuildOffer(data, rarity));
-            usedIds.Add(data.upgradeId);
+            offers.Add(BuildOffer(d, rarity));
+            usedIds.Add(d.upgradeId);
         }
-
         return offers;
     }
 
-    /// <summary>
-    /// Roll a single upgrade for a chest.
-    /// Rarity is determined first, then a random upgrade from the pool.
-    /// </summary>
     public UpgradeOffer RollChestOffer(int layer, float luck)
     {
         if (upgrades.Count == 0) return null;
@@ -61,19 +41,9 @@ public class PlayerUpgradePool : ScriptableObject
         return BuildOffer(data, rarity);
     }
 
-    /// <summary>
-    /// Roll a set of offers for the merchant (typically 3-4).
-    /// Merchant tends toward slightly higher rarities (layer + 2 bonus).
-    /// </summary>
     public List<UpgradeOffer> RollMerchantOffers(int layer, float luck, int count = 3)
-    {
-        return RollLevelUpOffers(layer + 2, luck, count);
-    }
+        => RollLevelUpOffers(layer + 2, luck, count);
 
-    /// <summary>
-    /// Build a complete UpgradeOffer from data + rarity,
-    /// rolling random stat bonuses as needed.
-    /// </summary>
     public UpgradeOffer BuildOffer(PlayerUpgradeData data, UpgradeRarity rarity)
     {
         var offer = new UpgradeOffer();
@@ -81,40 +51,18 @@ public class PlayerUpgradePool : ScriptableObject
         offer.rarity = rarity;
         offer.statBonuses = new List<UpgradeStatBonus>();
 
-        float multiplier = data.GetStatMultiplier(rarity);
+        int count = data.GetStatCount(rarity);
+        if (count <= 0) return offer;
 
         if (data.isPureStatUpgrade)
         {
-            // Pure stat upgrade: apply fixed bonuses scaled by rarity multiplier
-            int count = data.GetStatBonusCount(rarity);
-            if (data.fixedStatBonuses != null)
-            {
-                for (int i = 0; i < Mathf.Min(count, data.fixedStatBonuses.Length); i++)
-                {
-                    offer.statBonuses.Add(new UpgradeStatBonus
-                    {
-                        statType = data.fixedStatBonuses[i].statType,
-                        value = data.fixedStatBonuses[i].value * multiplier
-                    });
-                }
-            }
+            // Pure stat upgrade: roll all available stat ranges, up to count
+            RollFromRanges(data.statRanges, rarity, count, offer.statBonuses);
         }
         else
         {
-            // Behaviour upgrade: roll random stat bonuses
-            int bonusCount = data.GetStatBonusCount(rarity);
-            var usedStats = new HashSet<StatType>();
-
-            for (int i = 0; i < bonusCount; i++)
-            {
-                StatType rolled = RollUniqueStatType(usedStats);
-                usedStats.Add(rolled);
-                offer.statBonuses.Add(new UpgradeStatBonus
-                {
-                    statType = rolled,
-                    value = GetBaseStatValue(rolled) * multiplier
-                });
-            }
+            // Behaviour upgrade: randomly pick 'count' stats from statRanges
+            RollFromRanges(data.statRanges, rarity, count, offer.statBonuses);
         }
 
         return offer;
@@ -124,53 +72,36 @@ public class PlayerUpgradePool : ScriptableObject
     //  PRIVATE
     // ================================================================
 
-    private StatType RollUniqueStatType(HashSet<StatType> used)
+    private void RollFromRanges(StatRangeEntry[] ranges, UpgradeRarity rarity,
+                                 int count, List<UpgradeStatBonus> result)
     {
-        int attempts = 0;
-        while (attempts < 50)
+        if (ranges == null || ranges.Length == 0) return;
+
+        // Shuffle indices so we pick random subset if count < ranges.Length
+        var indices = new List<int>();
+        for (int i = 0; i < ranges.Length; i++) indices.Add(i);
+        Shuffle(indices);
+
+        int picked = 0;
+        foreach (int i in indices)
         {
-            StatType t = AllStats[Random.Range(0, AllStats.Length)];
-            if (!used.Contains(t)) return t;
-            attempts++;
+            if (picked >= count) break;
+            float rolled = ranges[i].Roll(rarity);
+            result.Add(new UpgradeStatBonus { statType = ranges[i].statType, value = rolled });
+            picked++;
         }
-        return AllStats[0];
     }
 
-    /// <summary>
-    /// Base value per stat at Common rarity (1.0× multiplier).
-    /// Higher rarities multiply these by their multiplier.
-    /// </summary>
-    private float GetBaseStatValue(StatType t) => t switch
+    private void Shuffle<T>(List<T> list)
     {
-        StatType.MaxHP => 10f,
-        StatType.ArrowDamage => 0.5f,
-        StatType.DashDamage => 0.5f,
-        StatType.CritChance => 0.05f,   // +5%
-        StatType.CritMultiplier => 0.10f,   // +10%
-        StatType.KnockbackForce => 1f,
-        StatType.BurnStrength => 0.20f,   // +20%
-        StatType.FreezeStrength => 0.20f,
-        StatType.HolyStrength => 0.20f,
-        StatType.ShockStrength => 0.20f,
-        StatType.MoveSpeed => 0.5f,
-        StatType.DashDistance => 1f,
-        StatType.DashCost => -3f,      // decrease
-        StatType.DashInvincibility => 0.1f,
-        StatType.MaxEnergy => 10f,
-        StatType.HoverDrainRate => -1f,      // decrease
-        StatType.ChargeDrainRate => -0.5f,    // decrease
-        StatType.ChargeDuration => -0.1f,    // decrease = faster charge
-        StatType.LifeSteal => 0.05f,   // +5%
-        StatType.LootRange => 0.5f,
-        StatType.Luck => 1f,
-        _ => 1f
-    };
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
 }
 
-/// <summary>
-/// A fully resolved upgrade offer — data + rarity + rolled stat bonuses.
-/// This is what the UI displays on a card and what gets applied on pick.
-/// </summary>
 [System.Serializable]
 public class UpgradeOffer
 {

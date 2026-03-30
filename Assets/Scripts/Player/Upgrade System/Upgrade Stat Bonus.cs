@@ -1,10 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// A single stat bonus attached to an upgrade at a given rarity.
-/// Value is a delta added to the PlayerStats field.
-/// Negative values decrease stats (e.g. DashCost -5 = costs 5 less energy).
-/// </summary>
 [System.Serializable]
 public class UpgradeStatBonus
 {
@@ -42,7 +37,6 @@ public class UpgradeStatBonus
         }
     }
 
-    /// <summary>Short human-readable string for upgrade card UI.</summary>
     public string GetDescription()
     {
         string sign = value >= 0f ? "+" : "";

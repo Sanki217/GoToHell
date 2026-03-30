@@ -8,6 +8,9 @@ public class PlayerUpgradeManager : MonoBehaviour
     //  DEBUG
     // ============================================================
 
+    [Header("Upgrade Pool (assign your UpgradePool asset here)")]
+    public PlayerUpgradePool upgradePool;
+
     [SerializeField]
     private List<string> debugActiveUpgrades = new();
 
@@ -27,6 +30,19 @@ public class PlayerUpgradeManager : MonoBehaviour
 
     public int GetUpgradeLevel(string id)
         => activeUpgrades.TryGetValue(id, out var inst) ? inst.level : 0;
+
+    /// <summary>
+    /// Look up a PlayerUpgradeData asset by upgrade ID.
+    /// Returns null if the pool is not assigned or the ID is not found.
+    /// Used by upgrade behaviour classes to read their behaviourSettings.
+    /// </summary>
+    public PlayerUpgradeData GetUpgradeData(string id)
+    {
+        if (upgradePool == null) return null;
+        foreach (var data in upgradePool.upgrades)
+            if (data != null && data.upgradeId == id) return data;
+        return null;
+    }
 
     /// <summary>Returns a snapshot of all active upgrades as (id, level) pairs for the UI.</summary>
     public System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, int>> GetActiveUpgrades()

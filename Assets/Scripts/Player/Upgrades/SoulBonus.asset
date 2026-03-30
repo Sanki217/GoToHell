@@ -16,19 +16,16 @@ MonoBehaviour:
   displayName: More Souls
   icon: {fileID: 0}
   category: 5
-  descriptionCommon: 22f
-  descriptionRare: 34t2
-  descriptionEpic: 53e
-  descriptionLegendary: r3
+  isPureStatUpgrade: 0
+  descriptionCommon: Collect 20% bonus souls
+  descriptionRare: Collect 40% bonus souls
+  descriptionEpic: Collect 60% bonus souls
+  descriptionLegendary: Collect 80% bonus souls
   hasMythic: 0
   mythicDescription: 
-  statBonusCountCommon: 0
-  statBonusCountRare: 1
-  statBonusCountEpic: 2
-  statBonusCountLegendary: 3
-  statMultiplierCommon: 1
-  statMultiplierRare: 1.2
-  statMultiplierEpic: 1.4
-  statMultiplierLegendary: 1.8
-  isPureStatUpgrade: 0
-  fixedStatBonuses: []
+  statRanges: []
+  statCountCommon: 0
+  statCountRare: 1
+  statCountEpic: 2
+  statCountLegendary: 3
+  behaviourSettings: []
