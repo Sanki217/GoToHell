@@ -1,13 +1,15 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Soul Bonus — earn X% more souls and increase loot range.
+/// Soul Bonus — earn X% more souls.
+/// Loot range is a SEPARATE upgrade — removed from here.
 ///
 /// Configure in PlayerUpgradeData.behaviourSettings:
-///   "bonusPercent"    — % of extra souls per soul collected (default 0.2 = 20%)
-///   "lootRangeBonus"  — flat loot range added on pickup (default 1)
-///   "bonusPerLevel"   — extra % added per level (default 0.2)
-///   "lootPerLevel"    — extra loot range per level (default 0.5)
+///   "bonusPercent"   — fraction of extra souls per soul collected (default 0.2 = 20%)
+///   "bonusPerLevel"  — extra fraction added per level (default 0.2)
+///
+/// XP fix: bonus souls grant exactly 1 XP each, the same rate as normal souls,
+/// without being multiplied again by xpMultiplier (which already applied to the original soul).
 /// </summary>
 public class UpgradeSoulBonus : PlayerUpgrade
 {
@@ -15,7 +17,6 @@ public class UpgradeSoulBonus : PlayerUpgrade
 
     private float bonusPercent;
     private float bonusPerLevel;
-    private float lootPerLevel;
 
     private PlayerStats playerStats;
     private PlayerInventory inventory;
@@ -32,10 +33,6 @@ public class UpgradeSoulBonus : PlayerUpgrade
         var data = mgr.GetUpgradeData(Id);
         bonusPercent = data?.GetSetting("bonusPercent", 0.2f) ?? 0.2f;
         bonusPerLevel = data?.GetSetting("bonusPerLevel", 0.2f) ?? 0.2f;
-        lootPerLevel = data?.GetSetting("lootPerLevel", 0.5f) ?? 0.5f;
-
-        float lootBonus = data?.GetSetting("lootRangeBonus", 1f) ?? 1f;
-        if (playerStats != null) playerStats.lootRange += lootBonus;
 
         mgr.OnSoulCollected += OnSoulCollected;
     }
@@ -43,7 +40,6 @@ public class UpgradeSoulBonus : PlayerUpgrade
     public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel)
     {
         bonusPercent += bonusPerLevel;
-        if (playerStats != null) playerStats.lootRange += lootPerLevel;
     }
 
     private void OnSoulCollected(int amount)
@@ -51,9 +47,22 @@ public class UpgradeSoulBonus : PlayerUpgrade
         if (_isGranting || inventory == null || bonusPercent <= 0f) return;
 
         int bonus = Mathf.Max(1, Mathf.RoundToInt(amount * bonusPercent));
+
         _isGranting = true;
-        inventory.currentSouls += bonus;   // add directly, no event fire
-        levelSystem?.AddXP(bonus);         // grant XP directly
+
+        // Add souls directly to counter — no event fired, no recursive loop
+        inventory.currentSouls += bonus;
+
+        // Grant XP at base rate (1 XP per bonus soul), bypassing xpMultiplier.
+        // xpMultiplier already applied when the original soul was collected.
+        // If we went through AddXP here it would double-multiply.
+        if (levelSystem != null)
+        {
+            float baseXp = bonus;   // 1 XP per bonus soul, no multiplier
+            // Add XP directly without going through the multiplier again
+            levelSystem.AddXPDirect(baseXp);
+        }
+
         _isGranting = false;
     }
 }

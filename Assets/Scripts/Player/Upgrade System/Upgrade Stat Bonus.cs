@@ -3,31 +3,26 @@
 /// <summary>
 /// A single stat bonus on an upgrade card.
 ///
-/// VALUE NORMALIZATION
-/// All StatRangeEntry values in PlayerUpgradeData are in human-readable units.
-/// Apply() converts them before writing to PlayerStats:
+/// VALUE NORMALIZATION — all StatRangeEntry values use human-readable display units.
 ///
 ///   PERCENT STATS  (CritChance, LifeSteal, BurnStrength etc.)
-///     Inspector: 5   means +5%   → internally added as +0.05
-///     Inspector: 20  means +20%  → internally added as +0.20
+///     Enter 5 for +5%, 20 for +20%. Stored internally as 0.05, 0.20.
 ///
 ///   INVERTED STATS  (DashCost, HoverDrainRate, ChargeDrainRate, ChargeDuration)
-///     These are stats where lower = better for the player.
-///     Inspector: 5   means "5 improvement" → internally added as -5
-///     You ALWAYS enter a positive number. The system negates it.
-///     e.g. DashCost 3 = dash costs 3 less energy
-///          ChargeDuration 10 = 10% faster charge (0.1s less)
+///     Lower internal value = better. Enter positive improvement.
+///     DashCost 3 = dash costs 3 less energy (applied as -3 internally).
+///     ChargeDuration 10 = 10% faster charge.
 ///
 ///   FLAT STATS  (ArrowDamage, MaxHP, MoveSpeed etc.)
-///     Inspector value is used directly. 0.5 = +0.5 damage. 10 = +10 HP.
+///     Value used directly. 0.5 = +0.5 damage. 10 = +10 HP.
+///
+/// MAX HP SPECIAL CASE:
+///   Also calls PlayerHealth.IncreaseMaxHP() to keep the HP slider max in sync.
 /// </summary>
 [System.Serializable]
 public class UpgradeStatBonus
 {
     public StatType statType;
-
-    [Tooltip("Value in DISPLAY units. See UpgradeStatBonus documentation. " +
-             "Percent stats: enter 5 for +5%. Inverted stats: enter positive improvement.")]
     public float value;
 
     // ================================================================
@@ -42,8 +37,14 @@ public class UpgradeStatBonus
         {
             case StatType.MaxHP:
                 int delta = Mathf.RoundToInt(v);
+                // Update PlayerStats
                 s.maxHP += delta;
-                s.CurrentHP = Mathf.Min(s.CurrentHP + delta, s.maxHP);
+                // Update PlayerHealth so the slider max updates too
+                PlayerHealth ph = s.GetComponent<PlayerHealth>();
+                if (ph != null)
+                    ph.IncreaseMaxHP(delta);
+                else
+                    s.CurrentHP = Mathf.Min(s.CurrentHP + delta, s.maxHP);
                 break;
             case StatType.ArrowDamage: s.arrowDamage += v; break;
             case StatType.DashDamage: s.dashDamage += v; break;
@@ -56,7 +57,7 @@ public class UpgradeStatBonus
             case StatType.ShockStrength: s.shockStrength += v; break;
             case StatType.MoveSpeed: s.moveSpeed += v; break;
             case StatType.DashDistance: s.dashDistance += v; break;
-            case StatType.DashCost: s.dashCost += v; break;
+            case StatType.DashCost: s.dashCost = Mathf.Max(5f, s.dashCost + v); break;
             case StatType.DashInvincibility: s.dashInvincibilityWindow += v; break;
             case StatType.MaxEnergy: s.maxEnergy += v; break;
             case StatType.HoverDrainRate: s.hoverDrainRate += v; break;
@@ -72,12 +73,6 @@ public class UpgradeStatBonus
     //  CONVERSION
     // ================================================================
 
-    /// <summary>
-    /// Convert a display-unit value to the internal value added to PlayerStats.
-    ///   Percent stats:  divide by 100 (5 → 0.05)
-    ///   Inverted stats: negate      (+5 → -5)
-    ///   Flat stats:     unchanged
-    /// </summary>
     public static float ToInternal(StatType t, float displayValue)
     {
         if (IsPercent(t)) return displayValue / 100f;
@@ -86,15 +81,13 @@ public class UpgradeStatBonus
     }
 
     // ================================================================
-    //  DESCRIPTION  (always human-readable)
+    //  DESCRIPTION
     // ================================================================
 
     public string GetDescription()
     {
-        // For inverted stats show as positive improvement even though it's a decrease
         float shown = Mathf.Abs(value);
-        bool improving = IsInverted(statType) ? value > 0f : value > 0f;
-        string sign = improving ? "+" : "-";
+        string sign = "+";
         string amount = IsPercent(statType)
             ? $"{sign}{shown:F0}%"
             : $"{sign}{shown:F1}";
@@ -105,10 +98,6 @@ public class UpgradeStatBonus
     //  STAT METADATA
     // ================================================================
 
-    /// <summary>
-    /// Percent stats are stored as fractions (0–1) in PlayerStats.
-    /// Display value of 5 means 5% → stored as 0.05.
-    /// </summary>
     public static bool IsPercent(StatType t) => t switch
     {
         StatType.CritChance => true,
@@ -121,10 +110,6 @@ public class UpgradeStatBonus
         _ => false
     };
 
-    /// <summary>
-    /// Inverted stats: lower value = better for the player.
-    /// Display value is positive improvement; applied as negative.
-    /// </summary>
     public static bool IsInverted(StatType t) => t switch
     {
         StatType.DashCost => true,

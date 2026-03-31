@@ -175,6 +175,28 @@ public class PlayerLevelSystem : MonoBehaviour
             currentXP = 0f;
     }
 
+    /// <summary>
+    /// Add XP directly, bypassing xpMultiplier.
+    /// Used by SoulBonus to avoid double-multiplying bonus souls.
+    /// </summary>
+    public void AddXPDirect(float amount)
+    {
+        if (currentLevel >= MaxLevel) return;
+
+        currentXP += amount;
+
+        while (currentXP >= xpToNextLevel && currentLevel < MaxLevel)
+        {
+            currentXP -= xpToNextLevel;
+            currentLevel++;
+            xpToNextLevel = GetXpRequired(currentLevel);
+            OnLevelUp();
+        }
+
+        if (currentLevel >= MaxLevel)
+            currentXP = 0f;
+    }
+
     private void OnLevelUp()
     {
         Debug.Log($"[LevelSystem] Level up! Now level {currentLevel}");

@@ -10,48 +10,48 @@ public class PlayerUpgradePool : ScriptableObject
     // ================================================================
     //  STAT CAPS
     //
-    //  Values here are in INTERNAL units — same scale as PlayerStats fields.
-    //    Percent stats: 1.0 = 100%, 0.75 = 75%
-    //    Flat stats:    same number as PlayerStats field
+    //  For normal stats (higher = better): cap is a ceiling.
+    //    e.g. CritChance cap 1.0 = max 100%
     //
-    //  When a stat reaches its cap, it is filtered out of all future rolls.
-    //  Edit these directly on your UpgradePool ScriptableObject in the Inspector.
+    //  For inverted stats (lower = better): cap is a floor.
+    //    e.g. DashCost floor 5 = never cheaper than 5 energy
+    //    Set isFloor = true for these.
+    //
+    //  Values in internal units (same as PlayerStats fields).
     // ================================================================
 
-    [Header("Stat Caps — values in internal units (percent stats: 1.0 = 100%)")]
-    [Tooltip("Stats at or above their cap are excluded from upgrade rolls. " +
-             "Add entries for any stat you want to limit.")]
-    public List<StatCapEntry> statCaps = new List<StatCapEntry>
-    {
-        // These defaults are set in code but you can edit them freely in the Inspector
-    };
+    [Header("Stat Caps — internal units")]
+    public List<StatCapEntry> statCaps = new List<StatCapEntry>();
 
     private void OnEnable()
     {
-        // Populate default caps if the list is empty (first time ScriptableObject is created)
         if (statCaps == null || statCaps.Count == 0)
         {
             statCaps = new List<StatCapEntry>
             {
-                new StatCapEntry { statType = StatType.CritChance,     cap = 1.00f  }, // 100%
-                new StatCapEntry { statType = StatType.CritMultiplier, cap = 5.00f  }, // 500%
-                new StatCapEntry { statType = StatType.LifeSteal,      cap = 0.75f  }, // 75%
-                new StatCapEntry { statType = StatType.LootRange,      cap = 15f    },
-                new StatCapEntry { statType = StatType.Luck,           cap = 20f    },
-                new StatCapEntry { statType = StatType.MoveSpeed,      cap = 30f    },
-                new StatCapEntry { statType = StatType.DashDistance,   cap = 30f    },
-                new StatCapEntry { statType = StatType.MaxEnergy,      cap = 300f   },
-                new StatCapEntry { statType = StatType.BurnStrength,   cap = 3.00f  }, // 300%
-                new StatCapEntry { statType = StatType.FreezeStrength, cap = 3.00f  },
-                new StatCapEntry { statType = StatType.HolyStrength,   cap = 3.00f  },
-                new StatCapEntry { statType = StatType.ShockStrength,  cap = 3.00f  },
+                new StatCapEntry { statType = StatType.CritChance,     cap = 1.00f,  isFloor = false },
+                new StatCapEntry { statType = StatType.CritMultiplier, cap = 5.00f,  isFloor = false },
+                new StatCapEntry { statType = StatType.LifeSteal,      cap = 0.75f,  isFloor = false },
+                new StatCapEntry { statType = StatType.LootRange,      cap = 15f,    isFloor = false },
+                new StatCapEntry { statType = StatType.Luck,           cap = 20f,    isFloor = false },
+                new StatCapEntry { statType = StatType.MoveSpeed,      cap = 30f,    isFloor = false },
+                new StatCapEntry { statType = StatType.DashDistance,   cap = 30f,    isFloor = false },
+                new StatCapEntry { statType = StatType.MaxEnergy,      cap = 300f,   isFloor = false },
+                new StatCapEntry { statType = StatType.BurnStrength,   cap = 3.00f,  isFloor = false },
+                new StatCapEntry { statType = StatType.FreezeStrength, cap = 3.00f,  isFloor = false },
+                new StatCapEntry { statType = StatType.HolyStrength,   cap = 3.00f,  isFloor = false },
+                new StatCapEntry { statType = StatType.ShockStrength,  cap = 3.00f,  isFloor = false },
+                // Inverted stats — floor caps (don't let them go below this)
+                new StatCapEntry { statType = StatType.DashCost,       cap = 5f,     isFloor = true  },
+                new StatCapEntry { statType = StatType.HoverDrainRate, cap = 1f,     isFloor = true  },
+                new StatCapEntry { statType = StatType.ChargeDrainRate,cap = 0.5f,   isFloor = true  },
+                new StatCapEntry { statType = StatType.ChargeDuration, cap = 0.3f,   isFloor = true  },
             };
         }
     }
 
     // ================================================================
     //  PUBLIC API
-    //  Pass PlayerStats so capped stats can be filtered out of rolls.
     // ================================================================
 
     public List<UpgradeOffer> RollLevelUpOffers(int layer, float luck,
@@ -101,7 +101,6 @@ public class PlayerUpgradePool : ScriptableObject
         if (count <= 0 || data.statRanges == null || data.statRanges.Length == 0)
             return offer;
 
-        // Filter out stat ranges where the stat is already at its cap
         var available = GetAvailableRanges(data.statRanges, stats);
         if (available.Count == 0) return offer;
 
@@ -113,10 +112,6 @@ public class PlayerUpgradePool : ScriptableObject
     //  PRIVATE
     // ================================================================
 
-    /// <summary>
-    /// Returns only the stat range entries where the stat hasn't hit its cap yet.
-    /// If no PlayerStats is provided, all entries are returned.
-    /// </summary>
     private List<StatRangeEntry> GetAvailableRanges(StatRangeEntry[] ranges, PlayerStats stats)
     {
         var result = new List<StatRangeEntry>();
@@ -130,16 +125,24 @@ public class PlayerUpgradePool : ScriptableObject
 
     private bool IsAtCap(StatType t, PlayerStats s)
     {
-        float cap = GetCap(t);
-        if (cap >= 9999f) return false;
-        return GetCurrentValue(t, s) >= cap;
+        StatCapEntry entry = GetCapEntry(t);
+        if (entry == null) return false;
+
+        float current = GetCurrentValue(t, s);
+
+        if (entry.isFloor)
+            // Inverted stat: capped when current value is at or below the floor
+            return current <= entry.cap;
+        else
+            // Normal stat: capped when current value is at or above the ceiling
+            return current >= entry.cap;
     }
 
-    private float GetCap(StatType t)
+    private StatCapEntry GetCapEntry(StatType t)
     {
         foreach (var entry in statCaps)
-            if (entry.statType == t) return entry.cap;
-        return 9999f; // no cap by default
+            if (entry.statType == t) return entry;
+        return null;
     }
 
     private float GetCurrentValue(StatType t, PlayerStats s) => t switch
@@ -179,7 +182,6 @@ public class PlayerUpgradePool : ScriptableObject
         foreach (int i in indices)
         {
             if (picked >= count) break;
-            // Roll value in display units — Apply() will convert to internal
             float rolled = ranges[i].Roll(rarity);
             result.Add(new UpgradeStatBonus { statType = ranges[i].statType, value = rolled });
             picked++;
@@ -196,18 +198,16 @@ public class PlayerUpgradePool : ScriptableObject
     }
 }
 
-// ================================================================
-//  SUPPORTING TYPES
-// ================================================================
-
 [System.Serializable]
 public class StatCapEntry
 {
     public StatType statType;
-
-    [Tooltip("Internal cap value. Percent stats: 1.0 = 100%, 0.75 = 75%. " +
-             "Flat stats: same as PlayerStats field. Set to 9999 to disable.")]
+    [Tooltip("For normal stats: ceiling (stat won't go above this). " +
+             "For inverted stats (isFloor=true): floor (stat won't go below this).")]
     public float cap;
+    [Tooltip("True for inverted stats like DashCost where lower = better. " +
+             "Cap acts as a minimum floor rather than a maximum ceiling.")]
+    public bool isFloor;
 }
 
 [System.Serializable]

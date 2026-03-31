@@ -2,12 +2,10 @@ using UnityEngine;
 
 /// <summary>
 /// Child of the Player. Handles pickup of souls, arrows, and upgrade orbs.
-/// 
-/// The sphere collider radius on this GameObject IS the pickup range for everything.
-/// It is driven by PlayerStats.lootRange so upgrades can increase it.
-/// 
-/// For arrows embedded in walls (outside the sphere), a Physics.OverlapSphere
-/// scan runs every frame using the same radius.
+///
+/// Arrow pickup fix: tracks how many arrows are currently being sucked toward the player.
+/// This count is added to CurrentArrows to determine effective capacity,
+/// preventing more arrows from starting their suck than the player can hold.
 /// </summary>
 public class Looter : MonoBehaviour
 {
@@ -18,6 +16,9 @@ public class Looter : MonoBehaviour
     private PlayerShooting player;
     private PlayerStats playerStats;
     private SphereCollider sphereCollider;
+
+    // Count of arrows currently flying toward the player (sucking)
+    private int arrowsInFlight = 0;
 
     void Start()
     {
@@ -40,41 +41,48 @@ public class Looter : MonoBehaviour
         if (sphereCollider != null && !Mathf.Approximately(sphereCollider.radius, range))
             sphereCollider.radius = range;
 
-        // Scan for arrows within pickup range — catches arrows inside walls
-        // that the sphere trigger can't physically overlap
-        if (player != null && !player.HasMaxArrows())
+        // Scan for arrows — catches wall-embedded ones the trigger can't reach
+        if (player == null) return;
+
+        // Effective capacity = how many more arrows we can still hold
+        // accounting for arrows already flying toward us
+        int effectiveCapacity = player.maxArrows - player.CurrentArrows - arrowsInFlight;
+        if (effectiveCapacity <= 0) return;
+
+        Collider[] nearby = Physics.OverlapSphere(playerTransform.position, range);
+
+        foreach (Collider col in nearby)
         {
-            Collider[] nearby = Physics.OverlapSphere(
-                playerTransform.position,
-                range
-            );
+            if (effectiveCapacity <= 0) break;
 
-            foreach (Collider col in nearby)
-            {
-                ArrowPickup pickup = col.GetComponent<ArrowPickup>();
-                if (pickup == null || !pickup.canPickUp || pickup.isBeingSucked) continue;
+            ArrowPickup pickup = col.GetComponent<ArrowPickup>();
+            if (pickup == null || !pickup.canPickUp || pickup.isBeingSucked) continue;
 
-                pickup.StartSuck(player.transform);
-                break; // only start one suck per frame
-            }
+            arrowsInFlight++;
+            effectiveCapacity--;
+
+            // When this arrow arrives it calls RestoreArrow — we decrement arrowsInFlight then
+            pickup.StartSuck(player.transform, OnArrowArrived);
         }
+    }
+
+    private void OnArrowArrived()
+    {
+        arrowsInFlight = Mathf.Max(0, arrowsInFlight - 1);
     }
 
     private void OnTriggerEnter(Collider other)
     {
         // Soul pickup
         if (other.TryGetComponent<Soul>(out Soul soul))
-        {
             soul.StartAttract(playerTransform, playerInventory);
-        }
 
         // Upgrade orb pickup
         UpgradeOrb upgradeOrb = other.GetComponent<UpgradeOrb>();
         if (upgradeOrb != null)
         {
-            var mgr = playerTransform.GetComponent<PlayerUpgradeManager>();
-            if (mgr != null)
-                upgradeOrb.Apply(mgr);
+            var mgr = playerTransform?.GetComponent<PlayerUpgradeManager>();
+            if (mgr != null) upgradeOrb.Apply(mgr);
         }
     }
 }

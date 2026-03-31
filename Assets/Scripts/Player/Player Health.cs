@@ -20,6 +20,9 @@ public class PlayerHealth : MonoBehaviour
     public Color hitFlashColor = Color.red;
     public float hitFlashDuration = 0.1f;
 
+    [Header("Invincibility Flash Color")]
+    public Color dashInvincColor = new Color(1f, 0.9f, 0.1f); // yellow-gold
+
     // ================================================================
     //  PRIVATE STATE
     // ================================================================
@@ -27,9 +30,9 @@ public class PlayerHealth : MonoBehaviour
     private int currentHP;
     private bool isInvincible;
 
-    // Separate flag for dash invincibility — tracked independently
     private bool isDashInvincible = false;
     private Coroutine dashInvincCoroutine;
+    private Coroutine dashFlashCoroutine;
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
@@ -50,8 +53,7 @@ public class PlayerHealth : MonoBehaviour
         upgradeManager = GetComponent<PlayerUpgradeManager>();
         playerStats = GetComponent<PlayerStats>();
 
-        if (playerStats != null)
-            maxHP = playerStats.maxHP;
+        if (playerStats != null) maxHP = playerStats.maxHP;
 
         currentHP = maxHP;
 
@@ -65,10 +67,8 @@ public class PlayerHealth : MonoBehaviour
     //  PUBLIC API
     // ================================================================
 
-    /// <summary>Deal damage to the player.</summary>
     public void TakeDamage(int amount)
     {
-        // Block during normal iframes or dash invincibility window
         if (isInvincible || isDashInvincible) return;
 
         currentHP -= amount;
@@ -91,19 +91,19 @@ public class PlayerHealth : MonoBehaviour
     }
 
     /// <summary>
-    /// Called by DashAbility at the start of a dash.
-    /// Grants invincibility for the specified duration
-    /// (dash time + post-dash window from PlayerStats).
+    /// Grants invincibility for the specified duration.
+    /// Player turns yellow while immune.
+    /// Used by DashAbility and Immunity upgrade.
     /// </summary>
     public void StartDashInvincibility(float duration)
     {
-        if (dashInvincCoroutine != null)
-            StopCoroutine(dashInvincCoroutine);
+        if (dashInvincCoroutine != null) StopCoroutine(dashInvincCoroutine);
+        if (dashFlashCoroutine != null) StopCoroutine(dashFlashCoroutine);
 
         dashInvincCoroutine = StartCoroutine(DashInvincibilityTimer(duration));
+        dashFlashCoroutine = StartCoroutine(DashInvincibilityFlash(duration));
     }
 
-    /// <summary>Restore HP. Will not exceed maxHP.</summary>
     public void RestoreHP(int amount)
     {
         currentHP = Mathf.Min(currentHP + amount, maxHP);
@@ -111,19 +111,21 @@ public class PlayerHealth : MonoBehaviour
         UpdateHealthUI();
     }
 
-    /// <summary>Instantly set HP to a specific value (used by Revive and Inspector).</summary>
     public void SetHP(int value)
     {
         currentHP = Mathf.Clamp(value, 0, maxHP);
         UpdateHealthUI();
     }
 
-    /// <summary>Increase max HP (from upgrades). Optionally also heals the difference.</summary>
-    public void IncreaseMaxHP(int amount, bool healDifference = false)
+    /// <summary>
+    /// Increase max HP. Always heals the player by the same amount.
+    /// Also syncs PlayerStats.maxHP so the Inspector shows the correct value.
+    /// </summary>
+    public void IncreaseMaxHP(int amount)
     {
         maxHP += amount;
+        currentHP = Mathf.Min(currentHP + amount, maxHP);
         if (playerStats != null) playerStats.maxHP = maxHP;
-        if (healDifference) currentHP = Mathf.Min(currentHP + amount, maxHP);
         UpdateHealthUI();
     }
 
@@ -162,6 +164,24 @@ public class PlayerHealth : MonoBehaviour
         yield return new WaitForSeconds(duration);
         isDashInvincible = false;
         dashInvincCoroutine = null;
+    }
+
+    private IEnumerator DashInvincibilityFlash(float duration)
+    {
+        if (playerRenderer == null) yield break;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            // Pulse between yellow and white
+            float t = Mathf.PingPong(elapsed * 6f, 1f);
+            playerRenderer.material.color = Color.Lerp(dashInvincColor, Color.white, t);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        playerRenderer.material.color = originalColor;
+        dashFlashCoroutine = null;
     }
 
     private IEnumerator HitFlash()

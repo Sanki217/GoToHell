@@ -1,14 +1,14 @@
 using UnityEngine;
 
 /// <summary>
-/// Arrow Pierce — arrows pass through enemies even if they don't kill them.
-/// Each level adds +20% arrow damage.
+/// Arrow Pierce — arrows pass through enemies they don't kill.
 ///
-/// Implementation: sets a flag on each Arrow that disables the pierce stop logic.
-/// Hooks into OnArrowHitEnemy — but the real work is done by modifying Arrow behavior
-/// via a flag checked in Arrow.OnTriggerEnter.
+/// Level 1: arrows can pierce through 1 non-kill enemy before stopping.
+/// Level 2: pierce through 2 non-kill enemies.
+/// Level N: pierce through N non-kill enemies.
 ///
-/// Add "arrowPierces" bool to PlayerStats (or read from upgrade manager).
+/// Arrows always pass through enemies they kill for free — this upgrade only
+/// adds the ability to pass through surviving enemies too.
 /// </summary>
 public class UpgradeArrowPierce : PlayerUpgrade
 {
@@ -19,13 +19,15 @@ public class UpgradeArrowPierce : PlayerUpgrade
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
         playerStats = mgr.GetComponent<PlayerStats>();
-        // Signal globally that arrows pierce
-        if (playerStats != null) playerStats.arrowPierces = true;
+        // Level 1: grant 1 pierce
+        if (playerStats != null)
+            playerStats.arrowPierceCount += 1;
     }
 
     public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel)
     {
-        // Each level: +20% arrow damage
-        if (playerStats != null) playerStats.arrowDamage += playerStats.arrowDamage * 0.2f;
+        // Each additional level: +1 pierce
+        if (playerStats != null)
+            playerStats.arrowPierceCount += 1;
     }
 }

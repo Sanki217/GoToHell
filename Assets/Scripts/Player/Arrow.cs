@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
@@ -12,14 +12,16 @@ public class Arrow : MonoBehaviour
     [Header("Collision Layers")]
     public LayerMask stickableLayers;
 
-    // Set by PlayerShooting
     [HideInInspector] public ArrowFireType fireType = ArrowFireType.Weak;
-    [HideInInspector] public float chargeAmount = 0f;  // 0�1, scales damage
+    [HideInInspector] public float chargeAmount = 0f;
 
     private Vector3 direction;
     private bool hasLanded = false;
     private float currentVelocity;
     private float lifeTime;
+
+    // Tracks how many non-kill enemies this arrow has already passed through
+    private int piercesUsed = 0;
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
@@ -41,16 +43,15 @@ public class Arrow : MonoBehaviour
     private void Update()
     {
         lifeTime += Time.deltaTime;
-
         if (hasLanded) { currentVelocity = 0f; return; }
 
         Vector3 move = direction * speed * Time.deltaTime;
         currentVelocity = move.magnitude / Time.deltaTime;
-
         Vector3 nextPosition = transform.position + move;
         nextPosition.z = 0f;
 
-        if (Physics.Raycast(transform.position, direction, out RaycastHit hit, move.magnitude, stickableLayers))
+        if (Physics.Raycast(transform.position, direction, out RaycastHit hit,
+                            move.magnitude, stickableLayers))
         {
             StickToSurface(hit.point);
             playerStats?.RecordArrowHitWall();
@@ -68,8 +69,6 @@ public class Arrow : MonoBehaviour
         direction = Vector3.zero;
         currentVelocity = 0f;
         transform.position = new Vector3(point.x, point.y, 0f);
-
-        // Notify ArrowPickup � now collectible
         GetComponent<ArrowPickup>()?.OnArrowLanded();
     }
 
@@ -81,25 +80,17 @@ public class Arrow : MonoBehaviour
         Enemy enemy = other.GetComponent<Enemy>();
         if (enemy == null) return;
 
-        // Base damage from PlayerStats, scaled by charge amount
-        // 0% charge = 1.0x, 100% charge = 2.0x  (130% at 30% charge, etc.)
         float baseArrowDamage = playerStats != null ? playerStats.arrowDamage : 1f;
-        float chargeMult = 1f + chargeAmount;  // chargeAmount is 0�1
+        float chargeMult = 1f + chargeAmount;
         float baseDamage = baseArrowDamage * chargeMult;
 
-        // Roll for crit
         float finalDamage;
         bool isCrit;
 
         if (playerStats != null)
             (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, other.gameObject);
-        else
-        {
-            finalDamage = baseDamage;
-            isCrit = false;
-        }
+        else { finalDamage = baseDamage; isCrit = false; }
 
-        // Knockback � zero Z first, then normalize to avoid direction errors
         float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
         Vector3 rawDir = other.transform.position - transform.position;
         rawDir.z = 0f;
@@ -108,21 +99,27 @@ public class Arrow : MonoBehaviour
         int roundedDamage = Mathf.Max(1, Mathf.RoundToInt(finalDamage));
         bool willKill = enemy.WillDie(roundedDamage);
 
-        enemy.TakeDamage(
-            roundedDamage,
-            transform.position,
-            kbDir,
-            kbForce,
-            isCrit,
-            isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal
-        );
+        enemy.TakeDamage(roundedDamage, transform.position, kbDir, kbForce, isCrit,
+            isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal);
 
         playerStats?.RecordArrowHitEnemy();
         playerStats?.RecordDamageDealt(finalDamage, DamageSource.Arrow);
         upgradeManager?.ArrowHitEnemy(other.gameObject, chargeAmount, isCrit);
 
-        // Pierce logic: stop on surviving enemy, continue through killed enemy
-        if (!willKill && (playerStats == null || !playerStats.arrowPierces))
-            Destroy(gameObject);
+        // ── Pierce logic ──────────────────────────────────────────────
+        // arrowPierceCount on PlayerStats = how many non-kill enemies arrow can pass through
+        // 0 = default (stops on any non-kill)
+        // 1 = passes through 1 non-kill before stopping
+        // 2 = passes through 2 non-kills, etc.
+
+        if (!willKill)
+        {
+            int maxPierces = playerStats != null ? playerStats.arrowPierceCount : 0;
+            if (piercesUsed < maxPierces)
+                piercesUsed++;   // used one pierce charge — arrow continues
+            else
+                Destroy(gameObject); // out of pierces — stop here
+        }
+        // If willKill: arrow always continues (free pass through dead enemies)
     }
 }

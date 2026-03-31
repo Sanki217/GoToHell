@@ -45,8 +45,8 @@ public class PlayerStats : MonoBehaviour
     public float critMultiplier = 1.5f;
     public float knockbackForce = 0f;
 
-    [Tooltip("Set to true by Arrow Pierce upgrade — arrows pass through all enemies.")]
-    public bool arrowPierces = false;
+    [Tooltip("Set by Arrow Pierce upgrade. 0 = no pierce, 1 = pass through 1 non-kill, etc.")]
+    public int arrowPierceCount = 0;
 
     [Tooltip("Lifesteal: heal player for this % of damage dealt to enemies. " +
              "0 = disabled, 0.1 = 10%, 1.0 = 100%")]

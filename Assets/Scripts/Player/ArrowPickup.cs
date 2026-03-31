@@ -6,6 +6,7 @@ public class ArrowPickup : MonoBehaviour
     public bool canPickUp = false;
 
     public bool isBeingSucked = false;
+    private System.Action onArrivedCallback;
     private Transform target;
 
     [Header("Suck Settings")]
@@ -40,11 +41,12 @@ public class ArrowPickup : MonoBehaviour
         canPickUp = true;
     }
 
-    public void StartSuck(Transform targetPlayer)
+    public void StartSuck(Transform targetPlayer, System.Action onArrived = null)
     {
         target = targetPlayer;
         isBeingSucked = true;
 
+        onArrivedCallback = onArrived;
         Collider col = GetComponent<Collider>();
         if (col) col.enabled = false;
 
@@ -77,6 +79,7 @@ public class ArrowPickup : MonoBehaviour
             stats?.RecordArrowPickedUp();
             mgr?.ArrowPickedUp();
 
+            onArrivedCallback?.Invoke();
             Destroy(gameObject);
         }
     }
