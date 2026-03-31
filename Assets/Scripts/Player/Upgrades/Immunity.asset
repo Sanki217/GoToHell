@@ -61,14 +61,14 @@ MonoBehaviour:
     minLegendary: 10
     maxLegendary: 15
   - statType: 4
-    minCommon: 0.05
-    maxCommon: 0.1
-    minRare: 0.1
-    maxRare: 0.2
-    minEpic: 0.2
-    maxEpic: 0.3
-    minLegendary: 0.4
-    maxLegendary: 0.8
+    minCommon: 1
+    maxCommon: 4
+    minRare: 3
+    maxRare: 6
+    minEpic: 8
+    maxEpic: 12
+    minLegendary: 15
+    maxLegendary: 20
   - statType: 6
     minCommon: 5
     maxCommon: 10
@@ -142,14 +142,14 @@ MonoBehaviour:
     minLegendary: 10
     maxLegendary: 15
   - statType: 17
-    minCommon: 1
-    maxCommon: 3
-    minRare: 3
-    maxRare: 5
-    minEpic: 5
-    maxEpic: 8
-    minLegendary: 10
-    maxLegendary: 15
+    minCommon: 0.05
+    maxCommon: 0.1
+    minRare: 0.1
+    maxRare: 0.15
+    minEpic: 0.15
+    maxEpic: 0.2
+    minLegendary: 0.2
+    maxLegendary: 0.25
   - statType: 18
     minCommon: 1
     maxCommon: 3
