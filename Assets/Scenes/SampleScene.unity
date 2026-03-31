@@ -3428,7 +3428,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   repulsionForce: 20
   maxRepulsionDistance: 3
-  pushDirection: {x: 1, y: 0, z: 0}
+  pushDirection: {x: -1, y: 0, z: 0}
 --- !u!1 &640388724
 GameObject:
   m_ObjectHideFlags: 0
@@ -7633,7 +7633,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   repulsionForce: 20
   maxRepulsionDistance: 3
-  pushDirection: {x: -1, y: 0, z: 0}
+  pushDirection: {x: 1, y: 0, z: 0}
 --- !u!1 &1413501591
 GameObject:
   m_ObjectHideFlags: 0
