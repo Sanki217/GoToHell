@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f3ace812e9331254db055b169a7d50ea, type: 3}
-  m_Name: Immunity
+  m_Name: Arrow Pierce
   m_EditorClassIdentifier: 
-  upgradeId: Immunity
-  displayName: Immunity
+  upgradeId: Arrow_Pierce
+  displayName: Piercing Arrow
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
   isPureStatUpgrade: 0
-  descriptionCommon: Become Invurnelable to damage for short time every few seconds
-  descriptionRare: Become Invurnelable to damage for short time every few seconds
-  descriptionEpic: Become Invurnelable to damage for short time every few seconds
-  descriptionLegendary: Become Invurnelable to damage for short time every few seconds
+  descriptionCommon: Arrows Pierce Enemies
+  descriptionRare: Arrows Pierce Enemies
+  descriptionEpic: Arrows Pierce Enemies
+  descriptionLegendary: Arrows Pierce Enemies
   hasMythic: 0
   mythicDescription: 
   statRanges:

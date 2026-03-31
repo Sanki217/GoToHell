@@ -14,7 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   upgrades:
   - {fileID: 11400000, guid: d8f9e64bb2838b142ba92d38c62157bd, type: 2}
-  - {fileID: 11400000, guid: a671b916442144349b94294c716e1834, type: 2}
-  - {fileID: 11400000, guid: 191fb2a9703448a41a4325f391ad1d97, type: 2}
-  - {fileID: 11400000, guid: ff68a6646f67b454ab795c4ac2ddeacd, type: 2}
-  - {fileID: 11400000, guid: fa686ecc318c93542bfcd2acb859759b, type: 2}
+  - {fileID: 11400000, guid: e425287a3416bf74387f853b494b6476, type: 2}
+  - {fileID: 11400000, guid: d89ff3a692dd9da4eb551a05837a246c, type: 2}
+  - {fileID: 11400000, guid: 96b4b8db09d0363499f0653a92f909d7, type: 2}
+  - {fileID: 11400000, guid: 316b2131226abc246b2eccb05f596ba6, type: 2}
+  statCaps:
+  - statType: 3
+    cap: 1
+  - statType: 4
+    cap: 10
+  - statType: 18
+    cap: 0.3
+  - statType: 19
+    cap: 2
+  - statType: 20
+    cap: 20
+  - statType: 10
+    cap: 3
+  - statType: 11
+    cap: 3
+  - statType: 14
+    cap: 5
+  - statType: 6
+    cap: 10
+  - statType: 7
+    cap: 10
+  - statType: 8
+    cap: 10
+  - statType: 9
+    cap: 10

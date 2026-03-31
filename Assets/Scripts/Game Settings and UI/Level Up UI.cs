@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
@@ -22,7 +22,7 @@ public class LevelUpUI : MonoBehaviour
     public UpgradeCardUI[] cards;            // assign 3 card GameObjects
     public PlayerUpgradePool upgradePool;
 
-    [Header("Player References — auto-found if not set")]
+    [Header("Player References ï¿½ auto-found if not set")]
     public PlayerStats playerStats;
     public PlayerUpgradeManager upgradeManager;
     public PlayerStateController playerState;
@@ -59,7 +59,7 @@ public class LevelUpUI : MonoBehaviour
         if (isOpen || upgradePool == null) return;
 
         float luck = playerStats != null ? playerStats.luck : 0f;
-        List<UpgradeOffer> offers = upgradePool.RollLevelUpOffers(currentLayer, luck, 3);
+        List<UpgradeOffer> offers = upgradePool.RollLevelUpOffers(currentLayer, luck, playerStats, 3);
 
         if (offers.Count == 0) return;
 

@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f3ace812e9331254db055b169a7d50ea, type: 3}
-  m_Name: Immunity
+  m_Name: Enemy Explosion
   m_EditorClassIdentifier: 
-  upgradeId: Immunity
-  displayName: Immunity
+  upgradeId: Enemy_Explosion
+  displayName: Exploding Enemies
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
   isPureStatUpgrade: 0
-  descriptionCommon: Become Invurnelable to damage for short time every few seconds
-  descriptionRare: Become Invurnelable to damage for short time every few seconds
-  descriptionEpic: Become Invurnelable to damage for short time every few seconds
-  descriptionLegendary: Become Invurnelable to damage for short time every few seconds
+  descriptionCommon: Enemies Explode on death
+  descriptionRare: Enemies Explode on death
+  descriptionEpic: Enemies Explode on death
+  descriptionLegendary: Enemies Explode on death
   hasMythic: 0
   mythicDescription: 
   statRanges:

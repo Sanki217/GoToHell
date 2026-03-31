@@ -87,7 +87,7 @@ public class ChestRewardUI : MonoBehaviour
         if (isOpen || upgradePool == null || upgradePool.upgrades.Count == 0) return;
 
         float luck = playerStats != null ? playerStats.luck : 0f;
-        UpgradeOffer offer = upgradePool.RollChestOffer(currentLayer, luck);
+        UpgradeOffer offer = upgradePool.RollChestOffer(currentLayer, luck, playerStats);
         if (offer == null) return;
 
         isOpen = true;
