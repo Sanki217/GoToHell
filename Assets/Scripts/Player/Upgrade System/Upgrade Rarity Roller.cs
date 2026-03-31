@@ -1,13 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Handles rarity rolling for all upgrade sources (level-up, chest, merchant).
+/// Handles rarity rolling for all upgrade sources.
 ///
 /// Base weights:  Common 55%  Rare 25%  Epic 15%  Legendary 5%
 /// Layer bonus:   Each layer past 1 shifts 0.5% from Common to upper tiers
 /// Luck bonus:    Each luck point shifts 2% from Common to upper tiers
-///                distributed: 50% of shift to Rare, 30% to Epic, 20% to Legendary
+///                distributed: 50% Rare, 30% Epic, 20% Legendary
 /// Common floor:  Never drops below 20%
+///
+/// Chests use RollWithLuckOnly() — no layer influence, only luck.
 /// </summary>
 public static class UpgradeRarityRoller
 {
@@ -24,8 +26,25 @@ public static class UpgradeRarityRoller
     private const float EpicProportion = 0.30f;
     private const float LegendaryProportion = 0.20f;
 
-    /// <summary>Roll a rarity given the current layer (1-9) and player luck stat.</summary>
+    /// <summary>
+    /// Full roll — uses both layer depth and luck.
+    /// Used for level-up upgrade picks.
+    /// </summary>
     public static UpgradeRarity Roll(int layer, float luck)
+    {
+        return RollInternal(layer, luck);
+    }
+
+    /// <summary>
+    /// Chest roll — luck only, no layer influence.
+    /// All chests are the same; rarity comes from luck stat alone.
+    /// </summary>
+    public static UpgradeRarity RollWithLuckOnly(float luck)
+    {
+        return RollInternal(1, luck); // layer=1 means zero layer shift
+    }
+
+    private static UpgradeRarity RollInternal(int layer, float luck)
     {
         float common = BaseCommon;
         float rare = BaseRare;
@@ -41,7 +60,6 @@ public static class UpgradeRarityRoller
         epic += actualShift * EpicProportion;
         legendary += actualShift * LegendaryProportion;
 
-        // Roll from top (Legendary rarest — checked first)
         float r = Random.value;
         if (r < legendary) return UpgradeRarity.Legendary;
         if (r < legendary + epic) return UpgradeRarity.Epic;

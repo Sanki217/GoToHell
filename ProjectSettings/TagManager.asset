@@ -11,6 +11,7 @@ TagManager:
   - LavaZone
   - Wall
   - Soul
+  - Orb
   layers:
   - Default
   - TransparentFX
@@ -24,7 +25,7 @@ TagManager:
   - Enemy
   - Pickup
   - Enemy Sensor
-  - 
+  - Destructibles
   - 
   - 
   - 

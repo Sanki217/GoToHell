@@ -19,8 +19,6 @@ public class Arrow : MonoBehaviour
     private bool hasLanded = false;
     private float currentVelocity;
     private float lifeTime;
-
-    // Tracks how many non-kill enemies this arrow has already passed through
     private int piercesUsed = 0;
 
     private PlayerUpgradeManager upgradeManager;
@@ -53,6 +51,32 @@ public class Arrow : MonoBehaviour
         if (Physics.Raycast(transform.position, direction, out RaycastHit hit,
                             move.magnitude, stickableLayers))
         {
+            // ── Check for destructibles before sticking ─────────────
+            // Walk up the hit object's hierarchy to find barrel or vase
+            GameObject root = hit.collider.transform.root.gameObject;
+
+            ExplosiveBarrel barrel = root.GetComponent<ExplosiveBarrel>()
+                ?? hit.collider.GetComponent<ExplosiveBarrel>();
+            Vase vase = root.GetComponent<Vase>()
+                ?? hit.collider.GetComponent<Vase>();
+
+            if (barrel != null)
+            {
+                int dmg = ArrowDamage();
+                barrel.TakeDamage(dmg);
+                Destroy(gameObject);   // arrow is consumed by the barrel hit
+                return;
+            }
+
+            if (vase != null)
+            {
+                int dmg = ArrowDamage();
+                vase.TakeDamage(dmg);
+                Destroy(gameObject);   // arrow is consumed by the vase hit
+                return;
+            }
+
+            // Normal surface — stick and record
             StickToSurface(hit.point);
             playerStats?.RecordArrowHitWall();
             upgradeManager?.ArrowHitWall(hit.point);
@@ -61,6 +85,13 @@ public class Arrow : MonoBehaviour
         {
             transform.position = nextPosition;
         }
+    }
+
+    private int ArrowDamage()
+    {
+        float base_dmg = playerStats != null ? playerStats.arrowDamage : 1f;
+        float charge = 1f + chargeAmount;
+        return Mathf.Max(1, Mathf.RoundToInt(base_dmg * charge));
     }
 
     private void StickToSurface(Vector3 point)
@@ -106,20 +137,13 @@ public class Arrow : MonoBehaviour
         playerStats?.RecordDamageDealt(finalDamage, DamageSource.Arrow);
         upgradeManager?.ArrowHitEnemy(other.gameObject, chargeAmount, isCrit);
 
-        // ── Pierce logic ──────────────────────────────────────────────
-        // arrowPierceCount on PlayerStats = how many non-kill enemies arrow can pass through
-        // 0 = default (stops on any non-kill)
-        // 1 = passes through 1 non-kill before stopping
-        // 2 = passes through 2 non-kills, etc.
-
         if (!willKill)
         {
             int maxPierces = playerStats != null ? playerStats.arrowPierceCount : 0;
             if (piercesUsed < maxPierces)
-                piercesUsed++;   // used one pierce charge — arrow continues
+                piercesUsed++;
             else
-                Destroy(gameObject); // out of pierces — stop here
+                Destroy(gameObject);
         }
-        // If willKill: arrow always continues (free pass through dead enemies)
     }
 }
