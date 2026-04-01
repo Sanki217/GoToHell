@@ -6,7 +6,7 @@ public class EnemyPatrolVertical : MonoBehaviour
 {
     [Header("Movement")]
     public float speed = 3f;
-    public float smoothTime = 0.12f;
+    public float acceleration = 20f;
     public float returnSpeed = 5f;
 
     [Header("Path — measured at spawn")]
@@ -33,7 +33,6 @@ public class EnemyPatrolVertical : MonoBehaviour
     private float pathMinY, pathMaxY, pathX;
     private float dirY = 1f;
     private float currentVelY = 0f;
-    private float currentVelX = 0f;
 
     private bool suspended = false;
     private bool returningX = false;
@@ -82,123 +81,37 @@ public class EnemyPatrolVertical : MonoBehaviour
     {
         if (suspended) return;
 
+        float dt = Time.deltaTime;
         float x = transform.position.x;
         float y = transform.position.y;
 
-        // ── X: smooth return to path ──────────────────────────────────
+        // ── X: return to path (framerate-independent) ─────────────────
         if (returningX)
         {
-            x = Mathf.SmoothDamp(x, pathX, ref currentVelX, 0.2f,
-                                  returnSpeed, Time.deltaTime);
-            if (Mathf.Abs(x - pathX) < 0.02f)
+            x = Mathf.MoveTowards(x, pathX, returnSpeed * dt);
+            if (Mathf.Abs(x - pathX) < 0.01f)
             {
                 x = pathX;
                 returningX = false;
-                currentVelX = 0f;
             }
         }
 
-        // ── Y: smooth patrol ─────────────────────────────────────────
-        float effective = speed * speedMultiplier;
+        // ── Y: patrol movement ────────────────────────────────────────
+        float targetSpeed = dirY * speed * speedMultiplier;
+        currentVelY = Mathf.MoveTowards(currentVelY, targetSpeed, acceleration * dt);
 
-        if (effective > 0.01f)
+        if (ObstacleAhead())
         {
-            if (ObstacleAhead()) dirY *= -1f;
-
-            float targetY = y + dirY * effective;
-            float nextY = Mathf.SmoothDamp(y, targetY, ref currentVelY,
-                                              smoothTime, effective, Time.deltaTime);
-
-            if (nextY <= pathMinY) { nextY = pathMinY; dirY = 1f; currentVelY = 0f; }
-            if (nextY >= pathMaxY) { nextY = pathMaxY; dirY = -1f; currentVelY = 0f; }
-
-            y = nextY;
+            dirY *= -1f;
+            currentVelY = 0f;
         }
 
-        transform.position = new Vector3(x, y, 0f);
-    }
+        float nextY = y + currentVelY * dt;
 
-    // ================================================================
-    //  WALL-AWARE KNOCKBACK
-    // ================================================================
+        if (nextY <= pathMinY) { nextY = pathMinY; dirY = 1f; currentVelY = 0f; }
+        if (nextY >= pathMaxY) { nextY = pathMaxY; dirY = -1f; currentVelY = 0f; }
 
-    public void ReceiveKnockback(Vector3 impulse, float duration)
-    {
-        StopAllCoroutines();
-        StartCoroutine(KnockbackRoutine(impulse, duration));
-    }
-
-    private IEnumerator KnockbackRoutine(Vector3 impulse, float duration)
-    {
-        suspended = false;
-        returningX = false;
-        currentVelX = 0f;
-        currentVelY = 0f;
-
-        Vector3 velocity = impulse / Mathf.Max(duration, 0.01f);
-        velocity.z = 0f;
-
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            float dt = Time.deltaTime;
-            elapsed += dt;
-
-            float t = Mathf.Clamp01(elapsed / duration);
-            float scale = 1f - t * t;
-            Vector3 step = velocity * scale * dt;
-
-            step = StepWithWallBounce(step);
-
-            Vector3 newPos = transform.position + step;
-            newPos.z = 0f;
-            transform.position = newPos;
-
-            yield return null;
-        }
-
-        returningX = true;
-        currentVelX = 0f;
-    }
-
-    private Vector3 StepWithWallBounce(Vector3 step)
-    {
-        if (step.sqrMagnitude < 0.00001f) return step;
-
-        float dist = step.magnitude;
-        Vector3 dir = step / dist;
-
-        bool found = Physics.BoxCast(
-            transform.position,
-            knockbackCastHalf,
-            dir,
-            out RaycastHit hit,
-            Quaternion.identity,
-            dist,
-            solidLayers,
-            QueryTriggerInteraction.Ignore);
-
-        if (!found) return step;
-
-        bool isSelf = false;
-        foreach (var sc in selfColliders)
-            if (sc == hit.collider) { isSelf = true; break; }
-        if (isSelf) return step;
-
-        float safe = Mathf.Max(0f, hit.distance - 0.05f);
-        Vector3 safeStep = dir * safe;
-        Vector3 remaining = step - safeStep;
-        Vector3 normal = hit.normal; normal.z = 0f;
-
-        if (normal.sqrMagnitude > 0.001f)
-        {
-            Vector3 reflected = Vector3.Reflect(remaining, normal.normalized) * bounceDamping;
-            reflected.z = 0f;
-            return safeStep + reflected;
-        }
-
-        return safeStep;
+        transform.position = new Vector3(x, nextY, 0f);
     }
 
     // ================================================================
@@ -229,6 +142,81 @@ public class EnemyPatrolVertical : MonoBehaviour
     }
 
     // ================================================================
+    //  KNOCKBACK
+    // ================================================================
+
+    public void ReceiveKnockback(Vector3 impulse, float duration)
+    {
+        StopAllCoroutines();
+        StartCoroutine(KnockbackRoutine(impulse, duration));
+    }
+
+    private IEnumerator KnockbackRoutine(Vector3 impulse, float duration)
+    {
+        suspended = false;
+        returningX = false;
+        currentVelY = 0f;
+
+        Vector3 velocity = impulse / Mathf.Max(duration, 0.01f);
+        velocity.z = 0f;
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            float dt = Time.deltaTime;
+            elapsed += dt;
+
+            float t = Mathf.Clamp01(elapsed / duration);
+            float scale = 1f - t * t;
+            Vector3 step = velocity * scale * dt;
+
+            step = StepWithWallBounce(step);
+
+            transform.position = new Vector3(
+                transform.position.x + step.x,
+                transform.position.y + step.y,
+                0f);
+
+            yield return null;
+        }
+
+        returningX = true;
+        currentVelY = 0f;
+    }
+
+    private Vector3 StepWithWallBounce(Vector3 step)
+    {
+        if (step.sqrMagnitude < 0.00001f) return step;
+
+        float dist = step.magnitude;
+        Vector3 dir = step / dist;
+
+        bool found = Physics.BoxCast(
+            transform.position, knockbackCastHalf, dir,
+            out RaycastHit hit, Quaternion.identity, dist,
+            solidLayers, QueryTriggerInteraction.Ignore);
+
+        if (!found) return step;
+
+        foreach (var sc in selfColliders)
+            if (sc == hit.collider) return step;
+
+        float safe = Mathf.Max(0f, hit.distance - 0.05f);
+        Vector3 safeStep = dir * safe;
+        Vector3 remaining = step - safeStep;
+        Vector3 normal = hit.normal; normal.z = 0f;
+
+        if (normal.sqrMagnitude > 0.001f)
+        {
+            Vector3 reflected = Vector3.Reflect(remaining, normal.normalized) * bounceDamping;
+            reflected.z = 0f;
+            return safeStep + reflected;
+        }
+        return safeStep;
+    }
+
+    // ================================================================
     //  GIZMOS
     // ================================================================
 
@@ -240,7 +228,8 @@ public class EnemyPatrolVertical : MonoBehaviour
         Gizmos.DrawWireSphere(new Vector3(pathX, pathMaxY, 0f), 0.15f);
 
         Gizmos.color = Color.yellow;
-        Vector3 center = transform.position + new Vector3(0f, dirY, 0f) * turnLookAhead;
-        Gizmos.DrawWireCube(center, turnBoxHalfExtents * 2f);
+        Gizmos.DrawWireCube(
+            transform.position + new Vector3(0f, dirY, 0f) * turnLookAhead,
+            turnBoxHalfExtents * 2f);
     }
 }

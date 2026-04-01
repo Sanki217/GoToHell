@@ -15,10 +15,9 @@ using System.Collections;
 ///   2. Add a Capsule/Box Collider — Is Trigger = FALSE (solid, arrows stick to it)
 ///      This collider must be on a layer included in Arrow's stickableLayers
 ///   3. Add this script
-///   4. Assign barrelRenderer (the Renderer on this object)
+///   4. Assign barrelRenderer
 ///   5. Set explosionDamage, explosionRadius, fuseTime in Inspector
-///   6. Optionally assign soulPrefab for soul drops on explosion
-///   7. No special tag required — just make sure it's in stickableLayers
+///   6. Optionally assign soulPrefab for soul drops
 /// </summary>
 public class ExplosiveBarrel : MonoBehaviour
 {
@@ -62,7 +61,7 @@ public class ExplosiveBarrel : MonoBehaviour
     }
 
     // ================================================================
-    //  PUBLIC API — called by Arrow.cs, chain explosions, etc.
+    //  PUBLIC API
     // ================================================================
 
     public void TakeDamage(int amount)
@@ -77,7 +76,7 @@ public class ExplosiveBarrel : MonoBehaviour
     }
 
     // ================================================================
-    //  DASH DETECTION — DashDamageCollider overlaps this barrel's trigger
+    //  DASH DETECTION
     // ================================================================
 
     private void OnTriggerEnter(Collider other)
@@ -153,16 +152,13 @@ public class ExplosiveBarrel : MonoBehaviour
                 }
             }
 
-            // Chain other barrels
             var otherBarrel = hit.GetComponent<ExplosiveBarrel>();
             if (otherBarrel != null && otherBarrel != this && !otherBarrel.exploded)
                 otherBarrel.TakeDamage(Mathf.RoundToInt(explosionDamage));
 
-            // Break vases
             hit.GetComponent<Vase>()?.TakeDamage(Mathf.RoundToInt(explosionDamage));
         }
 
-        // Drop souls
         int soulCount = Random.Range(minimumSouls, maximumSouls + 1);
         for (int i = 0; i < soulCount; i++)
         {
@@ -202,17 +198,9 @@ public class ExplosiveBarrel : MonoBehaviour
 
         Renderer r = sphere.GetComponent<Renderer>();
         if (r != null)
-        {
-            Material mat = new Material(Shader.Find("Standard"));
-            mat.color = new Color(1f, 0.4f, 0f, 0.35f);
-            mat.SetFloat("_Mode", 3);
-            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            mat.SetInt("_ZWrite", 0);
-            mat.EnableKeyword("_ALPHABLEND_ON");
-            mat.renderQueue = 3000;
-            r.material = mat;
-        }
+            // Use the same helper as UpgradeEnemyExplosion — Unlit/Transparent works in builds
+            r.material = UpgradeEnemyExplosion.MakeTransparentMaterial(
+                new Color(1f, 0.4f, 0f, 0.35f)); // orange for barrel
 
         yield return new WaitForSeconds(debugSphereTime);
         Destroy(sphere);
