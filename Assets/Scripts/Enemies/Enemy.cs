@@ -3,10 +3,6 @@ using System.Collections;
 
 public class Enemy : MonoBehaviour
 {
-    // ================================================================
-    //  INSPECTOR
-    // ================================================================
-
     [Header("Health")]
     public int maxHealth = 3;
 
@@ -29,10 +25,6 @@ public class Enemy : MonoBehaviour
     // ================================================================
 
     private int currentHealth;
-    private Rigidbody rb;
-
-    private HorizontalMovement horizontalMovement;
-    private VerticalMovement verticalMovement;
 
     // ================================================================
     //  INIT
@@ -41,17 +33,6 @@ public class Enemy : MonoBehaviour
     private void Start()
     {
         currentHealth = maxHealth;
-        rb = GetComponent<Rigidbody>();
-        horizontalMovement = GetComponent<HorizontalMovement>();
-        verticalMovement = GetComponent<VerticalMovement>();
-
-        if (rb != null)
-        {
-            rb.isKinematic = true;
-            rb.constraints = RigidbodyConstraints.FreezeRotation |
-                             RigidbodyConstraints.FreezePositionZ;
-        }
-
         if (enemyRenderer == null)
             enemyRenderer = GetComponentInChildren<Renderer>();
     }
@@ -70,10 +51,9 @@ public class Enemy : MonoBehaviour
 
     public void TakeDamage(int amount, Vector3 hitPosition,
                            Vector3 knockbackDir, float knockbackForce,
-                           bool isCrit,
-                           FloatingTextManager.HitType hitType)
+                           bool isCrit, FloatingTextManager.HitType hitType)
     {
-        // --- Shock: consume before applying damage, boost amount ---
+        // Shock: consume before applying damage
         ShockEffect shock = GetComponent<ShockEffect>();
         if (shock != null)
         {
@@ -84,11 +64,8 @@ public class Enemy : MonoBehaviour
 
         currentHealth -= amount;
 
-        FloatingTextManager.Show(
-            amount,
-            hitPosition,
-            isCrit ? FloatingTextManager.HitType.Critical : hitType
-        );
+        FloatingTextManager.Show(amount, hitPosition,
+            isCrit ? FloatingTextManager.HitType.Critical : hitType);
 
         if (knockbackForce > 0f && knockbackDir != Vector3.zero)
             StartCoroutine(ApplyKnockback(knockbackDir.normalized * knockbackForce));
@@ -104,19 +81,14 @@ public class Enemy : MonoBehaviour
     //  STATUS EFFECTS
     // ================================================================
 
-    /// <summary>
-    /// Apply a status effect to this enemy.
-    /// If the status is already active, refreshes its duration instead of stacking.
-    /// </summary>
-    public void ApplyStatus(StatusType type, PlayerStats playerStats,
-                             PlayerUpgradeManager upgradeManager)
+    public void ApplyStatus(StatusType type, PlayerStats ps, PlayerUpgradeManager mgr)
     {
         switch (type)
         {
-            case StatusType.Burn: ApplyOrRefresh<BurnEffect>(playerStats, upgradeManager); break;
-            case StatusType.Freeze: ApplyOrRefresh<FreezeEffect>(playerStats, upgradeManager); break;
-            case StatusType.Holy: ApplyOrRefresh<HolyEffect>(playerStats, upgradeManager); break;
-            case StatusType.Shock: ApplyOrRefresh<ShockEffect>(playerStats, upgradeManager); break;
+            case StatusType.Burn: ApplyOrRefresh<BurnEffect>(ps, mgr); break;
+            case StatusType.Freeze: ApplyOrRefresh<FreezeEffect>(ps, mgr); break;
+            case StatusType.Holy: ApplyOrRefresh<HolyEffect>(ps, mgr); break;
+            case StatusType.Shock: ApplyOrRefresh<ShockEffect>(ps, mgr); break;
         }
     }
 
@@ -124,13 +96,8 @@ public class Enemy : MonoBehaviour
         where T : StatusEffect
     {
         T existing = GetComponent<T>();
-        if (existing != null)
-            existing.Initialize(0f, ps, mgr); // re-initialise = refresh
-        else
-        {
-            T effect = gameObject.AddComponent<T>();
-            effect.Initialize(0f, ps, mgr);
-        }
+        if (existing != null) existing.Initialize(0f, ps, mgr);
+        else gameObject.AddComponent<T>().Initialize(0f, ps, mgr);
     }
 
     // ================================================================
@@ -139,23 +106,31 @@ public class Enemy : MonoBehaviour
 
     private IEnumerator ApplyKnockback(Vector3 impulse)
     {
-        float elapsed = 0f;
-        while (elapsed < knockbackDuration)
+        // Notify movement scripts so they suspend and return to path afterward
+        var hPatrol = GetComponent<EnemyPatrolHorizontal>();
+        var vPatrol = GetComponent<EnemyPatrolVertical>();
+
+        var shooter = GetComponent<EnemyShooter>();
+
+        if (hPatrol != null) hPatrol.ReceiveKnockback(impulse, knockbackDuration);
+        if (vPatrol != null) vPatrol.ReceiveKnockback(impulse, knockbackDuration);
+        if (shooter != null) shooter.ReceiveKnockback(impulse, knockbackDuration);
+
+        // If no movement script, just displace the transform
+        if (hPatrol == null && vPatrol == null && shooter == null)
         {
-            elapsed += Time.deltaTime;
-            float t = elapsed / knockbackDuration;
-            Vector3 frameMove = impulse * (1f - t) * Time.deltaTime;
-            Vector3 newPos = transform.position + frameMove;
-            newPos.z = transform.position.z;
-
-            if (horizontalMovement != null && horizontalMovement.useBounds)
-                newPos.x = Mathf.Clamp(newPos.x, horizontalMovement.minX, horizontalMovement.maxX);
-            if (verticalMovement != null && verticalMovement.useBounds)
-                newPos.y = Mathf.Clamp(newPos.y, verticalMovement.minY, verticalMovement.maxY);
-
-            transform.position = newPos;
-            yield return null;
+            float elapsed = 0f;
+            while (elapsed < knockbackDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / knockbackDuration;
+                Vector3 newPos = transform.position + impulse * (1f - t) * Time.deltaTime;
+                newPos.z = 0f;
+                transform.position = newPos;
+                yield return null;
+            }
         }
+        else yield break;
     }
 
     private void Die()
@@ -193,6 +168,6 @@ public class Enemy : MonoBehaviour
         Color original = enemyRenderer.material.color;
         enemyRenderer.material.color = hitFlashColor;
         yield return new WaitForSeconds(hitFlashDuration);
-        enemyRenderer.material.color = original;
+        if (this != null) enemyRenderer.material.color = original;
     }
 }

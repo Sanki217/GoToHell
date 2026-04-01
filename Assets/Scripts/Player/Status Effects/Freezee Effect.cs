@@ -1,48 +1,42 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Freeze: slows enemy movement speed, attack speed, and projectile speed.
-/// Enemy can still be damaged normally while frozen.
-/// Slow % scales with PlayerStats.freezeStrength.
-///
-/// Base values:
-///   slowPercent = 0.5 (50% slow at 1.0 strength)
-///   duration    = 3s
+/// Freeze: slows enemy movement and attack speed.
+/// Works with the new EnemyPatrol, EnemyPatrolVertical, and EnemyShooter scripts.
 ///
 /// At FreezeStrength 1.0 → 50% slow
 /// At FreezeStrength 1.5 → 75% slow
-/// Capped at 95% slow (enemy never fully stops)
+/// Capped at 95% (enemy never fully stops)
 /// </summary>
 public class FreezeEffect : StatusEffect
 {
-    [Header("Freeze Base Values")]
-    public float baseSlowPercent = 0.5f;   // 0.5 = 50% slow at strength 1.0
+    [Header("Freeze Values")]
+    public float baseSlowPercent = 0.5f;
     public float baseDuration = 3f;
-    public float maxSlowPercent = 0.95f;  // never fully stop the enemy
+    public float maxSlowPercent = 0.95f;
 
-    private HorizontalMovement hMove;
-    private VerticalMovement vMove;
-    private Shooter shooter;
+    private EnemyPatrolHorizontal hPatrol;
+    private EnemyPatrolVertical vPatrol;
+    private EnemyShooter shooter;
 
     private float originalHSpeed;
     private float originalVSpeed;
     private float originalShooterCooldown;
     private bool wasApplied = false;
 
-    private Color freezeColor = new Color(0.5f, 0.85f, 1f); // light blue
+    private Color freezeColor = new Color(0.5f, 0.85f, 1f);
 
     protected override void OnApplied()
     {
         duration = baseDuration;
         timeRemaining = baseDuration;
 
-        hMove = GetComponent<HorizontalMovement>();
-        vMove = GetComponent<VerticalMovement>();
-        shooter = GetComponent<Shooter>();
+        hPatrol = GetComponent<EnemyPatrolHorizontal>();
+        vPatrol = GetComponent<EnemyPatrolVertical>();
+        shooter = GetComponent<EnemyShooter>();
 
-        // Store original values before slowing
-        if (hMove != null) originalHSpeed = hMove.maxSpeed;
-        if (vMove != null) originalVSpeed = vMove.maxSpeed;
+        if (hPatrol != null) originalHSpeed = hPatrol.speed;
+        if (vPatrol != null) originalVSpeed = vPatrol.speed;
         if (shooter != null) originalShooterCooldown = shooter.attackCooldown;
 
         ApplySlow();
@@ -54,7 +48,6 @@ public class FreezeEffect : StatusEffect
 
     protected override void OnRefreshed()
     {
-        // Re-apply slow in case strength changed
         RestoreSlow();
         ApplySlow();
     }
@@ -75,12 +68,13 @@ public class FreezeEffect : StatusEffect
     private void ApplySlow()
     {
         float strength = playerStats != null ? playerStats.freezeStrength : 1f;
-        float slowAmount = Mathf.Clamp(baseSlowPercent * strength, 0f, maxSlowPercent);
-        float speedMult = 1f - slowAmount;
+        float slow = Mathf.Clamp(baseSlowPercent * strength, 0f, maxSlowPercent);
+        float mult = 1f - slow;
 
-        if (hMove != null) hMove.maxSpeed = originalHSpeed * speedMult;
-        if (vMove != null) vMove.maxSpeed = originalVSpeed * speedMult;
-        if (shooter != null) shooter.attackCooldown = originalShooterCooldown / speedMult;
+        // Apply via speedMultiplier field so original speed is preserved
+        if (hPatrol != null) hPatrol.speedMultiplier = mult;
+        if (vPatrol != null) vPatrol.speedMultiplier = mult;
+        if (shooter != null) shooter.attackCooldown = originalShooterCooldown / mult;
 
         wasApplied = true;
     }
@@ -88,14 +82,13 @@ public class FreezeEffect : StatusEffect
     private void RestoreSlow()
     {
         if (!wasApplied) return;
-        if (hMove != null) hMove.maxSpeed = originalHSpeed;
-        if (vMove != null) vMove.maxSpeed = originalVSpeed;
+        if (hPatrol != null) hPatrol.speedMultiplier = 1f;
+        if (vPatrol != null) vPatrol.speedMultiplier = 1f;
         if (shooter != null) shooter.attackCooldown = originalShooterCooldown;
     }
 
     private void OnDestroy()
     {
-        // Safety: always restore on component destruction
         RestoreSlow();
         RestoreTint();
     }

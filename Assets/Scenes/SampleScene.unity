@@ -3018,6 +3018,7 @@ Transform:
   - {fileID: 444974629}
   - {fileID: 761111132}
   - {fileID: 339441577}
+  - {fileID: 697591142}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &544325365
@@ -3316,7 +3317,6 @@ GameObject:
   - component: {fileID: 629914957}
   - component: {fileID: 629914956}
   - component: {fileID: 629914955}
-  - component: {fileID: 629914959}
   m_Layer: 6
   m_Name: Wall Left
   m_TagString: Untagged
@@ -3414,21 +3414,6 @@ Transform:
   - {fileID: 1439281141}
   m_Father: {fileID: 1219739766}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &629914959
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 629914954}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a7fb5a4b9e07c254c801a39bf993e14f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  repulsionForce: 20
-  maxRepulsionDistance: 3
-  pushDirection: {x: -1, y: 0, z: 0}
 --- !u!1 &640388724
 GameObject:
   m_ObjectHideFlags: 0
@@ -3882,6 +3867,59 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 443}
   m_SizeDelta: {x: -1720, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &697591141
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 697591142}
+  - component: {fileID: 697591143}
+  m_Layer: 0
+  m_Name: SceneOptimizer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &697591142
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 697591141}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -960.1889, y: -400.92935, z: -29.446741}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 526545873}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &697591143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 697591141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d89ed98002bdabf4f8be9bb7af10d7c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enableOptimizer: 1
+  enableEnemySleep: 1
+  enemyWakeRadius: 40
+  enemySleepRadius: 55
+  enableRendererCulling: 1
+  rendererCullMargin: 5
+  checksPerSecond: 10
+  showGizmos: 1
+  playerTransform: {fileID: 1048261596}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -5510,7 +5548,7 @@ MonoBehaviour:
   dashDamage: 10
   critChance: 0.1
   critMultiplier: 2
-  knockbackForce: 15
+  knockbackForce: 1
   arrowPierceCount: 0
   lifeSteal: 0
   burnStrength: 1
@@ -7521,7 +7559,6 @@ GameObject:
   - component: {fileID: 1394318098}
   - component: {fileID: 1394318097}
   - component: {fileID: 1394318096}
-  - component: {fileID: 1394318100}
   m_Layer: 6
   m_Name: Wall Right
   m_TagString: Untagged
@@ -7619,21 +7656,6 @@ Transform:
   - {fileID: 459719526}
   m_Father: {fileID: 1219739766}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1394318100
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1394318095}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a7fb5a4b9e07c254c801a39bf993e14f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  repulsionForce: 20
-  maxRepulsionDistance: 3
-  pushDirection: {x: 1, y: 0, z: 0}
 --- !u!1 &1413501591
 GameObject:
   m_ObjectHideFlags: 0
@@ -10934,7 +10956,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spawnType: 2
   prefabs:
-  - {fileID: 5456285349514001431, guid: 780fe9defb2d7e943b5c8de90c680a0f, type: 3}
+  - {fileID: 5456285349514001431, guid: b36d309fbada9c44ba836ede8133587b, type: 3}
   spawnCount: 35
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}

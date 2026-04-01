@@ -80,11 +80,9 @@ GameObject:
   - component: {fileID: 9107505770039923809}
   - component: {fileID: 683928952675716204}
   - component: {fileID: 1041990607757972644}
-  - component: {fileID: 3763179088666929006}
-  - component: {fileID: 1960979329093158761}
-  - component: {fileID: 6217076362429943899}
-  - component: {fileID: 3995792188890039685}
   - component: {fileID: -8232553747361180095}
+  - component: {fileID: 9052951736665903648}
+  - component: {fileID: 5666188851616106976}
   m_Layer: 0
   m_Name: Enemy Horizontal
   m_TagString: Enemy
@@ -106,7 +104,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2500094872246502357}
-  - {fileID: 3748945030633563403}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &9107505770039923809
@@ -189,71 +186,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 1
---- !u!114 &3763179088666929006
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5456285349514001431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53df51aaefd0904499a3c461da433c6b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &1960979329093158761
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5456285349514001431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a13dcf60e504c9e4ca1b179f38ae63d9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 20
-  soulPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
-  energyRestoredOnDeath: 5
-  minimumSouls: 1
-  maximumSouls: 3
-  enemyRenderer: {fileID: 683928952675716204}
-  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
-  hitFlashDuration: 0.08
-  knockbackDuration: 0.3
---- !u!114 &6217076362429943899
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5456285349514001431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab59a23f8872ad24fa8eead9c74040d8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &3995792188890039685
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5456285349514001431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b3329911ca3a67d4aa5f7470a0b02c49, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxSpeed: 3
-  acceleration: 5
-  turnBrake: 20
-  instantTurn: 0
-  sensor: {fileID: 746640703760186467}
-  minX: 1.5
-  maxX: 12.5
-  useBounds: 1
 --- !u!65 &-8232553747361180095
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -275,71 +207,48 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1 &5494290412399166091
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3748945030633563403}
-  - component: {fileID: 3517213100438916454}
-  - component: {fileID: 746640703760186467}
-  m_Layer: 0
-  m_Name: HorizontalSensor
-  m_TagString: EnemySensor
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3748945030633563403
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5494290412399166091}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0.000000007450581}
-  m_LocalScale: {x: 4.9890747, y: 1, z: 0.76556}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6834851209747589345}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
---- !u!136 &3517213100438916454
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5494290412399166091}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.1
-  m_Height: 2.5
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &746640703760186467
+--- !u!114 &9052951736665903648
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5494290412399166091}
+  m_GameObject: {fileID: 5456285349514001431}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 94ffe4d97f8c9a1449412c3e11a8d05d, type: 3}
+  m_Script: {fileID: 11500000, guid: a13dcf60e504c9e4ca1b179f38ae63d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxHealth: 30
+  soulPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
+  energyRestoredOnDeath: 5
+  minimumSouls: 1
+  maximumSouls: 3
+  enemyRenderer: {fileID: 683928952675716204}
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  hitFlashDuration: 0.08
+  knockbackDuration: 0.15
+--- !u!114 &5666188851616106976
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5456285349514001431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330bd681ceacbc240a2ba79c8e97bbde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 3
+  smoothTime: 0.12
+  returnSpeed: 6
+  pathScanDistance: 500
+  solidLayers:
+    serializedVersion: 2
+    m_Bits: 4288
+  turnLookAhead: 0.55
+  turnBoxHalfExtents: {x: 0.35, y: 0.45, z: 0.1}
+  knockbackCastHalf: {x: 0.1, y: 0.2, z: 0.02}
+  bounceDamping: 0.1
+  speedMultiplier: 1
