@@ -172,10 +172,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f0efcafe261ce042a47418bafb3a734, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackRange: 10
+  attackRange: 5.5
   projectilePrefab: {fileID: 154607100500021675, guid: 5a8df5e2ac0d9fe46ac979482ab960a8, type: 3}
   attackCooldown: 2
-  projectileSpeed: 10
+  projectileSpeed: 8
   muzzleOffset: 0.7
   facesPlayer: 0
   returnSpeed: 4
