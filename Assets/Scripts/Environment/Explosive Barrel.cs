@@ -1,8 +1,8 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Explosive Barrel — destructible world object.
+/// Explosive Barrel ï¿½ destructible world object.
 /// Any damage starts the fuse. After fuseTime seconds it explodes in a radius.
 ///
 /// DAMAGE SOURCES:
@@ -12,7 +12,7 @@ using System.Collections;
 ///
 /// SETUP:
 ///   1. Create a GameObject (Capsule works as placeholder)
-///   2. Add a Capsule/Box Collider — Is Trigger = FALSE (solid, arrows stick to it)
+///   2. Add a Capsule/Box Collider ï¿½ Is Trigger = FALSE (solid, arrows stick to it)
 ///      This collider must be on a layer included in Arrow's stickableLayers
 ///   3. Add this script
 ///   4. Assign barrelRenderer
@@ -129,7 +129,7 @@ public class ExplosiveBarrel : MonoBehaviour
 
         Vector3 pos = transform.position;
 
-        StartCoroutine(ShowDebugSphere(pos, explosionRadius));
+        SpawnDebugSphere(pos, explosionRadius);
 
         Collider[] hits = Physics.OverlapSphere(pos, explosionRadius);
         foreach (var hit in hits)
@@ -189,7 +189,7 @@ public class ExplosiveBarrel : MonoBehaviour
         if (!exploded) barrelRenderer.material.color = orig;
     }
 
-    private IEnumerator ShowDebugSphere(Vector3 pos, float radius)
+    private void SpawnDebugSphere(Vector3 pos, float radius)
     {
         GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         Destroy(sphere.GetComponent<Collider>());
@@ -198,11 +198,9 @@ public class ExplosiveBarrel : MonoBehaviour
 
         Renderer r = sphere.GetComponent<Renderer>();
         if (r != null)
-            // Use the same helper as UpgradeEnemyExplosion — Unlit/Transparent works in builds
             r.material = UpgradeEnemyExplosion.MakeTransparentMaterial(
-                new Color(1f, 0.4f, 0f, 0.35f)); // orange for barrel
+                new Color(1f, 0.4f, 0f, 0.35f));
 
-        yield return new WaitForSeconds(debugSphereTime);
-        Destroy(sphere);
+        Destroy(sphere, debugSphereTime);
     }
 }

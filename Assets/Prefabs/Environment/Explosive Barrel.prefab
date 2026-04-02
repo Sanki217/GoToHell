@@ -175,7 +175,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abfd53a76989bbc498de5a8f36210fc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 98
+  maxHealth: 2
   explosionDamage: 40
   explosionRadius: 5
   fuseTime: 1
@@ -183,4 +183,4 @@ MonoBehaviour:
   soulPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
   minimumSouls: 1
   maximumSouls: 2
-  debugSphereTime: 0.25
+  debugSphereTime: 0.1

@@ -241,7 +241,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 3
-  smoothTime: 0.12
   returnSpeed: 6
   pathScanDistance: 500
   solidLayers:
@@ -249,6 +248,7 @@ MonoBehaviour:
     m_Bits: 4288
   turnLookAhead: 0.55
   turnBoxHalfExtents: {x: 0.35, y: 0.45, z: 0.1}
+  turnCooldown: 0.25
   knockbackCastHalf: {x: 0.1, y: 0.2, z: 0.02}
   bounceDamping: 0.1
   speedMultiplier: 1

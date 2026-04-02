@@ -6,9 +6,7 @@ public class EnemyPatrolHorizontal : MonoBehaviour
 {
     [Header("Movement")]
     public float speed = 3f;
-    [Tooltip("Acceleration at turn-around (units/sec²). Higher = snappier turns.")]
-    public float acceleration = 20f;
-    [Tooltip("Speed at which enemy returns to path Y after knockback (units/sec)")]
+    [Tooltip("Speed at which enemy slides back to path Y after knockback")]
     public float returnSpeed = 5f;
 
     [Header("Path — measured at spawn")]
@@ -18,6 +16,8 @@ public class EnemyPatrolHorizontal : MonoBehaviour
     [Header("Turn Detection")]
     public float turnLookAhead = 0.55f;
     public Vector3 turnBoxHalfExtents = new Vector3(0.35f, 0.45f, 0.1f);
+    [Tooltip("Seconds after a turn before the next wall check. Prevents double-reversals.")]
+    public float turnCooldown = 0.25f;
 
     [Header("Knockback Wall Bounce")]
     public Vector3 knockbackCastHalf = new Vector3(0.3f, 0.4f, 0.1f);
@@ -34,10 +34,11 @@ public class EnemyPatrolHorizontal : MonoBehaviour
 
     private float pathMinX, pathMaxX, pathY;
     private float dirX = 1f;
-    private float currentVelX = 0f;  // smooth acceleration
+    private float turnCooldownTimer = 0f;
 
     private bool suspended = false;
     private bool returningY = false;
+    private float returnVelY = 0f;
 
     private Collider[] selfColliders;
 
@@ -79,7 +80,7 @@ public class EnemyPatrolHorizontal : MonoBehaviour
     //  UPDATE
     // ================================================================
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (suspended) return;
 
@@ -87,33 +88,34 @@ public class EnemyPatrolHorizontal : MonoBehaviour
         float x = transform.position.x;
         float y = transform.position.y;
 
-        // ── Y: return to path (lerp, framerate-independent) ───────────
+        // ── Y: smooth return to path using SmoothDamp ─────────────────
         if (returningY)
         {
-            y = Mathf.MoveTowards(y, pathY, returnSpeed * dt);
-            if (Mathf.Abs(y - pathY) < 0.01f)
+            y = Mathf.SmoothDamp(y, pathY, ref returnVelY, 0.2f, returnSpeed, dt);
+            if (Mathf.Abs(y - pathY) < 0.015f)
             {
                 y = pathY;
                 returningY = false;
+                returnVelY = 0f;
             }
         }
 
-        // ── X: patrol movement ────────────────────────────────────────
-        float targetSpeed = dirX * speed * speedMultiplier;
+        // ── X: constant-speed patrol ──────────────────────────────────
+        float move = dirX * speed * speedMultiplier * dt;
 
-        // Framerate-independent smooth acceleration toward target speed
-        currentVelX = Mathf.MoveTowards(currentVelX, targetSpeed, acceleration * dt);
-
-        if (ObstacleAhead())
+        // Turn cooldown — prevents double-flip and velocity stutter
+        turnCooldownTimer -= dt;
+        if (turnCooldownTimer <= 0f && ObstacleAhead())
         {
             dirX *= -1f;
-            currentVelX = 0f; // reset velocity on turn so snap is clean
+            turnCooldownTimer = turnCooldown;
         }
 
-        float nextX = x + currentVelX * dt;
+        float nextX = x + move;
 
-        if (nextX <= pathMinX) { nextX = pathMinX; dirX = 1f; currentVelX = 0f; }
-        if (nextX >= pathMaxX) { nextX = pathMaxX; dirX = -1f; currentVelX = 0f; }
+        // Hard clamp at path bounds
+        if (nextX <= pathMinX) { nextX = pathMinX; dirX = 1f; turnCooldownTimer = turnCooldown; }
+        if (nextX >= pathMaxX) { nextX = pathMaxX; dirX = -1f; turnCooldownTimer = turnCooldown; }
 
         transform.position = new Vector3(nextX, y, 0f);
     }
@@ -126,10 +128,9 @@ public class EnemyPatrolHorizontal : MonoBehaviour
     {
         Vector3 dir = new Vector3(dirX, 0f, 0f);
         Vector3 center = transform.position + dir * turnLookAhead;
-
         Collider[] hits = Physics.OverlapBox(center, turnBoxHalfExtents,
-                                              Quaternion.identity, solidLayers,
-                                              QueryTriggerInteraction.Ignore);
+                                                Quaternion.identity, solidLayers,
+                                                QueryTriggerInteraction.Ignore);
         foreach (var hit in hits)
         {
             if (IsSelf(hit)) continue;
@@ -146,7 +147,7 @@ public class EnemyPatrolHorizontal : MonoBehaviour
     }
 
     // ================================================================
-    //  KNOCKBACK
+    //  KNOCKBACK — called by Enemy.cs
     // ================================================================
 
     public void ReceiveKnockback(Vector3 impulse, float duration)
@@ -159,7 +160,7 @@ public class EnemyPatrolHorizontal : MonoBehaviour
     {
         suspended = false;
         returningY = false;
-        currentVelX = 0f;
+        returnVelY = 0f;
 
         Vector3 velocity = impulse / Mathf.Max(duration, 0.01f);
         velocity.z = 0f;
@@ -170,7 +171,6 @@ public class EnemyPatrolHorizontal : MonoBehaviour
         {
             float dt = Time.deltaTime;
             elapsed += dt;
-
             float t = Mathf.Clamp01(elapsed / duration);
             float scale = 1f - t * t;
             Vector3 step = velocity * scale * dt;
@@ -186,7 +186,7 @@ public class EnemyPatrolHorizontal : MonoBehaviour
         }
 
         returningY = true;
-        currentVelX = 0f;
+        returnVelY = 0f;
     }
 
     private Vector3 StepWithWallBounce(Vector3 step)
