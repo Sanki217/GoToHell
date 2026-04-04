@@ -177,10 +177,10 @@ MonoBehaviour:
     maxEpic: 8
     minLegendary: 10
     maxLegendary: 15
-  statCountCommon: 0
-  statCountRare: 1
-  statCountEpic: 2
-  statCountLegendary: 3
+  statCountCommon: 1
+  statCountRare: 2
+  statCountEpic: 3
+  statCountLegendary: 4
   behaviourSettings:
   - key: bonusPercent
     value: 0.2

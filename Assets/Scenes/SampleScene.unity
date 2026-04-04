@@ -6156,9 +6156,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c79a17b8abe61b142963953701adef15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawnType: 1
+  spawnType: 6
   prefabs:
-  - {fileID: 7502872478962962940, guid: 7116744e92d87f94fa9e49f927a5e3cb, type: 3}
+  - {fileID: 3364696898189166244, guid: 18c777a750073534595856a953ff4652, type: 3}
   spawnCount: 4
   minSeparationDistance: 20
   minRotation: {x: 0, y: 0, z: 0}
