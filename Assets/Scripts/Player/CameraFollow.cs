@@ -6,8 +6,11 @@ public class CameraFollow : MonoBehaviour
     public float smoothSpeed = 5f;
 
     [Header("Offsets")]
-    public float parallaxRatio = 0.2f;   // camera moves opposite X, 5x smaller → 1/5 = 0.2
-    public float yOffset = 0f;           // adjustable vertical offset
+    public float parallaxRatio = 0.2f;
+    public float yOffset = 0f;
+
+    [Header("Settings")]
+    public bool shakeEnabled = true;
 
     private Vector3 velocity = Vector3.zero;
     private Vector3 shakeOffset = Vector3.zero;
@@ -19,11 +22,9 @@ public class CameraFollow : MonoBehaviour
     {
         if (player == null) return;
 
-        // --- PARALLAX X + ADJUSTABLE Y ---
         float targetX = player.position.x * -parallaxRatio;
         float targetY = player.position.y + yOffset;
 
-        // Keep original Z
         Vector3 targetPosition = new Vector3(targetX, targetY, transform.position.z);
 
         Vector3 smoothedPosition = Vector3.SmoothDamp(
@@ -33,8 +34,7 @@ public class CameraFollow : MonoBehaviour
             1f / smoothSpeed
         );
 
-        // Camera shake (unchanged)
-        if (shakeDuration > 0f)
+        if (shakeEnabled && shakeDuration > 0f)
         {
             shakeOffset = Random.insideUnitSphere * shakeMagnitude;
             shakeOffset.z = 0f;
