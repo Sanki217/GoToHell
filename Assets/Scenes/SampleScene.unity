@@ -6528,8 +6528,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   xpPerLevel:
-  - 6
-  - 12
+  - 10
   - 20
   - 30
   - 45
@@ -6549,6 +6548,7 @@ MonoBehaviour:
   - 470
   - 530
   - 600
+  - 666
   currentLayer: 1
   currentLevel: 1
   currentXP: 0
