@@ -12,18 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3ace812e9331254db055b169a7d50ea, type: 3}
   m_Name: BurningArrow
   m_EditorClassIdentifier: 
+  upgradeType: 1
   upgradeId: Arrow_Burn
   displayName: Burning Arrow
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
-  descLevel1: Arrows apply [Burn] to enemies they damage
-  descLevel2: Arrows apply [Burn] to enemies they damage
-  descLevel3: Arrows apply [Burn] to enemies they damage
-  descLevel4: Arrows apply [Burn] to enemies they damage
-  descLevel5: Arrows apply [Burn] to enemies they damage
   statCountCommon: 1
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 4
-  behaviourSettings: []
   isCurse: 0
+  behaviourSettings: []
+  descriptionTemplate: 

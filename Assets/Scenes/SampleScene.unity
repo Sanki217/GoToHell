@@ -6508,6 +6508,9 @@ MonoBehaviour:
   sizeScalePerPoint: 0.05
   cooldownReductionPerPoint: 0.05
   minCooldown: 0.01
+  slashCenter: {x: 0, y: 0, z: 0}
+  slashHalfExtents: {x: 0, y: 0, z: 0}
+  slashRotation: {x: 0, y: 0, z: 0, w: 0}
 --- !u!1 &1062878737
 GameObject:
   m_ObjectHideFlags: 0
@@ -10734,7 +10737,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1637232972
 Transform:
   m_ObjectHideFlags: 0
@@ -10760,7 +10763,7 @@ BoxCollider:
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4294967295
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -10806,7 +10809,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 0}
+  - {fileID: 2100000, guid: dd21db495b3284447ab143162b49ba2b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -11896,7 +11899,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1856953673
 MonoBehaviour:
   m_ObjectHideFlags: 0

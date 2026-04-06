@@ -12,18 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3ace812e9331254db055b169a7d50ea, type: 3}
   m_Name: Soul Bonus
   m_EditorClassIdentifier: 
+  upgradeType: 9
   upgradeId: SoulBonus
   displayName: More Souls
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
-  category: 5
-  descLevel1: 'Increase Souls earned by 50% + 10% [Luck]'
-  descLevel2: 'Increase Souls earned by 100% + 10% [Luck]'
-  descLevel3: 'Increase Souls earned by 150% + 10% [Luck]'
-  descLevel4: 'Increase Souls earned by 200% + 10% [Luck]'
-  descLevel5: 'Increase Souls earned by 250% + 10% [Luck]'
+  category: 2
   statCountCommon: 1
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 4
-  behaviourSettings: []
   isCurse: 0
+  behaviourSettings: []
+  descriptionTemplate: 

@@ -12,23 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3ace812e9331254db055b169a7d50ea, type: 3}
   m_Name: Enemy Explosion
   m_EditorClassIdentifier: 
+  upgradeType: 8
   upgradeId: Enemy_Explosion
   displayName: Exploding Enemies
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
-  descLevel1: 'Enemy explosion - does 5 damage + 100% [Ability Power] in 2 radius
-    +  10% [Size]'
-  descLevel2: 'Enemy explosion - does 10 damage + 100% [Ability Power] in 2.5 radius
-    +  10% [Size]'
-  descLevel3: 'Enemy explosion - does 15 damage + 100% [Ability Power] in 3 radius
-    +  10% [Size]'
-  descLevel4: 'Enemy explosion - does 20 damage + 100% [Ability Power] in 3.5 radius
-    +  10% [Size]'
-  descLevel5: 'Enemy explosion - does 25 damage + 100% [Ability Power] in 4 radius
-    +  10% [Size]'
   statCountCommon: 1
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 4
-  behaviourSettings: []
   isCurse: 0
+  behaviourSettings: []
+  descriptionTemplate: 

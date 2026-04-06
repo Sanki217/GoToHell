@@ -12,23 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3ace812e9331254db055b169a7d50ea, type: 3}
   m_Name: Arrow Pierce
   m_EditorClassIdentifier: 
+  upgradeType: 2
   upgradeId: Arrow_Pierce
   displayName: Piercing Arrow
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
-  descLevel1: Arrows Pierce through enemies dealing [Damage] to enemies they pass
-    through
-  descLevel2: Arrows Pierce through enemies dealing [Damage] to enemies they pass
-    through
-  descLevel3: Arrows Pierce through enemies dealing [Damage] to enemies they pass
-    through
-  descLevel4: Arrows Pierce through enemies dealing [Damage] to enemies they pass
-    through
-  descLevel5: Arrows Pierce through enemies dealing [Damage] to enemies they pass
-    through
   statCountCommon: 1
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 4
-  behaviourSettings: []
   isCurse: 0
+  behaviourSettings: []
+  descriptionTemplate: 

@@ -12,23 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3ace812e9331254db055b169a7d50ea, type: 3}
   m_Name: Immunity
   m_EditorClassIdentifier: 
+  upgradeType: 10
   upgradeId: Immunity
   displayName: Immunity
   icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   category: 0
-  descLevel1: Become invulnerable to damage for 1 seconds every 15 - 10% [Cooldown]
-    seconds
-  descLevel2: Become invulnerable to damage for 1.5 seconds every 15 - 10% [Cooldown]
-    seconds
-  descLevel3: Become invulnerable to damage for 2 seconds every 15 - 10% [Cooldown]
-    seconds
-  descLevel4: Become invulnerable to damage for 2.5 seconds every 15 - 10% [Cooldown]
-    seconds
-  descLevel5: Become invulnerable to damage for 3 seconds every 15 - 10% [Cooldown]
-    seconds
   statCountCommon: 1
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 4
-  behaviourSettings: []
   isCurse: 0
+  behaviourSettings:
+  - key: 
+    value: 0
+  descriptionTemplate: 
