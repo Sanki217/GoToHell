@@ -18,28 +18,85 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d89ff3a692dd9da4eb551a05837a246c, type: 2}
   - {fileID: 11400000, guid: 96b4b8db09d0363499f0653a92f909d7, type: 2}
   - {fileID: 11400000, guid: 316b2131226abc246b2eccb05f596ba6, type: 2}
-  statCaps:
-  - statType: 3
-    cap: 1
-  - statType: 4
-    cap: 10
-  - statType: 18
-    cap: 0.3
-  - statType: 19
-    cap: 2
-  - statType: 20
-    cap: 20
-  - statType: 10
-    cap: 3
-  - statType: 11
-    cap: 3
-  - statType: 14
-    cap: 5
-  - statType: 6
-    cap: 10
-  - statType: 7
-    cap: 10
-  - statType: 8
-    cap: 10
-  - statType: 9
-    cap: 10
+  statRanges:
+  - stat: 0
+    commonMin: 1
+    commonMax: 5
+    rareMin: 3
+    rareMax: 8
+    epicMin: 6
+    epicMax: 10
+    legendaryMin: 10
+    legendaryMax: 15
+  - stat: 1
+    commonMin: 1
+    commonMax: 3
+    rareMin: 3
+    rareMax: 6
+    epicMin: 6
+    epicMax: 9
+    legendaryMin: 10
+    legendaryMax: 15
+  - stat: 2
+    commonMin: 1
+    commonMax: 3
+    rareMin: 3
+    rareMax: 6
+    epicMin: 6
+    epicMax: 9
+    legendaryMin: 10
+    legendaryMax: 15
+  - stat: 3
+    commonMin: 1
+    commonMax: 3
+    rareMin: 3
+    rareMax: 6
+    epicMin: 6
+    epicMax: 9
+    legendaryMin: 10
+    legendaryMax: 15
+  - stat: 4
+    commonMin: 1
+    commonMax: 2
+    rareMin: 2.5
+    rareMax: 4
+    epicMin: 5
+    epicMax: 7.5
+    legendaryMin: 7.5
+    legendaryMax: 10
+  - stat: 5
+    commonMin: 2
+    commonMax: 5
+    rareMin: 4
+    rareMax: 7
+    epicMin: 6
+    epicMax: 9
+    legendaryMin: 8
+    legendaryMax: 13
+  - stat: 6
+    commonMin: 1
+    commonMax: 3
+    rareMin: 2
+    rareMax: 4
+    epicMin: 4
+    epicMax: 6
+    legendaryMin: 7
+    legendaryMax: 10
+  - stat: 7
+    commonMin: 0.2
+    commonMax: 0.8
+    rareMin: 0.5
+    rareMax: 1.5
+    epicMin: 1
+    epicMax: 2.5
+    legendaryMin: 2
+    legendaryMax: 4
+  luckBonusPerPoint: 0.05
+  weightAgility: 1
+  weightAttackDamage: 1
+  weightAbilityPower: 1
+  weightLuck: 1
+  weightPsyche: 1
+  weightHealth: 1
+  weightSize: 1
+  weightCooldown: 1

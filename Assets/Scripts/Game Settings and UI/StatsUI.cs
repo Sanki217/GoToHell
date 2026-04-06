@@ -163,8 +163,21 @@ public class StatsUI : MonoBehaviour
         var s = playerStats;
         var hp = playerHealth;
 
+        // ── Primary Stats ─────────────────────────────────────────────
+        string left = "<b><color=#FF88FF>══ PRIMARY STATS ══</color></b>\n";
+        left += Stat("Agility", s.agility, 0f);
+        left += Stat("Atk Damage", s.attackDamage, 0f);
+        left += Stat("Ability Power", s.abilityPower, 0f);
+        left += Stat("Luck", s.luck, 0f);
+        left += Stat("Psyche", s.psyche, 0f);
+        left += Stat("Health", s.health_stat, 0f);
+        left += Stat("Size", s.size, 0f);
+        left += Stat("Cooldown", s.cooldown, 0f);
+        left += "\n";
+
         // ── Level ────────────────────────────────────────────────────
-        string left = "<b><color=#00FF99>══ LEVEL ══</color></b>\n";
+        left += "<b><color=#00FF99>══ LEVEL ══</color></b>\n";
+        left += "<b><color=#00FF99>══ LEVEL ══</color></b>\n";
         if (levelSystem != null)
         {
             bool maxed = levelSystem.CurrentLevel >= PlayerLevelSystem.MaxLevel;

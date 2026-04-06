@@ -134,7 +134,8 @@ public class PlayerSlash : MonoBehaviour
         slashColliderObject.transform.rotation = Quaternion.Euler(0f, 0f, angle);
 
         // Scale: Y = length (along direction), X = width (perpendicular)
-        slashColliderObject.transform.localScale = new Vector3(width, length, 1f);
+        // Use Abs to prevent negative scale warning from BoxCollider
+        slashColliderObject.transform.localScale = new Vector3(Mathf.Abs(width), Mathf.Abs(length), 1f);
     }
 
     private IEnumerator ActivateSlashCollider()
