@@ -141,9 +141,23 @@ public class Arrow : MonoBehaviour
         {
             int maxPierces = playerStats != null ? playerStats.arrowPierceCount : 0;
             if (piercesUsed < maxPierces)
+            {
                 piercesUsed++;
+
+                // Bonus pierce damage on pass-through (set by Arrow Pierce upgrade)
+                if (playerStats != null && playerStats.pierceDmgAPScaling > 0f)
+                {
+                    float pierceDmg = playerStats.pierceDamageBase
+                                      + playerStats.pierceDmgAPScaling * playerStats.abilityPower;
+                    int pierceRound = Mathf.Max(1, Mathf.RoundToInt(pierceDmg));
+                    enemy.TakeDamage(pierceRound, transform.position, kbDir, 0f, false,
+                        FloatingTextManager.HitType.Normal);
+                    playerStats.RecordDamageDealt(pierceDmg, DamageSource.Arrow);
+                }
+            }
             else
                 Destroy(gameObject);
         }
+        // If willKill: arrow always passes through (free)
     }
 }

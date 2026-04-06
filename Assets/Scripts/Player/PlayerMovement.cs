@@ -7,7 +7,8 @@ public class PlayerMovement : MonoBehaviour
     public float acceleration = 20f;
     public float deceleration = 25f;
     public float jumpForce = 12f;
-    public int maxJumps = 2;
+    [Tooltip("Fixed at 1 — player only jumps when grounded. Not upgradeable.")]
+    public int maxJumps = 1;
 
     [Header("Wall Jump Settings")]
     public float wallJumpForce = 10f;
@@ -33,7 +34,7 @@ public class PlayerMovement : MonoBehaviour
 
     private float MoveSpeed => playerStats != null ? playerStats.moveSpeed : moveSpeed;
     private float JumpForce => playerStats != null ? playerStats.jumpForce : jumpForce;
-    private int MaxJumps => playerStats != null ? playerStats.maxJumps : maxJumps;
+    private int MaxJumps => maxJumps; // fixed at 1, not driven by PlayerStats
     private float MaxWallSlide => playerStats != null ? playerStats.wallSlideSpeed : maxWallSlideSpeed;
 
     private Rigidbody rb;

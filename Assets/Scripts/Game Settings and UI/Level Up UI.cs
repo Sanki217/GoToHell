@@ -69,11 +69,17 @@ public class LevelUpUI : MonoBehaviour
 
         playerState?.DisableControl();
 
-        // Setup cards
+        // Fill currentLevel per offer so cards show 'Level X -> Y' or 'New Upgrade'
+        foreach (var offer in offers)
+            offer.currentLevel = upgradeManager != null
+                ? upgradeManager.GetUpgradeLevel(offer.data.upgradeId)
+                : 0;
+
+        // Setup cards — pass playerStats so cards preview current -> new stat values
         for (int i = 0; i < cards.Length; i++)
         {
             if (i < offers.Count)
-                cards[i].Setup(offers[i], OnCardPicked);
+                cards[i].Setup(offers[i], OnCardPicked, playerStats);
             else
                 cards[i].Hide();
         }
@@ -98,16 +104,15 @@ public class LevelUpUI : MonoBehaviour
                 bonus.Apply(playerStats);
         }
 
-        // Apply the behaviour upgrade via upgradeManager
-        // The upgradeId must match a PlayerUpgrade.Id registered in the pool
-        if (upgradeManager != null && !offer.data.isPureStatUpgrade)
+        // Apply the behaviour upgrade via UpgradeFactory
+        if (upgradeManager != null)
         {
             PlayerUpgrade upgrade = UpgradeFactory.Create(offer.data.upgradeId);
             if (upgrade != null)
                 upgradeManager.ApplyUpgrade(upgrade);
             else
-                Debug.LogWarning($"[LevelUpUI] No upgrade behaviour found for id '{offer.data.upgradeId}'. " +
-                                 $"Register it in UpgradeFactory.");
+                Debug.LogWarning($"[LevelUpUI] No upgrade class found for id '{offer.data.upgradeId}'. " +
+                                 "Add a case for it in UpgradeFactory.cs.");
         }
 
         Close();

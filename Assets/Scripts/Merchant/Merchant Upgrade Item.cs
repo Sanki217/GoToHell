@@ -209,7 +209,7 @@ public class MerchantUpgradeItem : MonoBehaviour
                 bonus.Apply(playerStats);
 
         // Apply behaviour upgrade
-        if (upgradeManager != null && !offer.data.isPureStatUpgrade)
+        if (upgradeManager != null)
         {
             PlayerUpgrade upgrade = UpgradeFactory.Create(offer.data.upgradeId);
             if (upgrade != null)

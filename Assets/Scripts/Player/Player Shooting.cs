@@ -109,6 +109,7 @@ public class PlayerShooting : MonoBehaviour
 
     void HandleChargeInput()
     {
+        // When quiver is empty, LMB is handled by PlayerSlash — do nothing here
         if (currentArrows <= 0) return;
 
         if (Input.GetMouseButtonDown(0))

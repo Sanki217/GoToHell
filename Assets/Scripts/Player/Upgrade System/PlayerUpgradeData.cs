@@ -2,83 +2,75 @@
 
 /// <summary>
 /// One ScriptableObject per upgrade.
-/// Create via: Assets → Create → Upgrades → Player Upgrade Data
-///
-/// KEY CHANGES from previous version:
-///   - statRanges[] lets you choose WHICH stats this upgrade can roll,
-///     and set min/max values per rarity directly in the Inspector.
-///   - behaviourSettings[] lets you configure upgrade-specific numbers
-///     (e.g. explosion radius, immunity duration) without touching code.
-///   - The pool reads statRanges to build stat bonus offers.
+/// Stat bonuses are now rolled from a GLOBAL pool (defined on PlayerUpgradePool),
+/// not per-upgrade ranges. This ScriptableObject only needs:
+///   - Identity and descriptions
+///   - How many stats to attach per rarity
+///   - Behaviour settings for upgrade-specific tuning
 /// </summary>
 [CreateAssetMenu(menuName = "Upgrades/Player Upgrade Data")]
 public class PlayerUpgradeData : ScriptableObject
 {
-    // ================================================================
-    //  IDENTITY
-    // ================================================================
-
     [Header("Identity")]
-    public string upgradeId;        // must match PlayerUpgrade.Id exactly
+    public string upgradeId;
     public string displayName;
     public Sprite icon;
     public UpgradeCategory category;
-    public bool isPureStatUpgrade = false;
 
-    // ================================================================
-    //  DESCRIPTIONS  (one per rarity)
-    // ================================================================
-
-    [Header("Card Descriptions — one per rarity")]
-    [TextArea(2, 4)] public string descriptionCommon;
-    [TextArea(2, 4)] public string descriptionRare;
-    [TextArea(2, 4)] public string descriptionEpic;
-    [TextArea(2, 4)] public string descriptionLegendary;
-
-    [Header("Mythic")]
-    public bool hasMythic = false;
-    [TextArea(2, 4)] public string mythicDescription;
-
-    // ================================================================
-    //  STAT RANGES  (which stats this upgrade can roll + min/max per rarity)
-    // ================================================================
-
-    [Header("Stat Bonus Ranges — choose which stats this upgrade can attach")]
-    [Tooltip("Each entry = one possible stat bonus. " +
-             "The pool will roll a random value between min and max for the rolled rarity. " +
-             "Leave empty for a pure behaviour upgrade with no stat bonuses.")]
-    public StatRangeEntry[] statRanges;
+    [Header("Descriptions — one per level (5 levels)")]
+    [Tooltip("Index 0 = level 1, index 4 = level 5")]
+    [TextArea(2, 4)] public string descLevel1;
+    [TextArea(2, 4)] public string descLevel2;
+    [TextArea(2, 4)] public string descLevel3;
+    [TextArea(2, 4)] public string descLevel4;
+    [TextArea(2, 4)] public string descLevel5;
 
     [Header("Stat Bonus Count per Rarity")]
-    [Tooltip("How many stats are randomly selected from statRanges at each rarity.")]
-    public int statCountCommon = 0;
-    public int statCountRare = 1;
-    public int statCountEpic = 2;
-    public int statCountLegendary = 3;
+    [Tooltip("How many random primary stat bonuses are attached at each rarity.")]
+    public int statCountCommon = 1;
+    public int statCountRare = 2;
+    public int statCountEpic = 3;
+    public int statCountLegendary = 4;
 
-    // ================================================================
-    //  BEHAVIOUR SETTINGS  (upgrade-specific tuning, read by upgrade code)
-    // ================================================================
-
-    [Header("Behaviour Settings — upgrade-specific values")]
-    [Tooltip("Key-value pairs for behaviour tuning. " +
-             "Each upgrade class reads the keys it needs via GetSetting(key, default). " +
-             "Common keys: 'damage', 'radius', 'duration', 'cooldown', 'bonusPercent', " +
-             "'damagePerLevel', 'radiusPerLevel', 'durationPerLevel', 'cooldownReduction'")]
+    [Header("Behaviour Settings — upgrade-specific tuning")]
+    [Tooltip("Key/value pairs read by the upgrade C# class. " +
+             "Examples: 'damage', 'radius', 'duration', 'cooldown', 'bonusPercent'")]
     public BehaviourSetting[] behaviourSettings;
+
+    [Header("Curse")]
+    [Tooltip("Curses have no levels — they apply once and cannot be levelled up.")]
+    public bool isCurse = false;
 
     // ================================================================
     //  HELPERS
     // ================================================================
 
-    public string GetDescription(UpgradeRarity rarity) => rarity switch
+    /// <summary>Overload for callers that have a rarity but no level yet (chests, merchant).</summary>
+    public string GetDescription(UpgradeRarity rarity)
     {
-        UpgradeRarity.Common => descriptionCommon,
-        UpgradeRarity.Rare => descriptionRare,
-        UpgradeRarity.Epic => descriptionEpic,
-        UpgradeRarity.Legendary => descriptionLegendary,
-        _ => descriptionCommon
-    };
+        int level = rarity switch
+        {
+            UpgradeRarity.Common => 1,
+            UpgradeRarity.Rare => 2,
+            UpgradeRarity.Epic => 3,
+            UpgradeRarity.Legendary => 4,
+            _ => 1,
+        };
+        return GetDescription(level);
+    }
+
+    public string GetDescription(int level)
+    {
+        return level switch
+        {
+            1 => descLevel1,
+            2 => descLevel2,
+            3 => descLevel3,
+            4 => descLevel4,
+            5 => descLevel5,
+            _ => descLevel1,
+        };
+    }
 
     public int GetStatCount(UpgradeRarity rarity) => rarity switch
     {
@@ -89,9 +81,6 @@ public class PlayerUpgradeData : ScriptableObject
         _ => statCountCommon
     };
 
-    /// <summary>
-    /// Read a behaviour setting by key. Returns defaultValue if not found.
-    /// </summary>
     public float GetSetting(string key, float defaultValue = 0f)
     {
         if (behaviourSettings == null) return defaultValue;
@@ -101,43 +90,6 @@ public class PlayerUpgradeData : ScriptableObject
     }
 }
 
-// ================================================================
-//  SUPPORTING TYPES
-// ================================================================
-
-/// <summary>
-/// One possible stat bonus for an upgrade, with min/max ranges per rarity.
-/// The pool will roll a random value within [minCommon, maxCommon] at Common,
-/// [minRare, maxRare] at Rare, etc.
-/// </summary>
-[System.Serializable]
-public class StatRangeEntry
-{
-    public StatType statType;
-
-    [Header("Value Range per Rarity")]
-    public float minCommon; public float maxCommon;
-    public float minRare; public float maxRare;
-    public float minEpic; public float maxEpic;
-    public float minLegendary; public float maxLegendary;
-
-    public (float min, float max) GetRange(UpgradeRarity rarity) => rarity switch
-    {
-        UpgradeRarity.Common => (minCommon, maxCommon),
-        UpgradeRarity.Rare => (minRare, maxRare),
-        UpgradeRarity.Epic => (minEpic, maxEpic),
-        UpgradeRarity.Legendary => (minLegendary, maxLegendary),
-        _ => (minCommon, maxCommon)
-    };
-
-    public float Roll(UpgradeRarity rarity)
-    {
-        var (min, max) = GetRange(rarity);
-        return Random.Range(min, max);
-    }
-}
-
-/// <summary>A named float value for upgrade-specific behaviour tuning.</summary>
 [System.Serializable]
 public class BehaviourSetting
 {
@@ -146,4 +98,4 @@ public class BehaviourSetting
 }
 
 public enum UpgradeRarity { Common, Rare, Epic, Legendary }
-public enum UpgradeCategory { Bow, Dash, WallSlide, Hover, Status, Passive, Misc }
+public enum UpgradeCategory { Arrow, Dash, Passive, Conditional, Curse, Misc }

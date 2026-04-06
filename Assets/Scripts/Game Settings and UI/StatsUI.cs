@@ -179,7 +179,6 @@ public class StatsUI : MonoBehaviour
         left += "<b><color=#FFD700>══ MOVEMENT ══</color></b>\n";
         left += Stat("Move Speed", s.moveSpeed, baseMoveSpeed);
         left += Stat("Jump Force", s.jumpForce, baseJumpForce);
-        left += $"{"Max Jumps",-18}<color=#FFFFFF>{s.maxJumps}</color>\n";
         left += Stat("Dash Distance", s.dashDistance, baseDashDist);
         left += Stat("Dash Cost", s.dashCost, baseDashCost);
         left += Stat("Dash Invinc", s.dashInvincibilityWindow, baseDashInvinc, "F2");

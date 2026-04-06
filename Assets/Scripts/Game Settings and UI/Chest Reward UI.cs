@@ -266,7 +266,7 @@ public class ChestRewardUI : MonoBehaviour
                 bonus.Apply(s);
 
         // Apply behaviour upgrade
-        if (upgradeManager != null && !pendingOffer.data.isPureStatUpgrade)
+        if (upgradeManager != null)
         {
             PlayerUpgrade upgrade = UpgradeFactory.Create(pendingOffer.data.upgradeId);
             if (upgrade != null) upgradeManager.ApplyUpgrade(upgrade);

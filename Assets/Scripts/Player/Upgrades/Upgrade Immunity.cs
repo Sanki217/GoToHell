@@ -1,85 +1,75 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Immunity � auto-grants damage immunity for X seconds every Y seconds.
-/// Flashes the player white/gold while immune.
+/// Immunity — become invulnerable for X seconds every Y seconds.
+/// Duration: 1/1.5/2/2.5/3 seconds
+/// Cooldown: 15 - 10% Cooldown stat (minimum 5s)
 ///
-/// Configure in PlayerUpgradeData.behaviourSettings:
-///   "duration"          � immunity window in seconds (default 2)
-///   "cooldown"          � seconds between immunity windows (default 12)
-///   "durationPerLevel"  � duration increase per level (default 0.5)
-///   "cooldownReduction" � cooldown decrease per level (default 1, min 4s)
+/// Inspector-configurable per level. Cooldown stat reduces the cooldown.
 /// </summary>
 public class UpgradeImmunity : PlayerUpgrade
 {
     public override string Id => "Immunity";
 
-    private float immunityDuration;
-    private float cooldown;
-    private float durationPerLevel;
-    private float cooldownReduction;
-    private const float MinCooldown = 4f;
+    [Header("Immunity Duration per Level (seconds)")]
+    public float[] durationPerLevel = { 1.0f, 1.5f, 2.0f, 2.5f, 3.0f };
 
+    [Header("Cooldown Base (seconds)")]
+    public float baseCooldown = 15f;
+
+    [Header("Cooldown Reduction per Cooldown stat point (fraction)")]
+    [Tooltip("0.10 = 10% reduction per point. At Cooldown=10, cooldown is reduced by 100% of base — but floor prevents going below minCooldown")]
+    public float cooldownReductionPerPoint = 0.10f;
+
+    [Header("Minimum cooldown (seconds)")]
+    public float minCooldown = 5f;
+
+    // ── Private ──────────────────────────────────────────────────────────
+    private PlayerStats playerStats;
     private PlayerHealth playerHealth;
-    private Renderer playerRenderer;
+    private MonoBehaviour host;
     private bool running = false;
+    private int currentLevel = 0;
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
+        playerStats = mgr.GetComponent<PlayerStats>();
         playerHealth = mgr.GetComponent<PlayerHealth>();
-        playerRenderer = mgr.GetComponentInChildren<Renderer>();
-
-        var data = mgr.GetUpgradeData(Id);
-        immunityDuration = data?.GetSetting("duration", 2f) ?? 2f;
-        cooldown = data?.GetSetting("cooldown", 12f) ?? 12f;
-        durationPerLevel = data?.GetSetting("durationPerLevel", 0.5f) ?? 0.5f;
-        cooldownReduction = data?.GetSetting("cooldownReduction", 1f) ?? 1f;
+        host = mgr;
+        currentLevel = 1;
 
         if (!running)
         {
             running = true;
-            var host = mgr.GetComponent<MonoBehaviour>();
-            host?.StartCoroutine(ImmunityCycle(host));
+            host.StartCoroutine(ImmunityCycle());
         }
     }
 
     public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel)
     {
-        immunityDuration += durationPerLevel;
-        cooldown = Mathf.Max(MinCooldown, cooldown - cooldownReduction);
+        currentLevel = newLevel;
+        // Cooldown and duration update automatically in the cycle
     }
 
-    private IEnumerator ImmunityCycle(MonoBehaviour host)
+    private float GetDuration()
+    {
+        int idx = Mathf.Clamp(currentLevel - 1, 0, durationPerLevel.Length - 1);
+        return durationPerLevel[idx];
+    }
+
+    private float GetCooldown()
+    {
+        float reduction = playerStats != null ? playerStats.cooldown * cooldownReductionPerPoint : 0f;
+        return Mathf.Max(minCooldown, baseCooldown * (1f - reduction));
+    }
+
+    private IEnumerator ImmunityCycle()
     {
         while (true)
         {
-            yield return new WaitForSeconds(cooldown);
-            playerHealth?.StartDashInvincibility(immunityDuration);
-
-            // Flash the player color to signal immunity window
-            if (playerRenderer != null)
-                host.StartCoroutine(ImmunityFlash(immunityDuration));
+            yield return new WaitForSeconds(GetCooldown());
+            playerHealth?.StartDashInvincibility(GetDuration());
         }
-    }
-
-    private IEnumerator ImmunityFlash(float duration)
-    {
-        if (playerRenderer == null) yield break;
-
-        Color original = playerRenderer.material.color;
-        Color immune = new Color(1f, 0.95f, 0.4f); // gold tint
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            // Pulse between gold and white
-            float t = Mathf.PingPong(elapsed * 4f, 1f);
-            playerRenderer.material.color = Color.Lerp(immune, Color.white, t);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        playerRenderer.material.color = original;
     }
 }

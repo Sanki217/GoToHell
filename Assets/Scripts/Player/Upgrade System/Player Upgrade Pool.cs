@@ -8,47 +8,44 @@ public class PlayerUpgradePool : ScriptableObject
     public List<PlayerUpgradeData> upgrades = new List<PlayerUpgradeData>();
 
     // ================================================================
-    //  STAT CAPS
-    //
-    //  For normal stats (higher = better): cap is a ceiling.
-    //    e.g. CritChance cap 1.0 = max 100%
-    //
-    //  For inverted stats (lower = better): cap is a floor.
-    //    e.g. DashCost floor 5 = never cheaper than 5 energy
-    //    Set isFloor = true for these.
-    //
-    //  Values in internal units (same as PlayerStats fields).
+    //  GLOBAL STAT BONUS RANGES
+    //  These apply to ALL upgrades equally.
+    //  Luck scales both min and max: +0.05 per 1 luck point.
+    //  Values are in primary stat units (float, 0.1 precision).
     // ================================================================
 
-    [Header("Stat Caps — internal units")]
-    public List<StatCapEntry> statCaps = new List<StatCapEntry>();
+    [Header("Global Stat Bonus Ranges per Rarity")]
+    [Tooltip("Min/max primary stat bonus at Common rarity (before luck scaling)")]
+    public float commonMin = 0.3f;
+    public float commonMax = 0.8f;
 
-    private void OnEnable()
-    {
-        if (statCaps == null || statCaps.Count == 0)
-        {
-            statCaps = new List<StatCapEntry>
-            {
-                new StatCapEntry { statType = StatType.CritChance,     cap = 1.00f,  isFloor = false },
-                new StatCapEntry { statType = StatType.CritMultiplier, cap = 5.00f,  isFloor = false },
-                new StatCapEntry { statType = StatType.LifeSteal,      cap = 0.75f,  isFloor = false },
-                new StatCapEntry { statType = StatType.LootRange,      cap = 15f,    isFloor = false },
-                new StatCapEntry { statType = StatType.Luck,           cap = 20f,    isFloor = false },
-                new StatCapEntry { statType = StatType.MoveSpeed,      cap = 30f,    isFloor = false },
-                new StatCapEntry { statType = StatType.DashDistance,   cap = 30f,    isFloor = false },
-                new StatCapEntry { statType = StatType.MaxEnergy,      cap = 300f,   isFloor = false },
-                new StatCapEntry { statType = StatType.BurnStrength,   cap = 3.00f,  isFloor = false },
-                new StatCapEntry { statType = StatType.FreezeStrength, cap = 3.00f,  isFloor = false },
-                new StatCapEntry { statType = StatType.HolyStrength,   cap = 3.00f,  isFloor = false },
-                new StatCapEntry { statType = StatType.ShockStrength,  cap = 3.00f,  isFloor = false },
-                // Inverted stats — floor caps (don't let them go below this)
-                new StatCapEntry { statType = StatType.DashCost,       cap = 5f,     isFloor = true  },
-                new StatCapEntry { statType = StatType.HoverDrainRate, cap = 1f,     isFloor = true  },
-                new StatCapEntry { statType = StatType.ChargeDrainRate,cap = 0.5f,   isFloor = true  },
-                new StatCapEntry { statType = StatType.ChargeDuration, cap = 0.3f,   isFloor = true  },
-            };
-        }
-    }
+    [Tooltip("Min/max at Rare rarity")]
+    public float rareMin = 0.6f;
+    public float rareMax = 1.4f;
+
+    [Tooltip("Min/max at Epic rarity")]
+    public float epicMin = 1.0f;
+    public float epicMax = 2.0f;
+
+    [Tooltip("Min/max at Legendary rarity")]
+    public float legendaryMin = 1.5f;
+    public float legendaryMax = 3.0f;
+
+    [Header("Luck Scaling")]
+    [Tooltip("+X to both min and max per 1 Luck point")]
+    public float luckBonusPerPoint = 0.05f;
+
+    [Header("Stat Weights (leave all equal for uniform distribution)")]
+    [Tooltip("Relative chance each primary stat appears on an upgrade card. " +
+             "All equal = perfectly uniform. Increase a value to make that stat more common.")]
+    public float weightAgility = 1f;
+    public float weightAttackDamage = 1f;
+    public float weightAbilityPower = 1f;
+    public float weightLuck = 1f;
+    public float weightPsyche = 1f;
+    public float weightHealth = 1f;
+    public float weightSize = 1f;
+    public float weightCooldown = 1f;
 
     // ================================================================
     //  PUBLIC API
@@ -77,10 +74,10 @@ public class PlayerUpgradePool : ScriptableObject
         return offers;
     }
 
-    public UpgradeOffer RollChestOffer(int layer, float luck, PlayerStats stats = null)
+    public UpgradeOffer RollChestOffer(float luck, PlayerStats stats = null)
     {
         if (upgrades.Count == 0) return null;
-        UpgradeRarity rarity = UpgradeRarityRoller.Roll(layer, luck);
+        UpgradeRarity rarity = UpgradeRarityRoller.RollWithLuckOnly(luck);
         PlayerUpgradeData data = upgrades[Random.Range(0, upgrades.Count)];
         return BuildOffer(data, rarity, stats);
     }
@@ -97,14 +94,14 @@ public class PlayerUpgradePool : ScriptableObject
         offer.rarity = rarity;
         offer.statBonuses = new List<UpgradeStatBonus>();
 
+        // Curses have no stat bonuses
+        if (data.isCurse) return offer;
+
         int count = data.GetStatCount(rarity);
-        if (count <= 0 || data.statRanges == null || data.statRanges.Length == 0)
-            return offer;
+        if (count <= 0) return offer;
 
-        var available = GetAvailableRanges(data.statRanges, stats);
-        if (available.Count == 0) return offer;
-
-        RollFromRanges(available, rarity, count, offer.statBonuses);
+        float luckVal = stats != null ? stats.luck : 0f;
+        RollStatBonuses(count, rarity, luckVal, offer.statBonuses);
         return offer;
     }
 
@@ -112,102 +109,77 @@ public class PlayerUpgradePool : ScriptableObject
     //  PRIVATE
     // ================================================================
 
-    private List<StatRangeEntry> GetAvailableRanges(StatRangeEntry[] ranges, PlayerStats stats)
+    private void RollStatBonuses(int count, UpgradeRarity rarity, float luck,
+                                  List<UpgradeStatBonus> result)
     {
-        var result = new List<StatRangeEntry>();
-        foreach (var entry in ranges)
-        {
-            if (stats == null || !IsAtCap(entry.statType, stats))
-                result.Add(entry);
-        }
-        return result;
-    }
+        // Build weighted stat pool
+        var pool = BuildWeightedStatPool();
+        var usedStats = new HashSet<PrimaryStat>();
 
-    private bool IsAtCap(StatType t, PlayerStats s)
-    {
-        StatCapEntry entry = GetCapEntry(t);
-        if (entry == null) return false;
-
-        float current = GetCurrentValue(t, s);
-
-        if (entry.isFloor)
-            // Inverted stat: capped when current value is at or below the floor
-            return current <= entry.cap;
-        else
-            // Normal stat: capped when current value is at or above the ceiling
-            return current >= entry.cap;
-    }
-
-    private StatCapEntry GetCapEntry(StatType t)
-    {
-        foreach (var entry in statCaps)
-            if (entry.statType == t) return entry;
-        return null;
-    }
-
-    private float GetCurrentValue(StatType t, PlayerStats s) => t switch
-    {
-        StatType.MaxHP => s.maxHP,
-        StatType.ArrowDamage => s.arrowDamage,
-        StatType.DashDamage => s.dashDamage,
-        StatType.CritChance => s.critChance,
-        StatType.CritMultiplier => s.critMultiplier,
-        StatType.KnockbackForce => s.knockbackForce,
-        StatType.BurnStrength => s.burnStrength,
-        StatType.FreezeStrength => s.freezeStrength,
-        StatType.HolyStrength => s.holyStrength,
-        StatType.ShockStrength => s.shockStrength,
-        StatType.MoveSpeed => s.moveSpeed,
-        StatType.DashDistance => s.dashDistance,
-        StatType.DashCost => s.dashCost,
-        StatType.DashInvincibility => s.dashInvincibilityWindow,
-        StatType.MaxEnergy => s.maxEnergy,
-        StatType.HoverDrainRate => s.hoverDrainRate,
-        StatType.ChargeDrainRate => s.arrowChargeDrainRate,
-        StatType.ChargeDuration => s.arrowChargeDuration,
-        StatType.LifeSteal => s.lifeSteal,
-        StatType.LootRange => s.lootRange,
-        StatType.Luck => s.luck,
-        _ => 0f
-    };
-
-    private void RollFromRanges(List<StatRangeEntry> ranges, UpgradeRarity rarity,
-                                 int count, List<UpgradeStatBonus> result)
-    {
-        var indices = new List<int>();
-        for (int i = 0; i < ranges.Count; i++) indices.Add(i);
-        Shuffle(indices);
+        // Luck scaling
+        float luckBonus = luck * luckBonusPerPoint;
+        (float min, float max) = GetRarityRange(rarity);
+        min += luckBonus;
+        max += luckBonus;
 
         int picked = 0;
-        foreach (int i in indices)
+        int attempts = 0;
+
+        while (picked < count && attempts < 50)
         {
-            if (picked >= count) break;
-            float rolled = ranges[i].Roll(rarity);
-            result.Add(new UpgradeStatBonus { statType = ranges[i].statType, value = rolled });
+            attempts++;
+            PrimaryStat stat = WeightedPick(pool);
+            if (usedStats.Contains(stat)) continue;
+
+            usedStats.Add(stat);
+
+            // Roll value in 0.1 increments
+            float raw = Random.Range(min, max);
+            float value = Mathf.Round(raw * 10f) / 10f;  // round to 0.1
+            value = Mathf.Max(0.1f, value);         // minimum 0.1
+
+            result.Add(new UpgradeStatBonus { stat = stat, value = value });
             picked++;
         }
     }
 
-    private void Shuffle<T>(List<T> list)
+    private (float min, float max) GetRarityRange(UpgradeRarity rarity) => rarity switch
     {
-        for (int i = list.Count - 1; i > 0; i--)
-        {
-            int j = Random.Range(0, i + 1);
-            (list[i], list[j]) = (list[j], list[i]);
-        }
-    }
-}
+        UpgradeRarity.Common => (commonMin, commonMax),
+        UpgradeRarity.Rare => (rareMin, rareMax),
+        UpgradeRarity.Epic => (epicMin, epicMax),
+        UpgradeRarity.Legendary => (legendaryMin, legendaryMax),
+        _ => (commonMin, commonMax)
+    };
 
-[System.Serializable]
-public class StatCapEntry
-{
-    public StatType statType;
-    [Tooltip("For normal stats: ceiling (stat won't go above this). " +
-             "For inverted stats (isFloor=true): floor (stat won't go below this).")]
-    public float cap;
-    [Tooltip("True for inverted stats like DashCost where lower = better. " +
-             "Cap acts as a minimum floor rather than a maximum ceiling.")]
-    public bool isFloor;
+    private List<(PrimaryStat stat, float weight)> BuildWeightedStatPool()
+    {
+        return new List<(PrimaryStat, float)>
+        {
+            (PrimaryStat.Agility,      weightAgility),
+            (PrimaryStat.AttackDamage, weightAttackDamage),
+            (PrimaryStat.AbilityPower, weightAbilityPower),
+            (PrimaryStat.Luck,         weightLuck),
+            (PrimaryStat.Psyche,       weightPsyche),
+            (PrimaryStat.Health,       weightHealth),
+            (PrimaryStat.Size,         weightSize),
+            (PrimaryStat.Cooldown,     weightCooldown),
+        };
+    }
+
+    private PrimaryStat WeightedPick(List<(PrimaryStat stat, float weight)> pool)
+    {
+        float total = 0f;
+        foreach (var e in pool) total += e.weight;
+        float roll = Random.Range(0f, total);
+        float running = 0f;
+        foreach (var e in pool)
+        {
+            running += e.weight;
+            if (roll <= running) return e.stat;
+        }
+        return pool[pool.Count - 1].stat;
+    }
 }
 
 [System.Serializable]
@@ -216,4 +188,5 @@ public class UpgradeOffer
     public PlayerUpgradeData data;
     public UpgradeRarity rarity;
     public List<UpgradeStatBonus> statBonuses;
+    public int currentLevel; // filled by LevelUpUI from manager
 }

@@ -1,46 +1,65 @@
 using UnityEngine;
 
 /// <summary>
-/// Burning Arrow upgrade.
-/// On any arrow hitting an enemy, applies the Burn status effect.
+/// Burning Arrow — arrows apply [Burn] to enemies they damage.
+/// Each level increases the [Burn] stat by 25%/50%/75%/100%/125% of its base value.
 ///
-/// This is both a stat upgrade (increases BurnStrength) and a behavior upgrade
-/// (subscribes to OnArrowHitEnemy and applies Burn).
+/// Burn stat (burnStrength) is a multiplier: 1.0 = base 100% (5 dmg/s).
+/// Adding 25% of base means burnStrength += 0.25 (i.e. +25% to the base 1.0).
 ///
-/// Rarity table example:
-///   Common:    applies Burn
-///   Rare:      applies Burn + BurnStrength +20%
-///   Epic:      applies Burn + BurnStrength +40%
-///   Legendary: applies Burn + BurnStrength +60%
+/// Configure base burn bonus values per level in Inspector or behaviourSettings.
 /// </summary>
 public class UpgradeBurningArrow : PlayerUpgrade
 {
     public override string Id => "Arrow_Burn";
 
+    [Header("Burn Strength Added per Level (fraction of base 1.0)")]
+    [Tooltip("Level 1=+0.25, Level 2=+0.50... Each value is the TOTAL burn bonus at that level.")]
+    public float[] burnBonusPerLevel = { 0.25f, 0.50f, 0.75f, 1.00f, 1.25f };
+
     private PlayerStats playerStats;
     private PlayerUpgradeManager upgradeManager;
+    private float appliedBurnBonus = 0f;
+    private int currentLevel = 0;
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
         playerStats = mgr.GetComponent<PlayerStats>();
         upgradeManager = mgr;
+        currentLevel = 1;
 
-        // Subscribe to all arrow hit events
+        // Subscribe: apply burn on every arrow hit
         mgr.OnArrowHitEnemy += OnArrowHit;
+
+        ApplyBurnBonus();
     }
 
     public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel)
     {
-        // Each level adds BurnStrength — upgrade stat at each stack
-        if (playerStats != null)
-            playerStats.burnStrength += 0.2f;
+        currentLevel = newLevel;
+        ApplyBurnBonus();
     }
 
-    private void OnArrowHit(GameObject enemyGO, float chargeLevel, bool wasCrit)
+    private void ApplyBurnBonus()
     {
-        Enemy enemy = enemyGO.GetComponent<Enemy>();
-        if (enemy == null) return;
+        if (playerStats == null) return;
 
-        enemy.ApplyStatus(StatusType.Burn, playerStats, upgradeManager);
+        int idx = Mathf.Clamp(currentLevel - 1, 0, burnBonusPerLevel.Length - 1);
+        float newBonus = burnBonusPerLevel[idx];
+        float delta = newBonus - appliedBurnBonus;
+
+        // burnStrength is a derived stat — we add to the base via primary system
+        // Since burnStrength = baseBurnStrength + burnPerAP * abilityPower,
+        // we directly adjust baseBurnStrength to add a flat bonus
+        playerStats.baseBurnStrength += delta;
+        appliedBurnBonus = newBonus;
+        playerStats.RecalculateDerived();
+    }
+
+    private void OnArrowHit(GameObject enemy, float chargeLevel, bool wasCrit)
+    {
+        Enemy e = enemy?.GetComponent<Enemy>();
+        if (e == null) return;
+        e.ApplyStatus(StatusType.Burn, playerStats, upgradeManager);
     }
 }
