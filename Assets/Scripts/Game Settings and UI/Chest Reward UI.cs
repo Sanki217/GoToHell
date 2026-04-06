@@ -210,7 +210,7 @@ public class ChestRewardUI : MonoBehaviour
             resultNameLabel.text = offer.data.displayName;
 
         if (resultDescriptionLabel != null)
-            resultDescriptionLabel.text = offer.data.GetDescription(offer.rarity);
+            resultDescriptionLabel.text = offer.data.GetDescription();
 
         if (resultIcon != null)
         {

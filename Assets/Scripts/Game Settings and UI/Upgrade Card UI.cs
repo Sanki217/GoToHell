@@ -69,23 +69,17 @@ public class UpgradeCardUI : MonoBehaviour
             rarityLabel.color = rarityColor;
         }
 
-        // Level label: "New Upgrade" or "Level X → Y"
+        // Single-level upgrades — always "New Upgrade"
         if (levelLabel != null)
-        {
-            if (offer.currentLevel == 0)
-                levelLabel.text = "New Upgrade";
-            else
-                levelLabel.text = $"Level {offer.currentLevel} → {offer.currentLevel + 1}";
-        }
+            levelLabel.text = "New Upgrade";
 
         // Name
         if (nameLabel != null)
             nameLabel.text = offer.data.displayName;
 
-        // Description for the NEXT level
-        int nextLevel = offer.currentLevel + 1;
+        // Description with live computed values and stat colours
         if (descriptionLabel != null)
-            descriptionLabel.text = offer.data.GetDescription(nextLevel);
+            descriptionLabel.text = offer.data.GetDescription(playerStats);
 
         // Stat bonus lines
         BuildStatLines();

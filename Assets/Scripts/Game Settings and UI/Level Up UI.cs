@@ -59,7 +59,7 @@ public class LevelUpUI : MonoBehaviour
         if (isOpen || upgradePool == null) return;
 
         float luck = playerStats != null ? playerStats.luck : 0f;
-        List<UpgradeOffer> offers = upgradePool.RollLevelUpOffers(currentLayer, luck, playerStats, 3);
+        List<UpgradeOffer> offers = upgradePool.RollLevelUpOffers(currentLayer, luck, playerStats, 3, upgradeManager);
 
         if (offers.Count == 0) return;
 
@@ -69,13 +69,7 @@ public class LevelUpUI : MonoBehaviour
 
         playerState?.DisableControl();
 
-        // Fill currentLevel per offer so cards show 'Level X -> Y' or 'New Upgrade'
-        foreach (var offer in offers)
-            offer.currentLevel = upgradeManager != null
-                ? upgradeManager.GetUpgradeLevel(offer.data.upgradeId)
-                : 0;
-
-        // Setup cards — pass playerStats so cards preview current -> new stat values
+        // Setup cards — pass playerStats so cards compute coloured description values
         for (int i = 0; i < cards.Length; i++)
         {
             if (i < offers.Count)

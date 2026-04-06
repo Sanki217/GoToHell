@@ -37,7 +37,7 @@ public class StatsUI : MonoBehaviour
 
     // Base values — snapshot on Start, before any upgrades apply
     private int baseMaxHP;
-    private float baseArrowDamage, baseDashDamage, baseCritChance, baseCritMultiplier;
+    private float baseArrowDamage, baseSlashDamage, baseDashDamage, baseCritChance, baseCritMultiplier;
     private float baseKnockback, baseLifesteal;
     private float baseBurn, baseFreeze, baseHoly, baseShock;
     private float baseMoveSpeed, baseJumpForce, baseDashDist, baseDashCost;
@@ -69,6 +69,7 @@ public class StatsUI : MonoBehaviour
         var s = playerStats;
         baseMaxHP = s.maxHP;
         baseArrowDamage = s.arrowDamage;
+        baseSlashDamage = s.slashDamage;
         baseDashDamage = s.dashDamage;
         baseCritChance = s.critChance;
         baseCritMultiplier = s.critMultiplier;

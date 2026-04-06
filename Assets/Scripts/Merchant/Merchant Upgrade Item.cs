@@ -245,7 +245,7 @@ public class MerchantUpgradeItem : MonoBehaviour
         }
 
         if (descriptionLabel != null)
-            descriptionLabel.text = offer.data.GetDescription(offer.rarity);
+            descriptionLabel.text = offer.data.GetDescription();
 
         if (statContainer != null && statLinePrefab != null)
         {

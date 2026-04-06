@@ -1,88 +1,70 @@
-using UnityEngine;
+﻿using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
-/// Attach to the SlashCollider child GameObject.
-/// Uses Physics.OverlapBox each time it activates � works on both trigger
-/// and non-trigger colliders on targets (two triggers don't fire OnTriggerEnter).
-///
-/// SETUP:
-///   - Add to the SlashCollider child alongside a BoxCollider (Is Trigger = true)
-///   - Parent must have PlayerSlash.cs
+/// Attach to the SlashCollider child alongside a BoxCollider (Is Trigger = true).
+/// DoSlash() is called directly by PlayerSlash with explicit world-space geometry.
+/// This bypasses the physics-sync timing issue where Physics.OverlapBox
+/// called in OnEnable can't see just-moved transforms before the next physics step.
 /// </summary>
-public class SlashDamageCollider : MonoBehaviour
+public class Slash_Damage_Collider : MonoBehaviour
 {
-    private PlayerSlash playerSlash;
-    private BoxCollider boxCollider;
-
-    // Track hit objects this activation so we don't hit the same thing twice
-    private System.Collections.Generic.HashSet<GameObject> hitThisSwing
-        = new System.Collections.Generic.HashSet<GameObject>();
-
-    private void Awake()
+    /// <summary>
+    /// Called directly by PlayerSlash immediately after computing slash geometry.
+    /// Uses explicit world-space parameters — no dependency on physics sync.
+    /// </summary>
+    public void DoSlash(Vector3 center, Vector3 halfExtents, Quaternion rotation,
+                        PlayerSlash slash)
     {
-        playerSlash = GetComponentInParent<PlayerSlash>();
-        boxCollider = GetComponent<BoxCollider>();
-    }
+        var hit = new HashSet<int>(); // instance IDs already processed
 
-    private void OnEnable()
-    {
-        hitThisSwing.Clear();
-        CheckOverlaps();
-    }
+        Collider[] overlaps = Physics.OverlapBox(
+            center, halfExtents, rotation,
+            Physics.AllLayers,
+            QueryTriggerInteraction.Collide);
 
-    // Also check every frame while active (for the active duration window)
-    private void Update()
-    {
-        CheckOverlaps();
-    }
-
-    private void CheckOverlaps()
-    {
-        if (playerSlash == null || boxCollider == null) return;
-
-        // Build OverlapBox params from this collider's world bounds
-        Vector3 center = transform.TransformPoint(boxCollider.center);
-        Vector3 halfExt = Vector3.Scale(boxCollider.size * 0.5f, transform.lossyScale);
-        // Use absolute values � prevents "negative size" warning when scale flips
-        halfExt = new Vector3(Mathf.Abs(halfExt.x), Mathf.Abs(halfExt.y), Mathf.Abs(halfExt.z));
-        Quaternion rotation = transform.rotation;
-
-        Collider[] hits = Physics.OverlapBox(center, halfExt, rotation,
-            Physics.AllLayers, QueryTriggerInteraction.Collide);
-
-        foreach (var hit in hits)
+        foreach (var col in overlaps)
         {
-            if (hit == null || hit.gameObject == null) continue;
+            if (col == null) continue;
 
-            // Don't hit ourselves or the player
-            if (hit.transform.IsChildOf(playerSlash.transform)) continue;
+            // Never hit the player or any of its children
+            if (col.transform.IsChildOf(slash.transform)) continue;
 
-            GameObject go = hit.gameObject;
-            if (hitThisSwing.Contains(go)) continue;
-            hitThisSwing.Add(go);
+            GameObject go = col.gameObject;
 
+            // ── Enemy ────────────────────────────────────────────────
             if (go.CompareTag("Enemy"))
             {
-                playerSlash.OnSlashHitEnemy(go);
+                // Go to root Enemy component (collider may be on child)
+                Enemy enemy = go.GetComponentInParent<Enemy>() ?? go.GetComponent<Enemy>();
+                if (enemy == null) continue;
+                int id = enemy.gameObject.GetInstanceID();
+                if (hit.Contains(id)) continue;
+                hit.Add(id);
+                slash.OnSlashHitEnemy(enemy.gameObject);
                 continue;
             }
 
-            // Destructibles � check component anywhere on the object or its root
-            Vase vase = go.GetComponentInParent<Vase>()
-                     ?? go.GetComponent<Vase>();
-            if (vase != null && !hitThisSwing.Contains(vase.gameObject))
+            // ── Vase ─────────────────────────────────────────────────
+            Vase vase = go.GetComponentInParent<Vase>() ?? go.GetComponent<Vase>();
+            if (vase != null)
             {
-                hitThisSwing.Add(vase.gameObject);
-                playerSlash.OnSlashHitDestructible(vase.gameObject);
+                int id = vase.gameObject.GetInstanceID();
+                if (hit.Contains(id)) continue;
+                hit.Add(id);
+                slash.OnSlashHitDestructible(vase, null);
                 continue;
             }
 
+            // ── Explosive Barrel ─────────────────────────────────────
             ExplosiveBarrel barrel = go.GetComponentInParent<ExplosiveBarrel>()
                                   ?? go.GetComponent<ExplosiveBarrel>();
-            if (barrel != null && !hitThisSwing.Contains(barrel.gameObject))
+            if (barrel != null)
             {
-                hitThisSwing.Add(barrel.gameObject);
-                playerSlash.OnSlashHitDestructible(barrel.gameObject);
+                int id = barrel.gameObject.GetInstanceID();
+                if (hit.Contains(id)) continue;
+                hit.Add(id);
+                slash.OnSlashHitDestructible(null, barrel);
             }
         }
     }

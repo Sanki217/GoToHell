@@ -104,7 +104,8 @@ public class PlayerUpgradePool : ScriptableObject
     // ================================================================
 
     public List<UpgradeOffer> RollLevelUpOffers(int layer, float luck,
-                                                 PlayerStats stats = null, int count = 3)
+                                                 PlayerStats stats = null, int count = 3,
+                                                 PlayerUpgradeManager upgradeManager = null)
     {
         var offers = new List<UpgradeOffer>();
         var usedIds = new HashSet<string>();
@@ -118,6 +119,8 @@ public class PlayerUpgradePool : ScriptableObject
             PlayerUpgradeData d = pool[idx];
             pool.RemoveAt(idx);
             if (usedIds.Contains(d.upgradeId)) continue;
+            // Skip upgrades already owned — each upgrade has one level, disappears when picked
+            if (upgradeManager != null && upgradeManager.HasUpgrade(d.upgradeId)) continue;
 
             UpgradeRarity rarity = UpgradeRarityRoller.Roll(layer, luck);
             offers.Add(BuildOffer(d, rarity, stats));

@@ -3,38 +3,31 @@ using System.Collections;
 
 /// <summary>
 /// Player Slash — activates on LMB when the quiver is empty.
-/// A box collider extends from the player's center toward the cursor.
-/// Width and length scale with the Size primary stat.
-/// Cooldown reduced by the Cooldown primary stat.
+/// Box collider extends from player center toward cursor, scaled by Size stat.
+/// Cooldown reduced by Cooldown stat.
 ///
 /// SETUP:
 ///   1. Add this script to the Player root
-///   2. Create a child GameObject "SlashCollider"
-///   3. Add a BoxCollider (Is Trigger = true) to it
-///   4. Assign slashColliderObject in Inspector
-///   5. Tune baseDamage, baseLength, baseWidth, baseCooldown in Inspector
-///
-/// The slash collider is enabled for slashActiveDuration seconds, then disabled.
+///   2. Create child GameObject "SlashCollider"
+///   3. Add BoxCollider (Is Trigger = true) — used only for visuals/gizmos
+///   4. Add Slash_Damage_Collider.cs to that child
+///   5. Assign slashColliderObject in Inspector
 /// </summary>
 public class PlayerSlash : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("Child GameObject that holds the slash BoxCollider (trigger)")]
     public GameObject slashColliderObject;
 
-    [Header("Base Values (before stat scaling)")]
+    [Header("Base Values")]
     public float baseDamage = 5f;
-    public float baseLength = 2.0f;  // distance from center to tip
-    public float baseWidth = 0.8f;  // width of the slash box
-    public float baseCooldown = 0.8f;  // seconds between slashes
-    public float slashActiveDuration = 0.15f; // how long the collider stays active
+    public float baseLength = 2.0f;
+    public float baseWidth = 0.8f;
+    public float baseCooldown = 0.8f;
+    public float slashActiveDuration = 0.15f;
 
     [Header("Stat Scaling")]
-    [Tooltip("Length and width increase by this much per Size point")]
     public float sizeScalePerPoint = 0.05f;
-    [Tooltip("Cooldown reduced by this fraction per Cooldown point (0.1 = 10%/point)")]
     public float cooldownReductionPerPoint = 0.05f;
-    [Tooltip("Minimum cooldown regardless of Cooldown stat")]
     public float minCooldown = 0.2f;
 
     // ================================================================
@@ -47,8 +40,12 @@ public class PlayerSlash : MonoBehaviour
     private PlayerStats playerStats;
     private PlayerShooting shooting;
     private PlayerStateController stateController;
-    private BoxCollider slashCollider;
     private Camera mainCam;
+
+    // Geometry computed at slash time — read by Slash_Damage_Collider
+    [HideInInspector] public Vector3 slashCenter;
+    [HideInInspector] public Vector3 slashHalfExtents;
+    [HideInInspector] public Quaternion slashRotation;
 
     // ================================================================
     //  INIT
@@ -62,10 +59,7 @@ public class PlayerSlash : MonoBehaviour
         mainCam = Camera.main;
 
         if (slashColliderObject != null)
-        {
-            slashCollider = slashColliderObject.GetComponent<BoxCollider>();
             slashColliderObject.SetActive(false);
-        }
     }
 
     // ================================================================
@@ -74,7 +68,6 @@ public class PlayerSlash : MonoBehaviour
 
     private void Update()
     {
-        // Cool down
         if (onCooldown)
         {
             cooldownTimer -= Time.deltaTime;
@@ -83,10 +76,8 @@ public class PlayerSlash : MonoBehaviour
 
         if (stateController != null && !stateController.HasControl()) return;
 
-        // Only activate when quiver is empty and LMB is pressed
         bool quiverEmpty = shooting != null && shooting.CurrentArrows <= 0;
-        if (!quiverEmpty) return;
-        if (onCooldown) return;
+        if (!quiverEmpty || onCooldown) return;
         if (!Input.GetMouseButtonDown(0)) return;
 
         TrySlash();
@@ -101,59 +92,55 @@ public class PlayerSlash : MonoBehaviour
         Vector3 dir = GetCursorDirection();
         if (dir.sqrMagnitude < 0.001f) return;
 
-        // Start cooldown
-        float effectiveCooldown = GetEffectiveCooldown();
-        cooldownTimer = effectiveCooldown;
+        cooldownTimer = GetEffectiveCooldown();
         onCooldown = true;
 
-        // Position and orient the collider
-        PositionSlashCollider(dir);
+        // Compute geometry
+        float sizeBonus = playerStats != null ? playerStats.size * sizeScalePerPoint : 0f;
+        float length = Mathf.Abs(baseLength + sizeBonus);
+        float width = Mathf.Abs(baseWidth + sizeBonus);
 
-        // Activate for slashActiveDuration
-        StartCoroutine(ActivateSlashCollider());
+        Vector3 center = transform.position + dir * (length * 0.5f);
+        center.z = 0f;
+
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
+        Quaternion rotation = Quaternion.Euler(0f, 0f, angle);
+
+        // Store for Slash_Damage_Collider to read
+        slashCenter = center;
+        slashHalfExtents = new Vector3(width * 0.5f, length * 0.5f, 0.5f);
+        slashRotation = rotation;
+
+        // Position visual collider object
+        if (slashColliderObject != null)
+        {
+            slashColliderObject.transform.position = center;
+            slashColliderObject.transform.rotation = rotation;
+            slashColliderObject.transform.localScale = new Vector3(width, length, 1f);
+        }
+
+        // Run damage check IMMEDIATELY with explicit geometry — no physics sync needed
+        var damageCollider = slashColliderObject?.GetComponent<Slash_Damage_Collider>();
+        damageCollider?.DoSlash(center, slashHalfExtents, rotation, this);
+
+        // Show the visual for slashActiveDuration
+        StartCoroutine(ShowVisual());
 
         playerStats?.RecordSlashUsed();
     }
 
-    private void PositionSlashCollider(Vector3 dir)
-    {
-        if (slashColliderObject == null) return;
-
-        float sizeBonus = playerStats != null ? playerStats.size * sizeScalePerPoint : 0f;
-        float length = baseLength + sizeBonus;
-        float width = baseWidth + sizeBonus;
-
-        // Place collider: center = player position + dir * (length / 2)
-        Vector3 center = transform.position + dir * (length / 2f);
-        center.z = 0f;
-
-        slashColliderObject.transform.position = center;
-
-        // Rotate to face cursor
-        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
-        slashColliderObject.transform.rotation = Quaternion.Euler(0f, 0f, angle);
-
-        // Scale: Y = length (along direction), X = width (perpendicular)
-        // Use Abs to prevent negative scale warning from BoxCollider
-        slashColliderObject.transform.localScale = new Vector3(Mathf.Abs(width), Mathf.Abs(length), 1f);
-    }
-
-    private IEnumerator ActivateSlashCollider()
+    private IEnumerator ShowVisual()
     {
         if (slashColliderObject == null) yield break;
-
         slashColliderObject.SetActive(true);
         yield return new WaitForSeconds(slashActiveDuration);
         slashColliderObject.SetActive(false);
     }
 
     // ================================================================
-    //  COLLISION — called from SlashDamageCollider child script
+    //  HIT CALLBACKS (called by Slash_Damage_Collider)
     // ================================================================
 
-    /// <summary>
-    /// Called by SlashDamageCollider when it overlaps an enemy.
-    /// </summary>
     public void OnSlashHitEnemy(GameObject enemyGO)
     {
         Enemy enemy = enemyGO.GetComponent<Enemy>();
@@ -161,24 +148,21 @@ public class PlayerSlash : MonoBehaviour
 
         float damage = playerStats != null ? playerStats.slashDamage : baseDamage;
 
-        // Roll for crit
         float finalDmg;
         bool isCrit;
         if (playerStats != null)
             (finalDmg, isCrit) = playerStats.RollDamage(damage, enemyGO);
         else { finalDmg = damage; isCrit = false; }
 
-        Vector3 kbDir = (enemyGO.transform.position - transform.position);
+        Vector3 kbDir = enemyGO.transform.position - transform.position;
         kbDir.z = 0f;
         if (kbDir.sqrMagnitude < 0.001f) kbDir = Vector3.right;
-
-        float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
 
         enemy.TakeDamage(
             Mathf.Max(1, Mathf.RoundToInt(finalDmg)),
             transform.position,
             kbDir.normalized,
-            kbForce,
+            playerStats != null ? playerStats.knockbackForce : 0f,
             isCrit,
             isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal
         );
@@ -187,14 +171,13 @@ public class PlayerSlash : MonoBehaviour
         playerStats?.RecordDamageDealt(finalDmg, DamageSource.Slash);
     }
 
-    /// <summary>Called by SlashDamageCollider when it hits a vase or barrel.</summary>
-    public void OnSlashHitDestructible(GameObject destructible)
+    public void OnSlashHitDestructible(Vase vase, ExplosiveBarrel barrel)
     {
         float damage = playerStats != null ? playerStats.slashDamage : baseDamage;
         int dmg = Mathf.Max(1, Mathf.RoundToInt(damage));
 
-        destructible.GetComponent<Vase>()?.TakeDamage(dmg);
-        destructible.GetComponent<ExplosiveBarrel>()?.TakeDamage(dmg);
+        vase?.TakeDamage(dmg);
+        barrel?.TakeDamage(dmg);
     }
 
     // ================================================================
@@ -204,13 +187,10 @@ public class PlayerSlash : MonoBehaviour
     private Vector3 GetCursorDirection()
     {
         if (mainCam == null) return Vector3.right;
-
-        // Screen → world position at Z=0
         Vector3 mouse = Input.mousePosition;
         mouse.z = Mathf.Abs(mainCam.transform.position.z);
         Vector3 worldMouse = mainCam.ScreenToWorldPoint(mouse);
         worldMouse.z = 0f;
-
         Vector3 dir = worldMouse - transform.position;
         dir.z = 0f;
         return dir.magnitude > 0.01f ? dir.normalized : Vector3.right;
@@ -223,7 +203,7 @@ public class PlayerSlash : MonoBehaviour
         return Mathf.Max(minCooldown, baseCooldown * (1f - reduction));
     }
 
+    public bool IsOnCooldown() => onCooldown;
     public float GetCooldownRemaining() => onCooldown ? cooldownTimer : 0f;
     public float GetEffectiveCooldownPublic() => GetEffectiveCooldown();
-    public bool IsOnCooldown() => onCooldown;
 }
