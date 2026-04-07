@@ -1,30 +1,137 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
-/// Dev testing tool — drop in scene to apply a specific upgrade without going through level-up UI.
-/// Add new entries here as you implement and want to test each upgrade.
+/// Generic upgrade orb component. Attach this to every upgrade orb prefab alongside
+/// a PlayerUpgrade subclass (e.g. UpgradeBurningArrow).
+///
+/// Responsibilities:
+///   - Soul-style attraction toward the player
+///   - On arrival: passes rolled stat bonuses to PlayerStats,
+///     then calls PlayerUpgrade.OnAdded() for behaviour wiring
+///
+/// The PlayerUpgrade subclass on the same prefab provides all tuning and display data.
+/// This script never needs to know which upgrade it is.
 /// </summary>
+[RequireComponent(typeof(Rigidbody))]
 public class UpgradeOrb : MonoBehaviour
 {
-    public enum UpgradeType
+    [Header("Attract Movement")]
+    public float initialDampDuration = 0.5f;
+    public float minAttractSpeed = 5f;
+    public float maxAttractSpeed = 16f;
+    public float attractAccelerationTime = 0.6f;
+    public float shrinkStartDistance = 1.5f;
+
+    // Set by the pool after rolling — not configured in prefab Inspector
+    [HideInInspector] public UpgradeStatBonus[] rolledStatBonuses;
+    [HideInInspector] public UpgradeRarity rolledRarity;
+
+    private Rigidbody rb;
+    private bool isAttracted = false;
+    private Transform attractTarget;
+    private PlayerUpgradeManager upgradeManager;
+    private PlayerStats playerStats;
+    private Vector3 originalScale;
+    private Coroutine dampRoutine;
+
+    void Awake()
     {
-        BurningArrow
-        // Add more entries here as upgrades are implemented
+        rb = GetComponent<Rigidbody>();
+        originalScale = transform.localScale;
+        rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
     }
 
-    public UpgradeType type;
-
-    public void Apply(PlayerUpgradeManager mgr)
+    /// <summary>Called by spawn site to give the orb an initial pop.</summary>
+    public void Initialize(Vector3 ejectDir, float ejectForce)
     {
-        PlayerUpgrade upgrade = type switch
+        rb.linearVelocity = ejectDir.normalized * ejectForce;
+        dampRoutine = StartCoroutine(InitialDampCoroutine());
+    }
+
+    /// <summary>Called by Looter when the orb enters loot range.</summary>
+    public void StartAttract(Transform playerTransform, PlayerUpgradeManager mgr, PlayerStats stats)
+    {
+        if (isAttracted) return;
+        isAttracted = true;
+
+        if (dampRoutine != null) { StopCoroutine(dampRoutine); dampRoutine = null; }
+
+        attractTarget = playerTransform;
+        upgradeManager = mgr;
+        playerStats = stats;
+
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        rb.isKinematic = true;
+
+        StartCoroutine(AttractCoroutine());
+    }
+
+    IEnumerator InitialDampCoroutine()
+    {
+        float t = 0f;
+        Vector3 startVel = rb.linearVelocity;
+        while (t < initialDampDuration)
         {
-            UpgradeType.BurningArrow => new UpgradeBurningArrow(),
-            _ => null
-        };
+            if (rb.isKinematic) yield break;
+            t += Time.deltaTime;
+            float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / initialDampDuration), 2f);
+            rb.linearVelocity = Vector3.Lerp(startVel, Vector3.zero, ease);
+            yield return null;
+        }
+        rb.linearVelocity = Vector3.zero;
+    }
 
-        if (upgrade != null)
-            mgr.ApplyUpgrade(upgrade);
+    IEnumerator AttractCoroutine()
+    {
+        float elapsed = 0f;
+        while (true)
+        {
+            yield return new WaitForFixedUpdate();
+            if (attractTarget == null) break;
 
-        Destroy(gameObject);
+            float dt = Time.fixedDeltaTime;
+            elapsed += dt;
+            float t = Mathf.Clamp01(elapsed / attractAccelerationTime);
+            float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, t * t);
+
+            Vector3 toPlayer = attractTarget.position - transform.position;
+            toPlayer.z = 0f;
+            float dist = toPlayer.magnitude;
+
+            if (dist <= 0.15f)
+            {
+                Apply();
+                Destroy(gameObject);
+                yield break;
+            }
+
+            float scaleT = Mathf.Clamp01(dist / shrinkStartDistance);
+            transform.localScale = originalScale * scaleT;
+
+            float step = Mathf.Min(speed * dt, dist - 0.15f);
+            rb.MovePosition(transform.position + toPlayer.normalized * step);
+        }
+    }
+
+    private void Apply()
+    {
+        // Apply rolled stat bonuses
+        if (playerStats != null && rolledStatBonuses != null)
+            foreach (var bonus in rolledStatBonuses)
+                bonus.Apply(playerStats);
+
+        // Apply the upgrade behaviour
+        if (upgradeManager != null)
+        {
+            PlayerUpgrade upgrade = GetComponent<PlayerUpgrade>();
+            if (upgrade != null)
+            {
+                // Detach from the orb so it survives destruction
+                upgrade.transform.SetParent(upgradeManager.transform);
+                upgradeManager.ApplyUpgrade(upgrade);
+            }
+        }
     }
 }

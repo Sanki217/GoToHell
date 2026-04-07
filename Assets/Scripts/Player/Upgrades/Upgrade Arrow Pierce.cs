@@ -1,35 +1,31 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Arrow Pierce — arrows pass through enemies, dealing bonus damage on each pass-through.
+/// Arrow Pierce upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
+/// All tuning values are exposed in the Inspector on the prefab.
 ///
-/// PlayerUpgradeData behaviourSettings needed:
-///   "pierceCount"   — how many enemies the arrow passes through (default 1)
-///   "pierceDamage"  — flat bonus damage per pass-through (default 5)
-///   "pierceDmgAP"   — fraction of Ability Power added to pierce damage (default 0.40)
-///
-/// Example description template:
-///   "Arrows pierce through [pierceCount] enemies, dealing [pierceDmg] bonus damage per pass."
+/// Effect: arrows pass through enemies, dealing bonus damage per pass.
 /// </summary>
 public class UpgradeArrowPierce : PlayerUpgrade
 {
-    public override string Id => "Arrow_Pierce";
+    [Header("Arrow Pierce — Tuning")]
+    [Tooltip("How many enemies the arrow passes through.")]
+    public int pierceCount = 1;
 
-    private PlayerStats playerStats;
+    [Tooltip("Flat bonus damage dealt per pierce.")]
+    public float pierceDamage = 5f;
+
+    [Tooltip("Fraction of Ability Power added to pierce damage.")]
+    public float pierceDmgAPScaling = 0.40f;
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
-        playerStats = mgr.GetComponent<PlayerStats>();
-
-        var data = mgr.GetUpgradeData(Id);
-        if (playerStats != null && data != null)
+        var stats = mgr.GetComponent<PlayerStats>();
+        if (stats != null)
         {
-            playerStats.arrowPierceCount = Mathf.RoundToInt(data.GetSetting("pierceCount", 1f));
-            playerStats.pierceDamageBase = data.GetSetting("pierceDamage", 5f);
-            playerStats.pierceDmgAPScaling = data.GetSetting("pierceDmgAP", 0.40f);
+            stats.arrowPierceCount = pierceCount;
+            stats.pierceDamageBase = pierceDamage;
+            stats.pierceDmgAPScaling = pierceDmgAPScaling;
         }
     }
-
-    // Single level — OnLevelUp never called (pool filters owned upgrades)
-    public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel) { }
 }

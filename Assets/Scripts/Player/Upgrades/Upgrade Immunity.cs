@@ -2,50 +2,44 @@
 using System.Collections;
 
 /// <summary>
-/// Immunity — become invulnerable for X seconds every Y seconds.
+/// Immunity upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
+/// All tuning values are exposed in the Inspector on the prefab.
 ///
-/// PlayerUpgradeData behaviourSettings needed:
-///   "duration"      — invincibility duration in seconds (default 2)
-///   "cooldown"      — base cooldown in seconds (default 15)
-///   "cooldownStat"  — fraction reduction per Cooldown point (default 0.10)
-///   "cooldownMin"   — minimum cooldown regardless of stat (default 5)
-///
-/// Example description template:
-///   "Become invincible for [duration] every [cooldown] seconds."
+/// Effect: player becomes invincible for `duration` seconds every `cooldown` seconds.
+/// Effective cooldown = max(cooldownMin, cooldown × (1 − cooldownReductionPerStat × Cooldown))
 /// </summary>
 public class UpgradeImmunity : PlayerUpgrade
 {
-    public override string Id => "Immunity";
+    [Header("Immunity — Tuning")]
+    [Tooltip("How long invincibility lasts in seconds.")]
+    public float duration = 2f;
 
-    private float duration, cdBase, cdStat, cdMin;
+    [Tooltip("Base time between invincibility pulses in seconds.")]
+    public float cooldown = 15f;
+
+    [Tooltip("Fraction of cooldown reduced per 1 point of Cooldown stat. 0.10 = −10%/point.")]
+    public float cooldownReductionPerStat = 0.10f;
+
+    [Tooltip("Minimum cooldown regardless of Cooldown stat.")]
+    public float cooldownMin = 5f;
+
     private PlayerStats playerStats;
     private PlayerHealth playerHealth;
-    private bool running = false;
+    private PlayerUpgradeManager host;
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
         playerStats = mgr.GetComponent<PlayerStats>();
         playerHealth = mgr.GetComponent<PlayerHealth>();
+        host = mgr;
 
-        var data = mgr.GetUpgradeData(Id);
-        duration = data?.GetSetting("duration", 2f) ?? 2f;
-        cdBase = data?.GetSetting("cooldown", 15f) ?? 15f;
-        cdStat = data?.GetSetting("cooldownStat", 0.10f) ?? 0.10f;
-        cdMin = data?.GetSetting("cooldownMin", 5f) ?? 5f;
-
-        if (!running)
-        {
-            running = true;
-            mgr.StartCoroutine(ImmunityCycle());
-        }
+        mgr.StartCoroutine(ImmunityCycle());
     }
-
-    public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel) { }
 
     private float GetCooldown()
     {
-        float reduction = playerStats != null ? playerStats.cooldown * cdStat : 0f;
-        return Mathf.Max(cdMin, cdBase * (1f - reduction));
+        float reduction = playerStats != null ? playerStats.cooldown * cooldownReductionPerStat : 0f;
+        return Mathf.Max(cooldownMin, cooldown * (1f - reduction));
     }
 
     private IEnumerator ImmunityCycle()

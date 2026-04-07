@@ -243,9 +243,9 @@ public class StatsUI : MonoBehaviour
         if (upgradeManager != null)
         {
             bool any = false;
-            foreach (var kv in upgradeManager.GetActiveUpgrades())
+            foreach (var id in upgradeManager.GetActiveUpgradeIds())
             {
-                right += $"  {kv.Key,-24} <color=#AAFFAA>Lv {kv.Value}</color>\n";
+                right += $"  <color=#AAFFAA>{id}</color>\n";
                 any = true;
             }
             if (!any) right += "  <color=#888888>None</color>\n";

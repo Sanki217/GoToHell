@@ -6,15 +6,8 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Fullscreen chest reward screen.
-/// Called by Chest.cs when the player opens a chest.
-///
-/// Flow:
-///   1. Chest.Open() calls ChestRewardUI.Instance.Show(luck, playerStats)
-///   2. Rarity is rolled using luck only (no layer influence)
-///   3. Upgrade is rolled from pool at that rarity
-///   4. Soul reward is rolled based on rarity (configured in Inspector)
-///   5. Slot machine animation plays, then result is shown
-///   6. Player clicks Collect — upgrade and souls are applied
+/// Rolls one UpgradeOrbOffer (prefab + rarity + stat bonuses) from the pool.
+/// On collect: grants souls immediately, spawns the orb which flies in and applies itself.
 /// </summary>
 public class ChestRewardUI : MonoBehaviour
 {
@@ -35,7 +28,7 @@ public class ChestRewardUI : MonoBehaviour
     public TMP_Text resultNameLabel;
     public TMP_Text resultRarityLabel;
     public TMP_Text resultDescriptionLabel;
-    public TMP_Text resultSoulsLabel;       // shows "+ 24 Souls"
+    public TMP_Text resultSoulsLabel;
     public Image resultIcon;
     public Image resultCardBackground;
     public Transform resultStatContainer;
@@ -43,18 +36,17 @@ public class ChestRewardUI : MonoBehaviour
     public Button collectButton;
 
     [Header("Soul Rewards per Rarity")]
-    [Tooltip("Souls granted to the player on collect, based on rolled rarity.")]
-    public int soulsCommonMin = 5;
-    public int soulsCommonMax = 15;
-    public int soulsRareMin = 15;
-    public int soulsRareMax = 30;
-    public int soulsEpicMin = 30;
-    public int soulsEpicMax = 60;
-    public int soulsLegendaryMin = 60;
-    public int soulsLegendaryMax = 120;
+    public int soulsCommonMin = 5; public int soulsCommonMax = 15;
+    public int soulsRareMin = 15; public int soulsRareMax = 30;
+    public int soulsEpicMin = 30; public int soulsEpicMax = 60;
+    public int soulsLegendaryMin = 60; public int soulsLegendaryMax = 120;
 
     [Header("References")]
     public PlayerUpgradePool upgradePool;
+
+    [Header("Orb Spawn")]
+    public Vector3 spawnOffset = new Vector3(0f, 1f, 0f);
+    public float spawnEjectForce = 3f;
 
     [Header("Player References — auto-found if not assigned")]
     public PlayerStats playerStats;
@@ -67,7 +59,7 @@ public class ChestRewardUI : MonoBehaviour
     // ================================================================
 
     private bool isOpen = false;
-    private UpgradeOffer pendingOffer;
+    private UpgradeOrbOffer pendingOffer;
     private int pendingSouls;
 
     // ================================================================
@@ -101,34 +93,21 @@ public class ChestRewardUI : MonoBehaviour
     }
 
     // ================================================================
-    //  PUBLIC API — called by Chest.cs
+    //  PUBLIC API
     // ================================================================
 
-    /// <summary>
-    /// Open the chest reward screen.
-    /// Rarity is determined by luck only — no layer influence.
-    /// </summary>
     public void Show(float luck, PlayerStats statsOverride = null)
     {
-        if (isOpen || upgradePool == null || upgradePool.upgrades.Count == 0) return;
+        if (isOpen || upgradePool == null || upgradePool.upgradePrefabs.Count == 0) return;
 
         PlayerStats effectiveStats = statsOverride ?? playerStats;
         float effectiveLuck = effectiveStats != null ? effectiveStats.luck : luck;
 
-        // Roll rarity using luck only
-        UpgradeRarity rarity = UpgradeRarityRoller.RollWithLuckOnly(effectiveLuck);
+        pendingOffer = upgradePool.RollChestOffer(effectiveLuck, effectiveStats, upgradeManager);
+        if (pendingOffer == null) return;
 
-        // Roll upgrade at that rarity
-        if (upgradePool.upgrades.Count == 0) return;
-        var data = upgradePool.upgrades[Random.Range(0, upgradePool.upgrades.Count)];
-        var offer = upgradePool.BuildOffer(data, rarity, effectiveStats);
-        if (offer == null) return;
+        pendingSouls = RollSouls(pendingOffer.rarity);
 
-        // Roll souls for this rarity
-        pendingSouls = RollSouls(rarity);
-        pendingOffer = offer;
-
-        // Open UI
         isOpen = true;
         Time.timeScale = 0f;
         playerState?.DisableControl();
@@ -136,28 +115,24 @@ public class ChestRewardUI : MonoBehaviour
         chestPanel.SetActive(true);
         if (resultCard != null) resultCard.SetActive(false);
         if (collectButton != null) collectButton.gameObject.SetActive(false);
-
-        // Show rolling display
         if (rollingNameLabel != null) rollingNameLabel.gameObject.SetActive(true);
         if (rollingBackground != null) rollingBackground.gameObject.SetActive(true);
 
-        StartCoroutine(RollRoutine(offer));
+        StartCoroutine(RollRoutine());
     }
 
     // ================================================================
-    //  PRIVATE — Roll animation
+    //  ROLLING ANIMATION
     // ================================================================
 
-    private IEnumerator RollRoutine(UpgradeOffer finalOffer)
+    private IEnumerator RollRoutine()
     {
-        List<PlayerUpgradeData> all = upgradePool.upgrades;
-        float elapsed = 0f;
-        float nextChange = 0f;
+        List<string> allNames = upgradePool.GetAllDisplayNames();
+        float elapsed = 0f, nextChange = 0f;
 
         while (elapsed < rollDuration)
         {
             elapsed += Time.unscaledDeltaTime;
-
             float t = elapsed / rollDuration;
             float eased = 1f - Mathf.Pow(1f - t, 3f);
             float interval = Mathf.Lerp(rollStartInterval, rollEndInterval, eased);
@@ -165,34 +140,29 @@ public class ChestRewardUI : MonoBehaviour
             if (elapsed >= nextChange)
             {
                 nextChange = elapsed + interval;
-
-                PlayerUpgradeData rand = all[Random.Range(0, all.Count)];
-                if (rollingNameLabel != null)
-                    rollingNameLabel.text = rand.displayName;
+                if (rollingNameLabel != null && allNames.Count > 0)
+                    rollingNameLabel.text = allNames[Random.Range(0, allNames.Count)];
 
                 if (rollingBackground != null)
                 {
                     UpgradeRarity randRarity = (UpgradeRarity)Random.Range(0, 4);
-                    Color c = UpgradeRarityRoller.GetRarityColor(randRarity);
-                    c.a = 0.4f;
+                    Color c = UpgradeRarityRoller.GetRarityColor(randRarity); c.a = 0.4f;
                     rollingBackground.color = c;
                 }
             }
-
             yield return null;
         }
 
-        ShowResult(finalOffer);
+        ShowResult();
     }
 
-    private void ShowResult(UpgradeOffer offer)
+    private void ShowResult()
     {
         if (rollingNameLabel != null) rollingNameLabel.gameObject.SetActive(false);
         if (rollingBackground != null) rollingBackground.gameObject.SetActive(false);
-
         if (resultCard != null) resultCard.SetActive(true);
 
-        Color rarityColor = UpgradeRarityRoller.GetRarityColor(offer.rarity);
+        Color rarityColor = UpgradeRarityRoller.GetRarityColor(pendingOffer.rarity);
 
         if (resultCardBackground != null)
         {
@@ -202,31 +172,30 @@ public class ChestRewardUI : MonoBehaviour
 
         if (resultRarityLabel != null)
         {
-            resultRarityLabel.text = UpgradeRarityRoller.GetRarityName(offer.rarity).ToUpper();
+            resultRarityLabel.text = UpgradeRarityRoller.GetRarityName(pendingOffer.rarity).ToUpper();
             resultRarityLabel.color = rarityColor;
         }
 
-        if (resultNameLabel != null)
-            resultNameLabel.text = offer.data.displayName;
-
-        if (resultDescriptionLabel != null)
-            resultDescriptionLabel.text = offer.data.GetDescription();
-
-        if (resultIcon != null)
+        PlayerUpgrade upgrade = pendingOffer.upgrade;
+        if (upgrade != null)
         {
-            resultIcon.sprite = offer.data.icon;
-            resultIcon.enabled = offer.data.icon != null;
+            if (resultNameLabel != null) resultNameLabel.text = upgrade.displayName;
+            if (resultDescriptionLabel != null) resultDescriptionLabel.text = upgrade.description;
+            if (resultIcon != null)
+            {
+                resultIcon.sprite = upgrade.icon;
+                resultIcon.enabled = upgrade.icon != null;
+            }
         }
 
-        // Souls label
         if (resultSoulsLabel != null)
             resultSoulsLabel.text = $"+ {pendingSouls} Souls";
 
         // Stat bonus lines
-        if (resultStatContainer != null)
+        if (resultStatContainer != null && pendingOffer.statBonuses != null)
         {
             foreach (Transform child in resultStatContainer) Destroy(child.gameObject);
-            foreach (var bonus in offer.statBonuses)
+            foreach (var bonus in pendingOffer.statBonuses)
             {
                 if (statLinePrefab == null) break;
                 GameObject line = Instantiate(statLinePrefab, resultStatContainer);
@@ -250,7 +219,6 @@ public class ChestRewardUI : MonoBehaviour
     {
         if (pendingOffer == null) return;
 
-        // Grant souls
         var inv = playerInventory;
         if (inv == null)
         {
@@ -259,20 +227,30 @@ public class ChestRewardUI : MonoBehaviour
         }
         inv?.AddSouls(pendingSouls);
 
-        // Apply stat bonuses
-        PlayerStats s = playerStats;
-        if (s != null)
-            foreach (var bonus in pendingOffer.statBonuses)
-                bonus.Apply(s);
-
-        // Apply behaviour upgrade
-        if (upgradeManager != null)
-        {
-            PlayerUpgrade upgrade = UpgradeFactory.Create(pendingOffer.data.upgradeId);
-            if (upgrade != null) upgradeManager.ApplyUpgrade(upgrade);
-        }
-
+        UpgradeOrbOffer offerToSpawn = pendingOffer;
         Close();
+        SpawnOrb(offerToSpawn);
+    }
+
+    private void SpawnOrb(UpgradeOrbOffer offer)
+    {
+        Transform playerTransform = upgradeManager != null
+            ? upgradeManager.transform
+            : GameObject.FindWithTag("Player")?.transform;
+
+        if (playerTransform == null) return;
+
+        Vector3 spawnPos = playerTransform.position + spawnOffset;
+        GameObject obj = Instantiate(offer.prefab, spawnPos, Quaternion.identity);
+        UpgradeOrb orb = obj.GetComponent<UpgradeOrb>();
+
+        if (orb == null) return;
+
+        orb.rolledStatBonuses = offer.statBonuses?.ToArray();
+        orb.rolledRarity = offer.rarity;
+
+        Vector3 ejectDir = spawnOffset.normalized == Vector3.zero ? Vector3.up : spawnOffset.normalized;
+        orb.Initialize(ejectDir, spawnEjectForce);
     }
 
     private void Close()
@@ -288,10 +266,6 @@ public class ChestRewardUI : MonoBehaviour
 
         playerState?.EnableControl();
     }
-
-    // ================================================================
-    //  SOUL ROLL
-    // ================================================================
 
     private int RollSouls(UpgradeRarity rarity) => rarity switch
     {

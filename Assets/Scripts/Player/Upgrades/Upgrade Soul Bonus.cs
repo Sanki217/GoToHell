@@ -1,20 +1,21 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Soul Bonus — earn more souls from every collection.
+/// Soul Bonus upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
+/// All tuning values are exposed in the Inspector on the prefab.
 ///
-/// PlayerUpgradeData behaviourSettings needed:
-///   "bonusPercent" — base fraction of extra souls (default 1.0 = +100%)
-///   "bonusLuck"    — fraction of Luck added to bonus (default 0.10)
-///
-/// Example description template:
-///   "Earn [bonus] more souls from all sources."
+/// Effect: every soul collected grants extra souls.
+/// Extra souls = collected × (bonusPercent + bonusPerLuck × Luck)
 /// </summary>
 public class UpgradeSoulBonus : PlayerUpgrade
 {
-    public override string Id => "SoulBonus";
+    [Header("Soul Bonus — Tuning")]
+    [Tooltip("Base fraction of extra souls granted per collection. 1.0 = +100%.")]
+    public float bonusPercent = 1.0f;
 
-    private float bonusPct, bonusLuck;
+    [Tooltip("Additional fraction per 1 point of Luck. 0.10 = +10% per Luck.")]
+    public float bonusPerLuck = 0.10f;
+
     private PlayerStats playerStats;
     private PlayerInventory inventory;
     private PlayerLevelSystem levelSystem;
@@ -26,17 +27,11 @@ public class UpgradeSoulBonus : PlayerUpgrade
         inventory = mgr.GetComponent<PlayerInventory>();
         levelSystem = mgr.GetComponent<PlayerLevelSystem>();
 
-        var data = mgr.GetUpgradeData(Id);
-        bonusPct = data?.GetSetting("bonusPercent", 1.0f) ?? 1.0f;
-        bonusLuck = data?.GetSetting("bonusLuck", 0.10f) ?? 0.10f;
-
         mgr.OnSoulCollected += OnSoulCollected;
     }
 
-    public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel) { }
-
     private float GetBonus() =>
-        bonusPct + bonusLuck * (playerStats != null ? playerStats.luck : 0f);
+        bonusPercent + bonusPerLuck * (playerStats != null ? playerStats.luck : 0f);
 
     private void OnSoulCollected(int amount)
     {

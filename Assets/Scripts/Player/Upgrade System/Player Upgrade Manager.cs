@@ -8,47 +8,26 @@ public class PlayerUpgradeManager : MonoBehaviour
     //  DEBUG
     // ============================================================
 
-    [Header("Upgrade Pool (assign your UpgradePool asset here)")]
-    public PlayerUpgradePool upgradePool;
-
     [SerializeField]
     private List<string> debugActiveUpgrades = new();
 
     private void Update()
     {
         debugActiveUpgrades.Clear();
-        foreach (var kv in activeUpgrades)
-            debugActiveUpgrades.Add($"{kv.Key} (Lv {kv.Value.level})");
+        foreach (var id in activeUpgrades.Keys)
+            debugActiveUpgrades.Add(id);
     }
 
     // ============================================================
     //  QUERY
     // ============================================================
 
-    public bool HasUpgrade(string id)
-        => activeUpgrades.ContainsKey(id);
+    public bool HasUpgrade(string id) => activeUpgrades.ContainsKey(id);
 
-    public int GetUpgradeLevel(string id)
-        => activeUpgrades.TryGetValue(id, out var inst) ? inst.level : 0;
-
-    /// <summary>
-    /// Look up a PlayerUpgradeData asset by upgrade ID.
-    /// Returns null if the pool is not assigned or the ID is not found.
-    /// Used by upgrade behaviour classes to read their behaviourSettings.
-    /// </summary>
-    public PlayerUpgradeData GetUpgradeData(string id)
+    public IEnumerable<string> GetActiveUpgradeIds()
     {
-        if (upgradePool == null) return null;
-        foreach (var data in upgradePool.upgrades)
-            if (data != null && data.upgradeId == id) return data;
-        return null;
-    }
-
-    /// <summary>Returns a snapshot of all active upgrades as (id, level) pairs for the UI.</summary>
-    public System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, int>> GetActiveUpgrades()
-    {
-        foreach (var kv in activeUpgrades)
-            yield return new System.Collections.Generic.KeyValuePair<string, int>(kv.Key, kv.Value.level);
+        foreach (var id in activeUpgrades.Keys)
+            yield return id;
     }
 
     // ============================================================
@@ -60,14 +39,11 @@ public class PlayerUpgradeManager : MonoBehaviour
     public event Action<Vector3, float> OnChargedArrowFired;
     public event Action<Vector3, float> OnExtraArrowFired;
 
-    // enemy = the enemy GameObject that was hit
-    // chargeLevel = 0 (weak) to 1 (fully charged)
-    // wasCrit = whether this hit was a critical strike
     public event Action<GameObject, float, bool> OnArrowHitEnemy;
     public event Action<Vector3> OnArrowHitWall;
     public event Action<GameObject> OnArrowHitDestructible;
     public event Action OnArrowPickedUp;
-    public event Action<float> OnArrowChargeCancelledByEnergy;  // float = charge level reached (0-1)
+    public event Action<float> OnArrowChargeCancelledByEnergy;
 
     // ============================================================
     //  EVENTS — Dash
@@ -98,17 +74,16 @@ public class PlayerUpgradeManager : MonoBehaviour
     //  EVENTS — Movement
     // ============================================================
 
-    // jumpNumber: 1 = first jump, 2 = double jump
     public event Action<int> OnJump;
-    public event Action<float> OnLand;          // float = fall speed on landing
-    public event Action<float, float> OnFalling;       // deltaTime, currentFallSpeed
+    public event Action<float> OnLand;
+    public event Action<float, float> OnFalling;
 
     // ============================================================
     //  EVENTS — Combat
     // ============================================================
 
     public event Action<GameObject> OnEnemyKilled;
-    public event Action<GameObject, float> OnCriticalHit;   // enemy, damageDealt
+    public event Action<GameObject, float> OnCriticalHit;
     public event Action<int> OnDamageTaken;
     public event Action OnPlayerDied;
 
@@ -117,10 +92,10 @@ public class PlayerUpgradeManager : MonoBehaviour
     // ============================================================
 
     public event Action<GameObject, StatusType> OnStatusApplied;
-    public event Action<GameObject, float> OnBurnTick;      // enemy, damageDealt
+    public event Action<GameObject, float> OnBurnTick;
     public event Action<GameObject> OnFreezeTick;
-    public event Action<GameObject, float> OnHolyDetonated; // enemy, damageDealt
-    public event Action<GameObject, float> OnShockConsumed; // enemy, bonusDamage
+    public event Action<GameObject, float> OnHolyDetonated;
+    public event Action<GameObject, float> OnShockConsumed;
 
     // ============================================================
     //  EVENTS — Environment
@@ -144,39 +119,23 @@ public class PlayerUpgradeManager : MonoBehaviour
     //  UPGRADE STORAGE
     // ============================================================
 
-    private Dictionary<string, PlayerUpgradeInstance> activeUpgrades =
-        new Dictionary<string, PlayerUpgradeInstance>();
+    private Dictionary<string, PlayerUpgrade> activeUpgrades = new();
 
     // ============================================================
     //  EVENT TRIGGERS — Shooting
     // ============================================================
 
-    public void FireWeakArrow(Vector3 dir, float speed)
-        => OnWeakArrowFired?.Invoke(dir, speed);
-
-    public void FireMediumArrow(Vector3 dir, float charge)
-        => OnMediumArrowFired?.Invoke(dir, charge);
-
-    public void FireChargedArrow(Vector3 dir, float speed)
-        => OnChargedArrowFired?.Invoke(dir, speed);
-
-    public void FireExtraArrow(Vector3 dir, float speed)
-        => OnExtraArrowFired?.Invoke(dir, speed);
+    public void FireWeakArrow(Vector3 dir, float speed) => OnWeakArrowFired?.Invoke(dir, speed);
+    public void FireMediumArrow(Vector3 dir, float charge) => OnMediumArrowFired?.Invoke(dir, charge);
+    public void FireChargedArrow(Vector3 dir, float speed) => OnChargedArrowFired?.Invoke(dir, speed);
+    public void FireExtraArrow(Vector3 dir, float speed) => OnExtraArrowFired?.Invoke(dir, speed);
 
     public void ArrowHitEnemy(GameObject enemy, float chargeLevel = 0f, bool wasCrit = false)
         => OnArrowHitEnemy?.Invoke(enemy, chargeLevel, wasCrit);
-
-    public void ArrowHitWall(Vector3 position)
-        => OnArrowHitWall?.Invoke(position);
-
-    public void ArrowHitDestructible(GameObject target)
-        => OnArrowHitDestructible?.Invoke(target);
-
-    public void ArrowPickedUp()
-        => OnArrowPickedUp?.Invoke();
-
-    public void ArrowChargeCancelledByEnergy(float chargeReached)
-        => OnArrowChargeCancelledByEnergy?.Invoke(chargeReached);
+    public void ArrowHitWall(Vector3 position) => OnArrowHitWall?.Invoke(position);
+    public void ArrowHitDestructible(GameObject target) => OnArrowHitDestructible?.Invoke(target);
+    public void ArrowPickedUp() => OnArrowPickedUp?.Invoke();
+    public void ArrowChargeCancelledByEnergy(float cr) => OnArrowChargeCancelledByEnergy?.Invoke(cr);
 
     // ============================================================
     //  EVENT TRIGGERS — Dash
@@ -184,7 +143,7 @@ public class PlayerUpgradeManager : MonoBehaviour
 
     public void DashStart() => OnDashStarted?.Invoke();
     public void DashEnd() => OnDashEnded?.Invoke();
-    public void DashHitEnemy(GameObject enemy) => OnDashHitEnemy?.Invoke(enemy);
+    public void DashHitEnemy(GameObject e) => OnDashHitEnemy?.Invoke(e);
     public void DashHitWall() => OnDashHitWall?.Invoke();
 
     // ============================================================
@@ -192,7 +151,7 @@ public class PlayerUpgradeManager : MonoBehaviour
     // ============================================================
 
     public void WallSlideStart() => OnWallSlideStart?.Invoke();
-    public void WallSlideTick(float deltaTime) => OnWallSlideTick?.Invoke(deltaTime);
+    public void WallSlideTick(float dt) => OnWallSlideTick?.Invoke(dt);
     public void WallSlideEnd() => OnWallSlideEnd?.Invoke();
 
     // ============================================================
@@ -200,23 +159,23 @@ public class PlayerUpgradeManager : MonoBehaviour
     // ============================================================
 
     public void HoverStart() => OnHoverStart?.Invoke();
-    public void HoverTick(float deltaTime) => OnHoverTick?.Invoke(deltaTime);
+    public void HoverTick(float dt) => OnHoverTick?.Invoke(dt);
     public void HoverEnd() => OnHoverEnd?.Invoke();
 
     // ============================================================
     //  EVENT TRIGGERS — Movement
     // ============================================================
 
-    public void Jump(int jumpNumber) => OnJump?.Invoke(jumpNumber);
-    public void Land(float fallSpeed) => OnLand?.Invoke(fallSpeed);
-    public void Falling(float dt, float speed) => OnFalling?.Invoke(dt, speed);
+    public void Jump(int n) => OnJump?.Invoke(n);
+    public void Land(float speed) => OnLand?.Invoke(speed);
+    public void Falling(float dt, float s) => OnFalling?.Invoke(dt, s);
 
     // ============================================================
     //  EVENT TRIGGERS — Combat
     // ============================================================
 
-    public void EnemyKilled(GameObject enemy) => OnEnemyKilled?.Invoke(enemy);
-    public void CriticalHit(GameObject enemy, float dmg) => OnCriticalHit?.Invoke(enemy, dmg);
+    public void EnemyKilled(GameObject e) => OnEnemyKilled?.Invoke(e);
+    public void CriticalHit(GameObject e, float dmg) => OnCriticalHit?.Invoke(e, dmg);
     public void DamageTaken(int amount) => OnDamageTaken?.Invoke(amount);
     public void PlayerDied() => OnPlayerDied?.Invoke();
 
@@ -224,18 +183,18 @@ public class PlayerUpgradeManager : MonoBehaviour
     //  EVENT TRIGGERS — Status Effects
     // ============================================================
 
-    public void StatusApplied(GameObject enemy, StatusType type) => OnStatusApplied?.Invoke(enemy, type);
-    public void BurnTick(GameObject enemy, float dmg) => OnBurnTick?.Invoke(enemy, dmg);
-    public void FreezeTick(GameObject enemy) => OnFreezeTick?.Invoke(enemy);
-    public void HolyDetonated(GameObject enemy, float dmg) => OnHolyDetonated?.Invoke(enemy, dmg);
-    public void ShockConsumed(GameObject enemy, float bonusDmg) => OnShockConsumed?.Invoke(enemy, bonusDmg);
+    public void StatusApplied(GameObject e, StatusType t) => OnStatusApplied?.Invoke(e, t);
+    public void BurnTick(GameObject e, float dmg) => OnBurnTick?.Invoke(e, dmg);
+    public void FreezeTick(GameObject e) => OnFreezeTick?.Invoke(e);
+    public void HolyDetonated(GameObject e, float dmg) => OnHolyDetonated?.Invoke(e, dmg);
+    public void ShockConsumed(GameObject e, float bonus) => OnShockConsumed?.Invoke(e, bonus);
 
     // ============================================================
     //  EVENT TRIGGERS — Environment
     // ============================================================
 
     public void SpikesTouched() => OnSpikesTouched?.Invoke();
-    public void LavaTick(float deltaTime) => OnLavaTick?.Invoke(deltaTime);
+    public void LavaTick(float dt) => OnLavaTick?.Invoke(dt);
     public void LavaZoneDrained() => OnLavaZoneDrained?.Invoke();
 
     // ============================================================
@@ -243,59 +202,36 @@ public class PlayerUpgradeManager : MonoBehaviour
     // ============================================================
 
     public void SoulCollected(int amount) => OnSoulCollected?.Invoke(amount);
-    public void EnergyGained(float amount, EnergySource source) => OnEnergyGained?.Invoke(amount, source);
+    public void EnergyGained(float amt, EnergySource s) => OnEnergyGained?.Invoke(amt, s);
     public void PlayerLevelUp(int newLevel) => OnPlayerLevelUp?.Invoke(newLevel);
-    public void ChestOpened(ChestRarity rarity) => OnChestOpened?.Invoke(rarity);
-    public void MerchantPurchase(string itemId) => OnMerchantPurchase?.Invoke(itemId);
+    public void ChestOpened(ChestRarity r) => OnChestOpened?.Invoke(r);
+    public void MerchantPurchase(string id) => OnMerchantPurchase?.Invoke(id);
 
     // ============================================================
-    //  APPLY UPGRADE  (bug fix: OnLevelUp now called on the STORED
-    //  instance's upgrade, not the incoming one)
+    //  APPLY UPGRADE
     // ============================================================
 
     public void ApplyUpgrade(PlayerUpgrade upgrade)
     {
-        if (!activeUpgrades.TryGetValue(upgrade.Id, out var instance))
+        string id = upgrade.UpgradeId;
+
+        if (activeUpgrades.ContainsKey(id))
         {
-            // First time we see this upgrade — store it and call OnAdded
-            instance = new PlayerUpgradeInstance(upgrade);
-            activeUpgrades.Add(upgrade.Id, instance);
-            instance.upgrade.OnAdded(this);
+            Debug.LogWarning($"[UpgradeManager] '{id}' already owned — ignoring.");
+            return;
         }
 
-        // Always increment and notify the STORED upgrade, not the incoming one
-        instance.level++;
-        instance.upgrade.OnLevelUp(this, instance.level);
+        activeUpgrades.Add(id, upgrade);
+        upgrade.OnAdded(this);
 
-        Debug.Log($"[Upgrade] {upgrade.Id} → Level {instance.level}");
+        Debug.Log($"[Upgrade] {id} applied.");
     }
 }
 
 // ============================================================
 //  SUPPORTING ENUMS
-//  (kept here so all scripts can see them without extra files)
 // ============================================================
 
-public enum StatusType
-{
-    Burn,
-    Freeze,
-    Holy,
-    Shock
-}
-
-public enum EnergySource
-{
-    Kill,
-    Falling,
-    Lava,
-    WallSlide
-}
-
-public enum ChestRarity
-{
-    Common,
-    Rare,
-    Epic,
-    Legendary
-}
+public enum StatusType { Burn, Freeze, Holy, Shock }
+public enum EnergySource { Kill, Falling, Lava, WallSlide }
+public enum ChestRarity { Common, Rare, Epic, Legendary }

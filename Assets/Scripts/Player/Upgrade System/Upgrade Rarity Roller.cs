@@ -1,5 +1,14 @@
 using UnityEngine;
 
+// ================================================================
+//  ENUMS
+//  Moved here from PlayerUpgradeData (which has been removed).
+//  All upgrade-system scripts reference these from this file.
+// ================================================================
+
+public enum UpgradeRarity { Common, Rare, Epic, Legendary }
+public enum UpgradeCategory { Arrow, Dash, Passive, Conditional, Curse, Misc }
+
 /// <summary>
 /// Handles rarity rolling for all upgrade sources.
 ///
@@ -26,23 +35,13 @@ public static class UpgradeRarityRoller
     private const float EpicProportion = 0.30f;
     private const float LegendaryProportion = 0.20f;
 
-    /// <summary>
-    /// Full roll — uses both layer depth and luck.
-    /// Used for level-up upgrade picks.
-    /// </summary>
+    /// <summary>Full roll — uses both layer depth and luck. Used for level-up picks.</summary>
     public static UpgradeRarity Roll(int layer, float luck)
-    {
-        return RollInternal(layer, luck);
-    }
+        => RollInternal(layer, luck);
 
-    /// <summary>
-    /// Chest roll — luck only, no layer influence.
-    /// All chests are the same; rarity comes from luck stat alone.
-    /// </summary>
+    /// <summary>Chest roll — luck only, no layer influence.</summary>
     public static UpgradeRarity RollWithLuckOnly(float luck)
-    {
-        return RollInternal(1, luck); // layer=1 means zero layer shift
-    }
+        => RollInternal(1, luck);
 
     private static UpgradeRarity RollInternal(int layer, float luck)
     {

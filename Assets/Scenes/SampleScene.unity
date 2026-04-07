@@ -587,18 +587,12 @@ MonoBehaviour:
   cardBackground: {fileID: 585156484}
   iconImage: {fileID: 0}
   rarityLabel: {fileID: 1536149357}
-  levelLabel: {fileID: 1539686410}
   nameLabel: {fileID: 491308506}
   descriptionLabel: {fileID: 111242530}
   statBonusContainer: {fileID: 850668098}
   statBonusLinePrefab: {fileID: 1045646799145302456, guid: 3e88ebde585721c498cfa53d6220d9c8, type: 3}
   pickButton: {fileID: 1480841292}
   backgroundAlpha: 0.83
-  offer:
-    data: {fileID: 0}
-    rarity: 0
-    statBonuses: []
-    currentLevel: 0
 --- !u!1 &68270033
 GameObject:
   m_ObjectHideFlags: 0
@@ -667,18 +661,12 @@ MonoBehaviour:
   cardBackground: {fileID: 861487268}
   iconImage: {fileID: 0}
   rarityLabel: {fileID: 784077056}
-  levelLabel: {fileID: 1329803109}
   nameLabel: {fileID: 2501073}
   descriptionLabel: {fileID: 1311915444}
   statBonusContainer: {fileID: 287063733}
   statBonusLinePrefab: {fileID: 1045646799145302456, guid: 3e88ebde585721c498cfa53d6220d9c8, type: 3}
   pickButton: {fileID: 1904833325}
   backgroundAlpha: 0.83
-  offer:
-    data: {fileID: 0}
-    rarity: 0
-    statBonuses: []
-    currentLevel: 0
 --- !u!224 &80641820
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2827,6 +2815,8 @@ MonoBehaviour:
   soulsLegendaryMin: 60
   soulsLegendaryMax: 120
   upgradePool: {fileID: 11400000, guid: 02c3df621c5792d479ab11c0db5de8c1, type: 2}
+  spawnOffset: {x: 0, y: 1, z: 0}
+  spawnEjectForce: 3
   playerStats: {fileID: 1048261606}
   upgradeManager: {fileID: 1048261605}
   playerState: {fileID: 1048261604}
@@ -6294,7 +6284,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae1ea009ed3fc5f46964f873820a87c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  upgradePool: {fileID: 11400000, guid: 02c3df621c5792d479ab11c0db5de8c1, type: 2}
   debugActiveUpgrades: []
 --- !u!114 &1048261606
 MonoBehaviour:
@@ -6312,7 +6301,7 @@ MonoBehaviour:
   agility: 0
   attackDamage: 0
   abilityPower: 0
-  luck: 1.4
+  luck: 0
   psyche: 0
   health_stat: 0
   size: 0
@@ -10718,6 +10707,167 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1632562814
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1632562820}
+  - component: {fileID: 1632562819}
+  - component: {fileID: 1632562818}
+  - component: {fileID: 1632562817}
+  - component: {fileID: 1632562816}
+  - component: {fileID: 1632562815}
+  m_Layer: 0
+  m_Name: Orb Burning Arrow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1632562815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1632562814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b57a68b1ff806164eb37c5f6f38d2d66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  upgradeId: 
+  displayName: 
+  description: 
+  icon: {fileID: 0}
+  category: 0
+  rarity: 0
+  statBonuses: []
+  initialDampDuration: 0.5
+  minAttractSpeed: 5
+  maxAttractSpeed: 16
+  attractAccelerationTime: 0.6
+  shrinkStartDistance: 1.5
+--- !u!54 &1632562816
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1632562814}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!135 &1632562817
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1632562814}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1632562818
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1632562814}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1632562819
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1632562814}
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1632562820
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1632562814}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.66, y: 21.842999, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1637232971
 GameObject:
   m_ObjectHideFlags: 0
@@ -10786,6 +10936,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52e0809a871dc4246a25d259df24a285, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  destructiblesLayer:
+    serializedVersion: 2
+    m_Bits: 4096
 --- !u!23 &1637232975
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -11588,18 +11744,12 @@ MonoBehaviour:
   cardBackground: {fileID: 220978939}
   iconImage: {fileID: 0}
   rarityLabel: {fileID: 1264430601}
-  levelLabel: {fileID: 1235578762}
   nameLabel: {fileID: 37509714}
   descriptionLabel: {fileID: 1726480021}
   statBonusContainer: {fileID: 2124079789}
   statBonusLinePrefab: {fileID: 1045646799145302456, guid: 3e88ebde585721c498cfa53d6220d9c8, type: 3}
   pickButton: {fileID: 1363352939}
   backgroundAlpha: 0.83
-  offer:
-    data: {fileID: 0}
-    rarity: 0
-    statBonuses: []
-    currentLevel: 0
 --- !u!1 &1785276224
 GameObject:
   m_ObjectHideFlags: 0
@@ -12112,6 +12262,8 @@ MonoBehaviour:
   - {fileID: 1756990265}
   - {fileID: 80641819}
   upgradePool: {fileID: 11400000, guid: 02c3df621c5792d479ab11c0db5de8c1, type: 2}
+  spawnOffset: {x: 0, y: 1, z: 0}
+  spawnEjectForce: 3
   playerStats: {fileID: 1048261606}
   upgradeManager: {fileID: 1048261605}
   playerState: {fileID: 1048261604}
@@ -12152,6 +12304,8 @@ MonoBehaviour:
   soulsLegendaryMin: 60
   soulsLegendaryMax: 120
   upgradePool: {fileID: 11400000, guid: 02c3df621c5792d479ab11c0db5de8c1, type: 2}
+  spawnOffset: {x: 0, y: 1, z: 0}
+  spawnEjectForce: 3
   playerStats: {fileID: 1048261606}
   upgradeManager: {fileID: 1048261605}
   playerState: {fileID: 1048261604}
@@ -14674,3 +14828,4 @@ SceneRoots:
   - {fileID: 177737229}
   - {fileID: 526545873}
   - {fileID: 2485938725266945928}
+  - {fileID: 1632562820}

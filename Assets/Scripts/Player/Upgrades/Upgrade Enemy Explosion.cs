@@ -2,23 +2,31 @@
 using System.Collections;
 
 /// <summary>
-/// Enemy Explosion — enemies explode on death dealing AoE damage.
+/// Enemy Explosion upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
+/// All tuning values are exposed in the Inspector on the prefab.
 ///
-/// PlayerUpgradeData behaviourSettings needed:
-///   "damage"       — base explosion damage (default 15)
-///   "damageAP"     — fraction of Ability Power added to damage (default 1.0)
-///   "radius"       — base explosion radius (default 3)
-///   "radiusSize"   — fraction of Size stat added to radius (default 0.10)
-///   "debugVisual"  — how long the sphere visual stays (default 0.25)
-///
-/// Example description template:
-///   "Enemies explode on death dealing [damage] damage in a [radius] radius."
+/// Effect: enemies explode on death, dealing AoE damage with falloff.
+/// Final damage  = damage + damageAP × AbilityPower
+/// Final radius  = radius + radiusSize × Size
 /// </summary>
 public class UpgradeEnemyExplosion : PlayerUpgrade
 {
-    public override string Id => "Enemy_Explosion";
+    [Header("Enemy Explosion — Tuning")]
+    [Tooltip("Base explosion damage.")]
+    public float damage = 15f;
 
-    private float damage, damageAP, radius, radiusSize, debugVisual;
+    [Tooltip("Fraction of Ability Power added to damage.")]
+    public float damageAP = 1.0f;
+
+    [Tooltip("Base explosion radius in world units.")]
+    public float radius = 3f;
+
+    [Tooltip("Fraction of Size stat added to radius.")]
+    public float radiusSize = 0.10f;
+
+    [Tooltip("How long the debug sphere visual stays visible (seconds).")]
+    public float debugVisualDuration = 0.25f;
+
     private PlayerStats playerStats;
     private MonoBehaviour host;
 
@@ -26,18 +34,8 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
     {
         playerStats = mgr.GetComponent<PlayerStats>();
         host = mgr;
-
-        var data = mgr.GetUpgradeData(Id);
-        damage = data?.GetSetting("damage", 15f) ?? 15f;
-        damageAP = data?.GetSetting("damageAP", 1.0f) ?? 1.0f;
-        radius = data?.GetSetting("radius", 3.0f) ?? 3.0f;
-        radiusSize = data?.GetSetting("radiusSize", 0.10f) ?? 0.10f;
-        debugVisual = data?.GetSetting("debugVisual", 0.25f) ?? 0.25f;
-
         mgr.OnEnemyKilled += OnEnemyKilled;
     }
-
-    public override void OnLevelUp(PlayerUpgradeManager mgr, int newLevel) { }
 
     private float GetDamage() =>
         damage + damageAP * (playerStats != null ? playerStats.abilityPower : 0f);
@@ -98,13 +96,13 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
 
     private IEnumerator ShowSphere(Vector3 pos, float rad)
     {
-        var sphere = UnityEngine.GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         Object.Destroy(sphere.GetComponent<Collider>());
         sphere.transform.position = pos;
         sphere.transform.localScale = Vector3.one * rad * 2f;
         var r = sphere.GetComponent<Renderer>();
         if (r != null) r.material = MakeTransparentMaterial(new Color(1f, 0.1f, 0.1f, 0.35f));
-        yield return new WaitForSeconds(debugVisual);
+        yield return new WaitForSeconds(debugVisualDuration);
         Object.Destroy(sphere);
     }
 
@@ -117,4 +115,4 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
     }
 }
 
-public class ExplosionVictim : UnityEngine.MonoBehaviour { }
+public class ExplosionVictim : MonoBehaviour { }

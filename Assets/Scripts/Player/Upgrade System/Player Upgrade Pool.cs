@@ -1,24 +1,23 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Pool of upgrade orb prefabs. Each prefab has a PlayerUpgrade subclass on it.
+/// The pool rolls rarity and primary stat bonuses (same as before), then
+/// returns an UpgradeOrbOffer containing the prefab + rolled data for the UI to display.
+/// When the player picks an offer, the UI spawns the prefab and injects the rolled data.
+/// </summary>
 [CreateAssetMenu(menuName = "Upgrades/Upgrade Pool")]
 public class PlayerUpgradePool : ScriptableObject
 {
-    [Header("All upgrades — drag every PlayerUpgradeData asset here")]
-    public List<PlayerUpgradeData> upgrades = new List<PlayerUpgradeData>();
+    [Header("All upgrade orb prefabs — one entry per upgrade")]
+    public List<GameObject> upgradePrefabs = new List<GameObject>();
 
     // ================================================================
-    //  PER-STAT BONUS RANGES
-    //  Each primary stat has its own min/max per rarity.
-    //  Luck adds luckBonusPerPoint to BOTH min and max for every stat.
-    //  Values are in primary stat units (float, 0.1 precision).
-    //
-    //  Defaults populate in OnEnable — override freely in the Inspector
-    //  on your PlayerUpgradePool ScriptableObject asset.
+    //  PER-STAT BONUS RANGES  (same as before)
     // ================================================================
 
-    [Header("Per-Stat Bonus Ranges (each stat configurable independently)")]
-    [Tooltip("One entry per primary stat. Luck scales both ends by luckBonusPerPoint.")]
+    [Header("Per-Stat Bonus Ranges")]
     public StatBonusRange[] statRanges;
 
     [Header("Luck Scaling")]
@@ -26,7 +25,6 @@ public class PlayerUpgradePool : ScriptableObject
     public float luckBonusPerPoint = 0.05f;
 
     [Header("Stat Weights (relative chance each stat appears on a card)")]
-    [Tooltip("Increase a value to make that stat appear more often on upgrade cards")]
     public float weightAgility = 1f;
     public float weightAttackDamage = 1f;
     public float weightAbilityPower = 1f;
@@ -47,55 +45,29 @@ public class PlayerUpgradePool : ScriptableObject
         statRanges = new StatBonusRange[]
         {
             new StatBonusRange { stat = PrimaryStat.Agility,
-                commonMin=0.3f, commonMax=1.0f,
-                rareMin=0.8f,   rareMax=2.0f,
-                epicMin=1.5f,   epicMax=3.0f,
-                legendaryMin=2.5f, legendaryMax=5.0f },
-
+                commonMin=0.3f, commonMax=1.0f, rareMin=0.8f, rareMax=2.0f,
+                epicMin=1.5f, epicMax=3.0f, legendaryMin=2.5f, legendaryMax=5.0f },
             new StatBonusRange { stat = PrimaryStat.AttackDamage,
-                commonMin=0.3f, commonMax=1.0f,
-                rareMin=0.8f,   rareMax=2.0f,
-                epicMin=1.5f,   epicMax=3.0f,
-                legendaryMin=2.5f, legendaryMax=5.0f },
-
+                commonMin=0.3f, commonMax=1.0f, rareMin=0.8f, rareMax=2.0f,
+                epicMin=1.5f, epicMax=3.0f, legendaryMin=2.5f, legendaryMax=5.0f },
             new StatBonusRange { stat = PrimaryStat.AbilityPower,
-                commonMin=0.3f, commonMax=1.0f,
-                rareMin=0.8f,   rareMax=2.0f,
-                epicMin=1.5f,   epicMax=3.0f,
-                legendaryMin=2.5f, legendaryMax=5.0f },
-
-            // Luck — smaller increments, each point is high impact
+                commonMin=0.3f, commonMax=1.0f, rareMin=0.8f, rareMax=2.0f,
+                epicMin=1.5f, epicMax=3.0f, legendaryMin=2.5f, legendaryMax=5.0f },
             new StatBonusRange { stat = PrimaryStat.Luck,
-                commonMin=0.1f, commonMax=0.5f,
-                rareMin=0.3f,   rareMax=1.0f,
-                epicMin=0.6f,   epicMax=1.5f,
-                legendaryMin=1.0f, legendaryMax=2.5f },
-
+                commonMin=0.1f, commonMax=0.5f, rareMin=0.3f, rareMax=1.0f,
+                epicMin=0.6f, epicMax=1.5f, legendaryMin=1.0f, legendaryMax=2.5f },
             new StatBonusRange { stat = PrimaryStat.Psyche,
-                commonMin=0.2f, commonMax=0.8f,
-                rareMin=0.5f,   rareMax=1.5f,
-                epicMin=1.0f,   epicMax=2.5f,
-                legendaryMin=2.0f, legendaryMax=4.0f },
-
-            // Health — larger numbers since 1 Health = 1 max HP
+                commonMin=0.2f, commonMax=0.8f, rareMin=0.5f, rareMax=1.5f,
+                epicMin=1.0f, epicMax=2.5f, legendaryMin=2.0f, legendaryMax=4.0f },
             new StatBonusRange { stat = PrimaryStat.Health,
-                commonMin=1.0f, commonMax=3.0f,
-                rareMin=2.0f,   rareMax=5.0f,
-                epicMin=4.0f,   epicMax=8.0f,
-                legendaryMin=7.0f, legendaryMax=12.0f },
-
-            // Size — small increments, each matters for AoE radius
+                commonMin=1.0f, commonMax=3.0f, rareMin=2.0f, rareMax=5.0f,
+                epicMin=4.0f, epicMax=8.0f, legendaryMin=7.0f, legendaryMax=12.0f },
             new StatBonusRange { stat = PrimaryStat.Size,
-                commonMin=0.1f, commonMax=0.4f,
-                rareMin=0.2f,   rareMax=0.8f,
-                epicMin=0.5f,   epicMax=1.2f,
-                legendaryMin=1.0f, legendaryMax=2.0f },
-
+                commonMin=0.1f, commonMax=0.4f, rareMin=0.2f, rareMax=0.8f,
+                epicMin=0.5f, epicMax=1.2f, legendaryMin=1.0f, legendaryMax=2.0f },
             new StatBonusRange { stat = PrimaryStat.Cooldown,
-                commonMin=0.2f, commonMax=0.8f,
-                rareMin=0.5f,   rareMax=1.5f,
-                epicMin=1.0f,   epicMax=2.5f,
-                legendaryMin=2.0f, legendaryMax=4.0f },
+                commonMin=0.2f, commonMax=0.8f, rareMin=0.5f, rareMax=1.5f,
+                epicMin=1.0f, epicMax=2.5f, legendaryMin=2.0f, legendaryMax=4.0f },
         };
     }
 
@@ -103,64 +75,82 @@ public class PlayerUpgradePool : ScriptableObject
     //  PUBLIC API
     // ================================================================
 
-    public List<UpgradeOffer> RollLevelUpOffers(int layer, float luck,
-                                                 PlayerStats stats = null, int count = 3,
-                                                 PlayerUpgradeManager upgradeManager = null)
+    /// <summary>
+    /// Rolls up to `count` distinct offers for the level-up screen.
+    /// Each offer contains a prefab + a rolled rarity + rolled stat bonuses.
+    /// </summary>
+    public List<UpgradeOrbOffer> RollLevelUpOffers(int layer, float luck,
+                                                    PlayerStats stats = null, int count = 3,
+                                                    PlayerUpgradeManager upgradeManager = null)
     {
-        var offers = new List<UpgradeOffer>();
-        var usedIds = new HashSet<string>();
-        var pool = new List<PlayerUpgradeData>(upgrades);
+        var offers = new List<UpgradeOrbOffer>();
+        var pool = new List<GameObject>(upgradePrefabs);
         int attempts = 0;
 
         while (offers.Count < count && pool.Count > 0 && attempts < 100)
         {
             attempts++;
             int idx = Random.Range(0, pool.Count);
-            PlayerUpgradeData d = pool[idx];
+            GameObject prefab = pool[idx];
             pool.RemoveAt(idx);
-            if (usedIds.Contains(d.upgradeId)) continue;
-            // Skip upgrades already owned — each upgrade has one level, disappears when picked
-            if (upgradeManager != null && upgradeManager.HasUpgrade(d.upgradeId)) continue;
+
+            if (prefab == null) continue;
+
+            PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
+            if (upgrade == null) continue;
+
+            // Skip already-owned upgrades
+            if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
 
             UpgradeRarity rarity = UpgradeRarityRoller.Roll(layer, luck);
-            offers.Add(BuildOffer(d, rarity, stats));
-            usedIds.Add(d.upgradeId);
+            offers.Add(BuildOffer(prefab, upgrade, rarity, stats));
         }
+
         return offers;
     }
 
-    public UpgradeOffer RollChestOffer(float luck, PlayerStats stats = null)
+    /// <summary>Rolls one offer for a chest.</summary>
+    public UpgradeOrbOffer RollChestOffer(float luck, PlayerStats stats = null,
+                                           PlayerUpgradeManager upgradeManager = null)
     {
-        if (upgrades.Count == 0) return null;
-        UpgradeRarity rarity = UpgradeRarityRoller.RollWithLuckOnly(luck);
-        PlayerUpgradeData data = upgrades[Random.Range(0, upgrades.Count)];
-        return BuildOffer(data, rarity, stats);
+        var results = RollLevelUpOffers(1, luck, stats, 1, upgradeManager);
+        return results.Count > 0 ? results[0] : null;
     }
 
-    public List<UpgradeOffer> RollMerchantOffers(int layer, float luck,
-                                                   PlayerStats stats = null, int count = 3)
-        => RollLevelUpOffers(layer + 2, luck, stats, count);
-
-    public UpgradeOffer BuildOffer(PlayerUpgradeData data, UpgradeRarity rarity,
-                                    PlayerStats stats = null)
+    public UpgradeOrbOffer BuildOffer(GameObject prefab, PlayerUpgrade upgrade,
+                                      UpgradeRarity rarity, PlayerStats stats)
     {
-        var offer = new UpgradeOffer();
-        offer.data = data;
-        offer.rarity = rarity;
-        offer.statBonuses = new List<UpgradeStatBonus>();
-
-        if (data.isCurse) return offer;
-
-        int count = data.GetStatCount(rarity);
-        if (count <= 0) return offer;
+        var offer = new UpgradeOrbOffer
+        {
+            prefab = prefab,
+            upgrade = upgrade,
+            rarity = rarity
+        };
 
         float luckVal = stats != null ? stats.luck : 0f;
-        RollStatBonuses(count, rarity, luckVal, offer.statBonuses);
+        int count = upgrade.GetStatCount(rarity);
+        offer.statBonuses = new List<UpgradeStatBonus>();
+        if (count > 0)
+            RollStatBonuses(count, rarity, luckVal, offer.statBonuses);
+
         return offer;
     }
 
+    /// <summary>All display names for the chest slot-machine animation.</summary>
+    public List<string> GetAllDisplayNames()
+    {
+        var names = new List<string>();
+        foreach (var prefab in upgradePrefabs)
+        {
+            if (prefab == null) continue;
+            PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
+            if (upgrade != null) names.Add(upgrade.displayName);
+        }
+        return names;
+    }
+
     // ================================================================
-    //  PRIVATE
+    //  PRIVATE — stat rolling (identical logic to before)
     // ================================================================
 
     private void RollStatBonuses(int count, UpgradeRarity rarity, float luck,
@@ -169,8 +159,7 @@ public class PlayerUpgradePool : ScriptableObject
         float luckBonus = luck * luckBonusPerPoint;
         var statPool = BuildWeightedStatPool();
         var usedStats = new HashSet<PrimaryStat>();
-        int picked = 0;
-        int attempts = 0;
+        int picked = 0, attempts = 0;
 
         while (picked < count && attempts < 50)
         {
@@ -179,13 +168,12 @@ public class PlayerUpgradePool : ScriptableObject
             if (usedStats.Contains(stat)) continue;
             usedStats.Add(stat);
 
-            // Each stat gets its own range for this rarity
             (float min, float max) = GetRarityRange(rarity, stat);
             min += luckBonus;
             max += luckBonus;
 
             float raw = Random.Range(min, max);
-            float value = Mathf.Round(raw * 10f) / 10f;  // 0.1 precision
+            float value = Mathf.Round(raw * 10f) / 10f;
             value = Mathf.Max(0.1f, value);
 
             result.Add(new UpgradeStatBonus { stat = stat, value = value });
@@ -193,7 +181,6 @@ public class PlayerUpgradePool : ScriptableObject
         }
     }
 
-    /// <summary>Returns the min/max bonus range for a specific stat at a specific rarity.</summary>
     private (float min, float max) GetRarityRange(UpgradeRarity rarity, PrimaryStat stat)
     {
         if (statRanges != null)
@@ -211,12 +198,11 @@ public class PlayerUpgradePool : ScriptableObject
                 };
             }
         }
-        return (0.3f, 1.0f); // safe fallback
+        return (0.3f, 1.0f);
     }
 
-    private List<(PrimaryStat stat, float weight)> BuildWeightedStatPool()
-    {
-        return new List<(PrimaryStat, float)>
+    private List<(PrimaryStat stat, float weight)> BuildWeightedStatPool() =>
+        new List<(PrimaryStat, float)>
         {
             (PrimaryStat.Agility,      weightAgility),
             (PrimaryStat.AttackDamage, weightAttackDamage),
@@ -227,7 +213,6 @@ public class PlayerUpgradePool : ScriptableObject
             (PrimaryStat.Size,         weightSize),
             (PrimaryStat.Cooldown,     weightCooldown),
         };
-    }
 
     private PrimaryStat WeightedPick(List<(PrimaryStat stat, float weight)> pool)
     {
@@ -245,7 +230,19 @@ public class PlayerUpgradePool : ScriptableObject
 }
 
 // ================================================================
-//  PER-STAT RANGE ENTRY
+//  OFFER  — carries prefab + rolled data from pool to UI
+// ================================================================
+
+public class UpgradeOrbOffer
+{
+    public GameObject prefab;
+    public PlayerUpgrade upgrade;
+    public UpgradeRarity rarity;
+    public List<UpgradeStatBonus> statBonuses;
+}
+
+// ================================================================
+//  STAT BONUS RANGE  — per-stat min/max at each rarity
 // ================================================================
 
 [System.Serializable]
@@ -253,28 +250,8 @@ public class StatBonusRange
 {
     public PrimaryStat stat;
 
-    [Tooltip("Range at Common rarity (before luck scaling)")]
-    public float commonMin;
-    public float commonMax;
-
-    [Tooltip("Range at Rare rarity")]
-    public float rareMin;
-    public float rareMax;
-
-    [Tooltip("Range at Epic rarity")]
-    public float epicMin;
-    public float epicMax;
-
-    [Tooltip("Range at Legendary rarity")]
-    public float legendaryMin;
-    public float legendaryMax;
-}
-
-[System.Serializable]
-public class UpgradeOffer
-{
-    public PlayerUpgradeData data;
-    public UpgradeRarity rarity;
-    public List<UpgradeStatBonus> statBonuses;
-    public int currentLevel;
+    public float commonMin; public float commonMax;
+    public float rareMin; public float rareMax;
+    public float epicMin; public float epicMax;
+    public float legendaryMin; public float legendaryMax;
 }
