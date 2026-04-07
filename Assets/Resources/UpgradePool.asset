@@ -30,22 +30,22 @@ MonoBehaviour:
     legendaryMax: 15
   - stat: 1
     commonMin: 1
-    commonMax: 3
-    rareMin: 3
-    rareMax: 6
-    epicMin: 6
-    epicMax: 9
-    legendaryMin: 10
-    legendaryMax: 15
+    commonMax: 2
+    rareMin: 2
+    rareMax: 4
+    epicMin: 4
+    epicMax: 6
+    legendaryMin: 6
+    legendaryMax: 10
   - stat: 2
     commonMin: 1
-    commonMax: 3
-    rareMin: 3
-    rareMax: 6
-    epicMin: 6
-    epicMax: 9
-    legendaryMin: 10
-    legendaryMax: 15
+    commonMax: 2
+    rareMin: 2
+    rareMax: 4
+    epicMin: 4
+    epicMax: 6
+    legendaryMin: 6
+    legendaryMax: 10
   - stat: 3
     commonMin: 1
     commonMax: 3
@@ -65,15 +65,6 @@ MonoBehaviour:
     legendaryMin: 7.5
     legendaryMax: 10
   - stat: 5
-    commonMin: 2
-    commonMax: 5
-    rareMin: 4
-    rareMax: 7
-    epicMin: 6
-    epicMax: 9
-    legendaryMin: 8
-    legendaryMax: 13
-  - stat: 6
     commonMin: 1
     commonMax: 3
     rareMin: 2
@@ -82,6 +73,15 @@ MonoBehaviour:
     epicMax: 6
     legendaryMin: 7
     legendaryMax: 10
+  - stat: 6
+    commonMin: 1
+    commonMax: 2
+    rareMin: 2
+    rareMax: 3
+    epicMin: 3
+    epicMax: 4
+    legendaryMin: 5
+    legendaryMax: 6
   - stat: 7
     commonMin: 0.2
     commonMax: 0.8

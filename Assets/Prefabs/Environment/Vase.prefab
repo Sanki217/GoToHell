@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 54166518229649373}
   m_Layer: 12
   m_Name: Vase
-  m_TagString: Enemy
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -121,7 +121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 269c11dfc56eaa74a88c6792cfd15939, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 10
+  maxHealth: 1
   soulPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
   minSouls: 1
   maxSouls: 4
