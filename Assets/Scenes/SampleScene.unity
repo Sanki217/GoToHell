@@ -3064,81 +3064,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 27474412}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &339441576
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 339441577}
-  - component: {fileID: 339441578}
-  m_Layer: 0
-  m_Name: Chest Reward UI
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &339441577
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 339441576}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -485.09445, y: -276.41125, z: 1886.1215}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 526545873}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &339441578
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 339441576}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 66a615885e201374cacf4ce87834478d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  chestPanel: {fileID: 118914399}
-  rollingNameLabel: {fileID: 1996729335}
-  rollingBackground: {fileID: 152995030}
-  rollStartInterval: 0.05
-  rollEndInterval: 0.35
-  rollDuration: 2.5
-  resultCard: {fileID: 136787887}
-  resultNameLabel: {fileID: 1380095399}
-  resultRarityLabel: {fileID: 661329418}
-  resultDescriptionLabel: {fileID: 1163749852}
-  resultSoulsLabel: {fileID: 245094906}
-  resultIcon: {fileID: 1614010885}
-  resultCardBackground: {fileID: 1317960808}
-  resultStatContainer: {fileID: 1440894882}
-  statLinePrefab: {fileID: 6293048863497785804}
-  collectButton: {fileID: 2071057842}
-  soulsCommonMin: 5
-  soulsCommonMax: 15
-  soulsRareMin: 15
-  soulsRareMax: 30
-  soulsEpicMin: 30
-  soulsEpicMax: 60
-  soulsLegendaryMin: 60
-  soulsLegendaryMax: 120
-  upgradePool: {fileID: 11400000, guid: 02c3df621c5792d479ab11c0db5de8c1, type: 2}
-  spawnOffset: {x: 0, y: 1, z: 0}
-  spawnEjectForce: 3
-  playerStats: {fileID: 1048261606}
-  upgradeManager: {fileID: 1048261605}
-  playerState: {fileID: 1048261604}
-  playerInventory: {fileID: 1048261603}
 --- !u!1 &359662514
 GameObject:
   m_ObjectHideFlags: 0
@@ -3491,7 +3416,7 @@ RectTransform:
   m_Father: {fileID: 1388504593}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -3844,7 +3769,6 @@ Transform:
   - {fileID: 1279735793}
   - {fileID: 444974629}
   - {fileID: 761111132}
-  - {fileID: 339441577}
   - {fileID: 697591142}
   - {fileID: 519840846}
   m_Father: {fileID: 0}
@@ -6481,7 +6405,7 @@ MonoBehaviour:
   yOffset: -1.8
   shakeEnabled: 1
   shakeIntensity: 1
-  traumaDecayRate: 3
+  traumaDecayRate: 4
 --- !u!1 &1042281337
 GameObject:
   m_ObjectHideFlags: 0
@@ -6797,7 +6721,7 @@ MonoBehaviour:
   chargePercentText: {fileID: 2032593688}
   cameraZoomAmount: 1.5
   cameraZoomInTime: 1
-  cameraZoomOutTime: 2
+  cameraZoomOutTime: 0.2
   chargeNormalized: 0
   currentSpeedMultiplier: 1
 --- !u!114 &1048261600
@@ -6815,7 +6739,7 @@ MonoBehaviour:
   maxHP: 100
   hpSlider: {fileID: 2054230085}
   hpText: {fileID: 1413501593}
-  invincibilityTime: 1
+  invincibilityTime: 2
   playerRenderer: {fileID: 1048261594}
   hitFlashColor: {r: 1, g: 0, b: 0, a: 1}
   hitFlashDuration: 0.1
@@ -7158,8 +7082,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   xpPerLevel:
   - 10
-  - 20
-  - 30
+  - 25
   - 45
   - 60
   - 80
@@ -7175,8 +7098,9 @@ MonoBehaviour:
   - 380
   - 420
   - 470
-  - 530
-  - 600
+  - 520
+  - 570
+  - 620
   - 666
   currentLayer: 1
   currentLevel: 1
@@ -13327,7 +13251,7 @@ RectTransform:
   m_Father: {fileID: 1042281338}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -13386,7 +13310,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1856953673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15733,7 +15657,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2099106532
 RectTransform:
   m_ObjectHideFlags: 0
