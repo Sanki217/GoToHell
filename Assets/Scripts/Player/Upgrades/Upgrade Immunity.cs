@@ -1,12 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 /// <summary>
 /// Immunity upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
-/// All tuning values are exposed in the Inspector on the prefab.
 ///
-/// Effect: player becomes invincible for `duration` seconds every `cooldown` seconds.
-/// Effective cooldown = max(cooldownMin, cooldown × (1 − cooldownReductionPerStat × Cooldown))
+/// Effect: player becomes invincible for duration seconds every cooldown seconds.
+/// Scales with Cooldown stat (reduces the interval between pulses).
 /// </summary>
 public class UpgradeImmunity : PlayerUpgrade
 {
@@ -25,15 +25,21 @@ public class UpgradeImmunity : PlayerUpgrade
 
     private PlayerStats playerStats;
     private PlayerHealth playerHealth;
-    private PlayerUpgradeManager host;
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
         playerStats = mgr.GetComponent<PlayerStats>();
         playerHealth = mgr.GetComponent<PlayerHealth>();
-        host = mgr;
-
         mgr.StartCoroutine(ImmunityCycle());
+    }
+
+    public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
+    {
+        var s = Simulate(stats, simulatedBonuses);
+        float reduction = s.cooldown * cooldownReductionPerStat;
+        float effectiveCooldown = Mathf.Max(cooldownMin, cooldown * (1f - reduction));
+        return $"Grants {CD(duration)}s of invincibility every {CD(effectiveCooldown)}s.\n" +
+               $"Scales with <color=#44FFEE>Cooldown</color>.";
     }
 
     private float GetCooldown()

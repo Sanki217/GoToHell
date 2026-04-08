@@ -1,11 +1,12 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// Soul Bonus upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
-/// All tuning values are exposed in the Inspector on the prefab.
 ///
 /// Effect: every soul collected grants extra souls.
 /// Extra souls = collected × (bonusPercent + bonusPerLuck × Luck)
+/// Scales with Luck.
 /// </summary>
 public class UpgradeSoulBonus : PlayerUpgrade
 {
@@ -28,6 +29,15 @@ public class UpgradeSoulBonus : PlayerUpgrade
         levelSystem = mgr.GetComponent<PlayerLevelSystem>();
 
         mgr.OnSoulCollected += OnSoulCollected;
+    }
+
+    public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
+    {
+        var s = Simulate(stats, simulatedBonuses);
+        float bonus = bonusPercent + bonusPerLuck * s.luck;
+        int pct = Mathf.RoundToInt(bonus * 100f);
+        return $"Each soul collected grants {LK(pct, "F0")}% bonus souls.\n" +
+               $"Scales with <color=#AAFF44>Luck</color>.";
     }
 
     private float GetBonus() =>

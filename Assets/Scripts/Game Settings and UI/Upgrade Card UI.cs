@@ -6,10 +6,12 @@ using System.Collections.Generic;
 /// <summary>
 /// Drives a single upgrade card in the level-up picker.
 ///
-/// NEW badge: shown when the upgrade ID has never been seen in this session.
-///            Tracked via a static HashSet that lives for the lifetime of the process.
+/// Description: calls upgrade.GetDynamicDescription(stats, simulatedBonuses) — returns
+/// rich-text with live-calculated numbers coloured by primary stat.
 ///
-/// Stat lines: always show current stat → value after picking (uses GetPreviewLine).
+/// NEW badge: shown when the upgrade ID hasn't been seen this session.
+///
+/// Stat lines: always show current → after picking.
 /// </summary>
 public class UpgradeCardUI : MonoBehaviour
 {
@@ -24,8 +26,7 @@ public class UpgradeCardUI : MonoBehaviour
     public Button pickButton;
 
     [Header("NEW Badge")]
-    [Tooltip("Assign a GameObject that contains a 'NEW' label. " +
-             "Hidden if the upgrade has been seen before this session.")]
+    [Tooltip("GameObject containing the 'NEW' label. Hidden if upgrade was seen before this session.")]
     public GameObject newBadge;
 
     [Header("Rarity Background Alpha")]
@@ -33,8 +34,6 @@ public class UpgradeCardUI : MonoBehaviour
 
     // ================================================================
     //  SESSION-SCOPED SEEN SET
-    //  Static so it persists across level-ups within one run.
-    //  Resets automatically when the process restarts (new run).
     // ================================================================
     private static readonly HashSet<string> seenUpgradeIds = new HashSet<string>();
 
@@ -51,7 +50,6 @@ public class UpgradeCardUI : MonoBehaviour
         offer = upgradeOffer;
         onPicked = pickedCallback;
 
-        // Grab PlayerStats for current→after preview
         if (playerStats == null)
         {
             GameObject player = GameObject.FindWithTag("Player");
@@ -82,17 +80,19 @@ public class UpgradeCardUI : MonoBehaviour
         if (nameLabel != null)
             nameLabel.text = upgrade != null ? upgrade.displayName : "";
 
+        // Dynamic description — live-calculated coloured numbers
         if (descriptionLabel != null)
-            descriptionLabel.text = upgrade != null ? upgrade.description : "";
+        {
+            descriptionLabel.text = upgrade != null
+                ? upgrade.GetDynamicDescription(playerStats, offer.statBonuses)
+                : "";
+        }
 
-        // NEW badge — visible only if this upgrade hasn't been shown before
+        // NEW badge — visible only on first time this upgrade is shown this session
         string upgradeId = upgrade != null ? upgrade.UpgradeId : "";
         bool isNew = !string.IsNullOrEmpty(upgradeId) && !seenUpgradeIds.Contains(upgradeId);
         if (newBadge != null) newBadge.SetActive(isNew);
-
-        // Mark as seen now so subsequent cards in the same picker don't repeat the badge
-        if (!string.IsNullOrEmpty(upgradeId))
-            seenUpgradeIds.Add(upgradeId);
+        if (!string.IsNullOrEmpty(upgradeId)) seenUpgradeIds.Add(upgradeId);
 
         BuildStatLines();
 
@@ -126,11 +126,9 @@ public class UpgradeCardUI : MonoBehaviour
             TMP_Text txt = line.GetComponent<TMP_Text>();
             if (txt == null) continue;
 
-            // Always show current → after if we have PlayerStats; fall back to simple description
             txt.text = playerStats != null
                 ? bonus.GetPreviewLine(playerStats)
                 : bonus.GetDescription();
-
             txt.color = bonus.value >= 0f ? Color.green : Color.red;
         }
     }

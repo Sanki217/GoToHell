@@ -1,20 +1,34 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using TMPro;
 
 /// <summary>
-/// Manages the level-up upgrade picker.
-/// Rolls 3 UpgradeOrbOffers from the pool (each with a prefab + rarity + stat bonuses).
-/// When the player picks one, spawns the orb prefab with the rolled data injected,
-/// then the orb flies in and applies itself.
+/// Level-up UI — deferred Q-press system.
+///
+/// HOW IT WORKS:
+///   - When the player levels up, a pending count increments and a HUD prompt appears.
+///   - The game is NOT paused — player presses Q when ready.
+///   - Q opens the card picker. While the picker is open, Q again closes it (saving for later).
+///   - After picking a card, if more level-ups are pending, the next picker opens automatically.
+///
+/// SETUP:
+///   - levelUpPanel: the card picker panel
+///   - cards: 3 UpgradeCardUI components
+///   - upgradePool: PlayerUpgradePool ScriptableObject
+///   - pendingPromptLabel: HUD TMP_Text showing "Press Q — ×2 level-ups" (can be null)
 /// </summary>
 public class LevelUpUI : MonoBehaviour
 {
     public static LevelUpUI Instance { get; private set; }
 
-    [Header("References")]
+    [Header("Card Picker")]
     public GameObject levelUpPanel;
     public UpgradeCardUI[] cards;
     public PlayerUpgradePool upgradePool;
+
+    [Header("HUD Prompt")]
+    [Tooltip("TMP_Text in the HUD shown while the player has unclaimed level-ups.")]
+    public TMP_Text pendingPromptLabel;
 
     [Header("Orb Spawn")]
     public Vector3 spawnOffset = new Vector3(0f, 1f, 0f);
@@ -25,15 +39,26 @@ public class LevelUpUI : MonoBehaviour
     public PlayerUpgradeManager upgradeManager;
     public PlayerStateController playerState;
 
-    private bool isOpen = false;
+    // ================================================================
+    //  STATE
+    // ================================================================
 
-    /// <summary>Used by CameraFollow to suppress shake while UI is open.</summary>
+    private bool isOpen = false;
+    private int pendingLevelUps = 0;
+    private int storedLayer = 1;
+
+    /// <summary>CameraFollow queries this to suppress shake while UI is open.</summary>
     public bool IsOpen => isOpen;
+
+    // ================================================================
+    //  INIT
+    // ================================================================
 
     private void Awake()
     {
         Instance = this;
         if (levelUpPanel != null) levelUpPanel.SetActive(false);
+        if (pendingPromptLabel != null) pendingPromptLabel.gameObject.SetActive(false);
     }
 
     private void Start()
@@ -50,19 +75,61 @@ public class LevelUpUI : MonoBehaviour
         }
     }
 
+    private void Update()
+    {
+        if (!Input.GetKeyDown(KeyCode.Q)) return;
+
+        if (isOpen)
+        {
+            // Close and bank the pending slot back — player saves pick for later
+            pendingLevelUps++;
+            Close(restoreControl: true);
+            UpdatePrompt();
+            return;
+        }
+
+        if (pendingLevelUps > 0)
+            OpenPicker();
+    }
+
     // ================================================================
-    //  PUBLIC API
+    //  PUBLIC API — called by PlayerLevelSystem on level-up
     // ================================================================
 
-    public void Show(int currentLayer)
+    /// <summary>
+    /// Queue one level-up pick. Never opens the UI directly — player presses Q.
+    /// Replaces the old Show(layer) call.
+    /// </summary>
+    public void QueueLevelUp(int currentLayer)
     {
-        if (isOpen || upgradePool == null) return;
+        storedLayer = currentLayer;
+        pendingLevelUps++;
+        UpdatePrompt();
+    }
+
+    // Keep old Show() working for anything still calling it externally
+    public void Show(int currentLayer) => QueueLevelUp(currentLayer);
+
+    // ================================================================
+    //  INTERNAL FLOW
+    // ================================================================
+
+    private void OpenPicker()
+    {
+        if (upgradePool == null || pendingLevelUps <= 0) return;
+
+        pendingLevelUps--;
 
         float luck = playerStats != null ? playerStats.luck : 0f;
         List<UpgradeOrbOffer> offers = upgradePool.RollLevelUpOffers(
-            currentLayer, luck, playerStats, 3, upgradeManager);
+            storedLayer, luck, playerStats, 3, upgradeManager);
 
-        if (offers.Count == 0) return;
+        if (offers.Count == 0)
+        {
+            pendingLevelUps++;  // refund
+            UpdatePrompt();
+            return;
+        }
 
         Time.timeScale = 0f;
         isOpen = true;
@@ -77,17 +144,40 @@ public class LevelUpUI : MonoBehaviour
         }
 
         levelUpPanel.SetActive(true);
+        UpdatePrompt();
     }
-
-    // ================================================================
-    //  PRIVATE
-    // ================================================================
 
     private void OnCardPicked(UpgradeOrbOffer offer)
     {
         if (!isOpen) return;
-        Close();
+
+        Close(restoreControl: false);
         SpawnOrb(offer);
+
+        if (pendingLevelUps > 0)
+        {
+            // Chain into the next pick immediately
+            OpenPicker();
+        }
+        else
+        {
+            Time.timeScale = 1f;
+            playerState?.EnableControl();
+        }
+
+        UpdatePrompt();
+    }
+
+    private void Close(bool restoreControl)
+    {
+        isOpen = false;
+        levelUpPanel.SetActive(false);
+
+        if (restoreControl)
+        {
+            Time.timeScale = 1f;
+            playerState?.EnableControl();
+        }
     }
 
     private void SpawnOrb(UpgradeOrbOffer offer)
@@ -101,10 +191,8 @@ public class LevelUpUI : MonoBehaviour
         Vector3 spawnPos = playerTransform.position + spawnOffset;
         GameObject obj = Instantiate(offer.prefab, spawnPos, Quaternion.identity);
         UpgradeOrb orb = obj.GetComponent<UpgradeOrb>();
-
         if (orb == null) return;
 
-        // Inject rolled data before the orb starts attracting
         orb.rolledStatBonuses = offer.statBonuses?.ToArray();
         orb.rolledRarity = offer.rarity;
 
@@ -112,11 +200,20 @@ public class LevelUpUI : MonoBehaviour
         orb.Initialize(ejectDir, spawnEjectForce);
     }
 
-    private void Close()
+    private void UpdatePrompt()
     {
-        isOpen = false;
-        Time.timeScale = 1f;
-        levelUpPanel.SetActive(false);
-        playerState?.EnableControl();
+        if (pendingPromptLabel == null) return;
+
+        if (!isOpen && pendingLevelUps > 0)
+        {
+            pendingPromptLabel.gameObject.SetActive(true);
+            pendingPromptLabel.text = pendingLevelUps == 1
+                ? "Press <color=#FFD700>Q</color> to level up"
+                : $"Press <color=#FFD700>Q</color> to level up  ×{pendingLevelUps}";
+        }
+        else
+        {
+            pendingPromptLabel.gameObject.SetActive(false);
+        }
     }
 }

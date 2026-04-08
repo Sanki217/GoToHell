@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 
 /// <summary>
-/// Pool of upgrade orb prefabs. Each prefab has a PlayerUpgrade subclass on it.
-/// The pool rolls rarity and primary stat bonuses (same as before), then
-/// returns an UpgradeOrbOffer containing the prefab + rolled data for the UI to display.
-/// When the player picks an offer, the UI spawns the prefab and injects the rolled data.
+/// Pool of upgrade orb prefabs.
+///
+/// RARITY CHANGE: all cards in one level-up share the same rarity,
+/// rolled once via UpgradeRarityRoller.RollLevelUpRarity(luck).
 /// </summary>
 [CreateAssetMenu(menuName = "Upgrades/Upgrade Pool")]
 public class PlayerUpgradePool : ScriptableObject
@@ -14,7 +14,7 @@ public class PlayerUpgradePool : ScriptableObject
     public List<GameObject> upgradePrefabs = new List<GameObject>();
 
     // ================================================================
-    //  PER-STAT BONUS RANGES  (same as before)
+    //  PER-STAT BONUS RANGES
     // ================================================================
 
     [Header("Per-Stat Bonus Ranges")]
@@ -77,12 +77,15 @@ public class PlayerUpgradePool : ScriptableObject
 
     /// <summary>
     /// Rolls up to `count` distinct offers for the level-up screen.
-    /// Each offer contains a prefab + a rolled rarity + rolled stat bonuses.
+    /// ALL cards share the same rarity, rolled once here.
     /// </summary>
     public List<UpgradeOrbOffer> RollLevelUpOffers(int layer, float luck,
                                                     PlayerStats stats = null, int count = 3,
                                                     PlayerUpgradeManager upgradeManager = null)
     {
+        // Roll ONE rarity for ALL cards this level-up
+        UpgradeRarity sharedRarity = UpgradeRarityRoller.RollLevelUpRarity(luck);
+
         var offers = new List<UpgradeOrbOffer>();
         var pool = new List<GameObject>(upgradePrefabs);
         int attempts = 0;
@@ -99,22 +102,38 @@ public class PlayerUpgradePool : ScriptableObject
             PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
             if (upgrade == null) continue;
 
-            // Skip already-owned upgrades
             if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
 
-            UpgradeRarity rarity = UpgradeRarityRoller.Roll(layer, luck);
-            offers.Add(BuildOffer(prefab, upgrade, rarity, stats));
+            offers.Add(BuildOffer(prefab, upgrade, sharedRarity, stats));
         }
 
         return offers;
     }
 
-    /// <summary>Rolls one offer for a chest.</summary>
+    /// <summary>Rolls one offer for a chest — independent rarity, no pity.</summary>
     public UpgradeOrbOffer RollChestOffer(float luck, PlayerStats stats = null,
                                            PlayerUpgradeManager upgradeManager = null)
     {
-        var results = RollLevelUpOffers(1, luck, stats, 1, upgradeManager);
-        return results.Count > 0 ? results[0] : null;
+        var pool = new List<GameObject>(upgradePrefabs);
+        int attempts = 0;
+
+        while (pool.Count > 0 && attempts < 100)
+        {
+            attempts++;
+            int idx = Random.Range(0, pool.Count);
+            GameObject prefab = pool[idx];
+            pool.RemoveAt(idx);
+
+            if (prefab == null) continue;
+            PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
+            if (upgrade == null) continue;
+            if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
+
+            UpgradeRarity rarity = UpgradeRarityRoller.RollWithLuckOnly(luck);
+            return BuildOffer(prefab, upgrade, rarity, stats);
+        }
+
+        return null;
     }
 
     public UpgradeOrbOffer BuildOffer(GameObject prefab, PlayerUpgrade upgrade,
@@ -150,7 +169,7 @@ public class PlayerUpgradePool : ScriptableObject
     }
 
     // ================================================================
-    //  PRIVATE — stat rolling (identical logic to before)
+    //  PRIVATE — stat rolling
     // ================================================================
 
     private void RollStatBonuses(int count, UpgradeRarity rarity, float luck,
@@ -249,7 +268,6 @@ public class UpgradeOrbOffer
 public class StatBonusRange
 {
     public PrimaryStat stat;
-
     public float commonMin; public float commonMax;
     public float rareMin; public float rareMax;
     public float epicMin; public float epicMax;

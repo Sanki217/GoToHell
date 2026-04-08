@@ -245,7 +245,7 @@ public class MerchantUpgradeItem : MonoBehaviour
     /// </summary>
     public void RollOffer(int layer, float luck)
     {
-        rarity = UpgradeRarityRoller.Roll(layer, luck);
+      //  rarity = UpgradeRarityRoller.Roll(layer, luck);
 
         if (upgradePrefab != null && upgradePool != null)
         {

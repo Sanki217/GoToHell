@@ -1,10 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 /// <summary>
-/// Enemy Explosion upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
-/// All tuning values are exposed in the Inspector on the prefab.
-///
+/// Enemy Explosion upgrade.
 /// Effect: enemies explode on death, dealing AoE damage with falloff.
 /// Final damage  = damage + damageAP × AbilityPower
 /// Final radius  = radius + radiusSize × Size
@@ -12,19 +11,10 @@ using System.Collections;
 public class UpgradeEnemyExplosion : PlayerUpgrade
 {
     [Header("Enemy Explosion — Tuning")]
-    [Tooltip("Base explosion damage.")]
     public float damage = 15f;
-
-    [Tooltip("Fraction of Ability Power added to damage.")]
     public float damageAP = 1.0f;
-
-    [Tooltip("Base explosion radius in world units.")]
     public float radius = 3f;
-
-    [Tooltip("Fraction of Size stat added to radius.")]
     public float radiusSize = 0.10f;
-
-    [Tooltip("How long the debug sphere visual stays visible (seconds).")]
     public float debugVisualDuration = 0.25f;
 
     private PlayerStats playerStats;
@@ -35,6 +25,15 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
         playerStats = mgr.GetComponent<PlayerStats>();
         host = mgr;
         mgr.OnEnemyKilled += OnEnemyKilled;
+    }
+
+    public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
+    {
+        var s = Simulate(stats, simulatedBonuses);
+        float dmg = damage + damageAP * s.abilityPower;
+        float rad = radius + radiusSize * s.size;
+        return $"Enemies explode on death dealing {AP(dmg)} damage in {SZ(rad)} radius.\n" +
+               $"Scales with <color=#4488FF>Ability Power</color> and <color=#AAAAAA>Size</color>.";
     }
 
     private float GetDamage() =>

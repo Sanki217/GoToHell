@@ -11,12 +11,20 @@ public class Soul : MonoBehaviour
     public float initialDampDuration = 0.6f;
 
     [Header("Attract Movement")]
-    public float minAttractSpeed = 6f;
-    public float maxAttractSpeed = 18f;
-    public float attractAccelerationTime = 0.5f;
+    public float minAttractSpeed = 10f;   // raised from 6 — less likely to stall near centre
+    public float maxAttractSpeed = 22f;   // raised from 18
+    public float attractAccelerationTime = 0.4f;
+
+    [Header("Arrival")]
+    [Tooltip("Soul is collected when closer than this. Raised to prevent sub-step stalling.")]
+    public float arrivalDistance = 0.4f;
+
+    [Tooltip("If the soul has been attracting for this many seconds and is still within " +
+             "snapDistance of the player, it snaps and collects immediately.")]
+    public float timeoutSeconds = 3f;
+    public float snapDistance = 1.5f;
 
     [Header("Shrink on Arrival")]
-    [Tooltip("Distance at which the soul starts shrinking to zero")]
     public float shrinkStartDistance = 1.5f;
 
     private Rigidbody rb;
@@ -73,16 +81,9 @@ public class Soul : MonoBehaviour
 
     // ================================================================
     //  WHY WaitForFixedUpdate:
-    //
     //  rb.MovePosition on a kinematic Rigidbody must be called once per
-    //  physics step. Using "yield return null" (render frame) calls it
-    //  33+ times per physics step at high fps — the body tries to move
-    //  to many different targets before any step resolves, causing souls
-    //  to orbit and overshoot instead of arriving cleanly.
-    //
-    //  WaitForFixedUpdate fires exactly once per physics step (50/sec)
-    //  regardless of render fps. Souls now behave identically at 60fps
-    //  and 1975fps.
+    //  physics step. WaitForFixedUpdate fires exactly once per physics
+    //  step (50/sec) regardless of render fps — identical at 60 and 1975fps.
     // ================================================================
 
     IEnumerator AttractCoroutine()
@@ -98,28 +99,46 @@ public class Soul : MonoBehaviour
             float dt = Time.fixedDeltaTime;
             elapsed += dt;
 
-            float t = Mathf.Clamp01(elapsed / attractAccelerationTime);
-            float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, t * t);
-
             Vector3 toPlayer = attractTarget.position - transform.position;
             toPlayer.z = 0f;
             float dist = toPlayer.magnitude;
 
-            // Fixed world-space arrival — same at any framerate
-            if (dist <= 0.15f)
+            // ── Primary arrival check ──────────────────────────────
+            if (dist <= arrivalDistance)
             {
-                targetInventory?.AddSouls(value);
-                Destroy(gameObject);
+                Collect();
                 yield break;
             }
 
-            // Shrink as soul closes in
+            // ── Timeout snap: been attracting too long and still close ─
+            // Catches the case where the soul oscillates just outside
+            // arrivalDistance and never actually closes the gap.
+            if (elapsed >= timeoutSeconds && dist <= snapDistance)
+            {
+                Collect();
+                yield break;
+            }
+
+            // ── Speed ramp ────────────────────────────────────────
+            float t = Mathf.Clamp01(elapsed / attractAccelerationTime);
+            float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, t * t);
+
+            // ── Shrink ────────────────────────────────────────────
             float scaleT = Mathf.Clamp01(dist / shrinkStartDistance);
             transform.localScale = originalScale * scaleT;
 
-            // Clamp step so we never overshoot the arrival threshold
-            float step = Mathf.Min(speed * dt, dist - 0.15f);
+            // ── Move — clamp step so we never overshoot arrival ───
+            // The clamp is against (dist - arrivalDistance) so on the
+            // last step we land exactly at arrivalDistance rather than
+            // bouncing past and coming back.
+            float step = Mathf.Min(speed * dt, Mathf.Max(0f, dist - arrivalDistance));
             rb.MovePosition(transform.position + toPlayer.normalized * step);
         }
+    }
+
+    private void Collect()
+    {
+        targetInventory?.AddSouls(value);
+        Destroy(gameObject);
     }
 }
