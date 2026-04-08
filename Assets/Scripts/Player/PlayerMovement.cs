@@ -24,12 +24,15 @@ public class PlayerMovement : MonoBehaviour
     public float wallCheckDistance = 0.6f;
 
     [Header("Wall Check — vertical spread")]
-    [Tooltip("Number of raycasts stacked vertically for wall detection. " +
-             "More rays = better edge detection. 3 is a good default.")]
+    [Tooltip("Number of raycasts stacked vertically for wall detection.")]
     public int wallCheckRayCount = 3;
-    [Tooltip("Half-height of the spread. Rays go from -wallCheckHalfHeight to +wallCheckHalfHeight " +
-             "relative to the player's centre. Match to roughly half your collider height.")]
+    [Tooltip("Half-height of the spread. Match to roughly half your collider height.")]
     public float wallCheckHalfHeight = 0.4f;
+
+    [Header("Wall Jump — post-jump lockout")]
+    [Tooltip("Seconds after a wall jump during which wall contacts are ignored. " +
+             "Prevents immediately re-grabbing the same wall and inflating the jump.")]
+    public float wallJumpCooldown = 0.25f;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -42,7 +45,7 @@ public class PlayerMovement : MonoBehaviour
 
     private float MoveSpeed => playerStats != null ? playerStats.moveSpeed : moveSpeed;
     private float JumpForce => playerStats != null ? playerStats.jumpForce : jumpForce;
-    private int MaxJumps => maxJumps; // fixed at 1, not driven by PlayerStats
+    private int MaxJumps => maxJumps;
     private float MaxWallSlide => playerStats != null ? playerStats.wallSlideSpeed : maxWallSlideSpeed;
 
     private Rigidbody rb;
@@ -61,6 +64,7 @@ public class PlayerMovement : MonoBehaviour
     private float wallLerpTimer;
     private float wallSlideDelayTimer;
     private float wallSlideAccelerationTimer;
+    private float wallJumpCooldownTimer = 0f;
 
     private Vector3 previousPosition;
 
@@ -92,6 +96,9 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
+        if (wallJumpCooldownTimer > 0f)
+            wallJumpCooldownTimer -= Time.deltaTime;
+
         HandleInput();
         CheckGround();
         CheckWallContacts();
@@ -101,7 +108,6 @@ public class PlayerMovement : MonoBehaviour
         currentVelocity = rb.linearVelocity;
         currentYVelocity = rb.linearVelocity.y;
 
-        // Distance tracking: horizontal + vertical combined
         Vector3 delta = transform.position - previousPosition;
         if (delta.sqrMagnitude > 0f)
         {
@@ -110,7 +116,6 @@ public class PlayerMovement : MonoBehaviour
         }
         previousPosition = transform.position;
 
-        // Wall slide duration tick — only when actually sliding downward
         if (isWallSliding && rb.linearVelocity.y < 0f)
             playerStats?.RecordWallSlideTick(Time.deltaTime);
     }
@@ -146,6 +151,11 @@ public class PlayerMovement : MonoBehaviour
             }
             else if (isGrounded)
             {
+                // Zero out any downward velocity before applying jump so the force
+                // is always consistent — prevents "stuck in corner" super-jumps
+                // caused by accumulated downward velocity being suddenly overridden
+                // by a full upward impulse stacked on top
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, 0f);
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, JumpForce, 0f);
                 jumpCount = 1;
                 ResetWallSlide();
@@ -165,12 +175,16 @@ public class PlayerMovement : MonoBehaviour
     private void DoWallJump()
     {
         float dir = touchingWallRight ? -1f : 1f;
-        Vector3 jumpVelocity = new Vector3(
+
+        // Fully replace velocity — guarantees identical impulse every time
+        // regardless of slide speed or pre-existing horizontal velocity
+        rb.linearVelocity = new Vector3(
             wallJumpDirection.x * dir * wallJumpForce,
             wallJumpDirection.y * wallJumpForce,
             0f);
-        rb.linearVelocity = jumpVelocity;
+
         jumpCount++;
+        wallJumpCooldownTimer = wallJumpCooldown;   // suppress wall contact briefly
         ResetWallSlide();
         playerStats?.RecordJump();
         upgradeManager?.Jump(jumpCount);
@@ -179,8 +193,14 @@ public class PlayerMovement : MonoBehaviour
     private void ApplyHorizontalMovement()
     {
         float input = Input.GetAxisRaw("Horizontal");
-        if ((input > 0 && touchingWallRight) || (input < 0 && touchingWallLeft))
-            input = 0;
+
+        // Only block movement into a wall when NOT in post-wall-jump cooldown.
+        // During cooldown the player needs to be able to move away freely.
+        if (wallJumpCooldownTimer <= 0f)
+        {
+            if ((input > 0 && touchingWallRight) || (input < 0 && touchingWallLeft))
+                input = 0;
+        }
 
         float targetSpeed = input * MoveSpeed;
         float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : deceleration;
@@ -195,28 +215,28 @@ public class PlayerMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// Casts multiple rays vertically spread across the player's height in each horizontal direction.
-    /// A single centre ray misses edge contacts — multi-ray catches the player hanging on a ledge corner.
+    /// Multi-ray vertical spread — catches edge contacts the single centre ray misses.
+    /// Suppressed entirely during wall-jump cooldown to prevent re-grabbing the same wall.
     /// </summary>
     private void CheckWallContacts()
     {
         touchingWallRight = false;
         touchingWallLeft = false;
 
+        if (wallJumpCooldownTimer > 0f) return;
+
         int count = Mathf.Max(1, wallCheckRayCount);
         for (int i = 0; i < count; i++)
         {
-            float t = count == 1 ? 0.5f : (float)i / (count - 1); // 0..1
+            float t = count == 1 ? 0.5f : (float)i / (count - 1);
             float yOffset = Mathf.Lerp(-wallCheckHalfHeight, wallCheckHalfHeight, t);
             Vector3 origin = transform.position + Vector3.up * yOffset;
 
             if (!touchingWallRight && Physics.Raycast(origin, Vector3.right, wallCheckDistance, wallLayer))
                 touchingWallRight = true;
-
             if (!touchingWallLeft && Physics.Raycast(origin, Vector3.left, wallCheckDistance, wallLayer))
                 touchingWallLeft = true;
 
-            // Early out once both sides confirmed
             if (touchingWallRight && touchingWallLeft) break;
         }
     }
@@ -310,7 +330,6 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
 
-        // Draw all wall check rays
         int count = Mathf.Max(1, wallCheckRayCount);
         Gizmos.color = Color.red;
         for (int i = 0; i < count; i++)

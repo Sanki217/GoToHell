@@ -5,17 +5,12 @@ using TMPro;
 /// <summary>
 /// Level-up UI — deferred Q-press system.
 ///
-/// HOW IT WORKS:
-///   - When the player levels up, a pending count increments and a HUD prompt appears.
-///   - The game is NOT paused — player presses Q when ready.
-///   - Q opens the card picker. While the picker is open, Q again closes it (saving for later).
-///   - After picking a card, if more level-ups are pending, the next picker opens automatically.
-///
-/// SETUP:
-///   - levelUpPanel: the card picker panel
-///   - cards: 3 UpgradeCardUI components
-///   - upgradePool: PlayerUpgradePool ScriptableObject
-///   - pendingPromptLabel: HUD TMP_Text showing "Press Q — ×2 level-ups" (can be null)
+/// KEY BEHAVIOURS:
+///   - Offers are rolled and CACHED when the picker first opens.
+///     Pressing Q to close and reopen shows the SAME offers, same rarity.
+///   - Stat bonuses are applied IMMEDIATELY when a card is picked (before the orb flies),
+///     so any chained picker always shows fully updated stats.
+///   - Pending level-ups stack; chained pickers open automatically after each pick.
 /// </summary>
 public class LevelUpUI : MonoBehaviour
 {
@@ -27,7 +22,7 @@ public class LevelUpUI : MonoBehaviour
     public PlayerUpgradePool upgradePool;
 
     [Header("HUD Prompt")]
-    [Tooltip("TMP_Text in the HUD shown while the player has unclaimed level-ups.")]
+    [Tooltip("TMP_Text shown in the HUD while the player has unclaimed level-ups.")]
     public TMP_Text pendingPromptLabel;
 
     [Header("Orb Spawn")]
@@ -47,7 +42,10 @@ public class LevelUpUI : MonoBehaviour
     private int pendingLevelUps = 0;
     private int storedLayer = 1;
 
-    /// <summary>CameraFollow queries this to suppress shake while UI is open.</summary>
+    // Cached offers survive Q-close so the same roll is shown next time Q is pressed.
+    // Cleared only when a card is actually picked.
+    private List<UpgradeOrbOffer> cachedOffers = null;
+
     public bool IsOpen => isOpen;
 
     // ================================================================
@@ -81,7 +79,7 @@ public class LevelUpUI : MonoBehaviour
 
         if (isOpen)
         {
-            // Close and bank the pending slot back — player saves pick for later
+            // Save and close — cached offers are kept, same roll next time
             pendingLevelUps++;
             Close(restoreControl: true);
             UpdatePrompt();
@@ -93,13 +91,9 @@ public class LevelUpUI : MonoBehaviour
     }
 
     // ================================================================
-    //  PUBLIC API — called by PlayerLevelSystem on level-up
+    //  PUBLIC API
     // ================================================================
 
-    /// <summary>
-    /// Queue one level-up pick. Never opens the UI directly — player presses Q.
-    /// Replaces the old Show(layer) call.
-    /// </summary>
     public void QueueLevelUp(int currentLayer)
     {
         storedLayer = currentLayer;
@@ -107,11 +101,10 @@ public class LevelUpUI : MonoBehaviour
         UpdatePrompt();
     }
 
-    // Keep old Show() working for anything still calling it externally
     public void Show(int currentLayer) => QueueLevelUp(currentLayer);
 
     // ================================================================
-    //  INTERNAL FLOW
+    //  INTERNAL
     // ================================================================
 
     private void OpenPicker()
@@ -120,13 +113,17 @@ public class LevelUpUI : MonoBehaviour
 
         pendingLevelUps--;
 
-        float luck = playerStats != null ? playerStats.luck : 0f;
-        List<UpgradeOrbOffer> offers = upgradePool.RollLevelUpOffers(
-            storedLayer, luck, playerStats, 3, upgradeManager);
-
-        if (offers.Count == 0)
+        // Reuse cached offers if they exist (player closed without picking)
+        if (cachedOffers == null || cachedOffers.Count == 0)
         {
-            pendingLevelUps++;  // refund
+            float luck = playerStats != null ? playerStats.luck : 0f;
+            cachedOffers = upgradePool.RollLevelUpOffers(
+                storedLayer, luck, playerStats, 3, upgradeManager);
+        }
+
+        if (cachedOffers == null || cachedOffers.Count == 0)
+        {
+            pendingLevelUps++;
             UpdatePrompt();
             return;
         }
@@ -137,8 +134,8 @@ public class LevelUpUI : MonoBehaviour
 
         for (int i = 0; i < cards.Length; i++)
         {
-            if (i < offers.Count)
-                cards[i].Setup(offers[i], OnCardPicked);
+            if (i < cachedOffers.Count)
+                cards[i].Setup(cachedOffers[i], OnCardPicked);
             else
                 cards[i].Hide();
         }
@@ -151,14 +148,22 @@ public class LevelUpUI : MonoBehaviour
     {
         if (!isOpen) return;
 
+        // Apply stat bonuses NOW — before spawning the orb or opening the next picker.
+        // This guarantees the chained picker's descriptions show the post-pick stats.
+        if (playerStats != null && offer.statBonuses != null)
+            foreach (var bonus in offer.statBonuses)
+                bonus.Apply(playerStats);
+
+        // Discard this pick's cache — next picker must roll fresh.
+        cachedOffers = null;
+
         Close(restoreControl: false);
+
+        // Spawn orb for behaviour wiring (OnAdded), but tell it stats are already applied.
         SpawnOrb(offer);
 
         if (pendingLevelUps > 0)
-        {
-            // Chain into the next pick immediately
             OpenPicker();
-        }
         else
         {
             Time.timeScale = 1f;
@@ -195,6 +200,7 @@ public class LevelUpUI : MonoBehaviour
 
         orb.rolledStatBonuses = offer.statBonuses?.ToArray();
         orb.rolledRarity = offer.rarity;
+        orb.statBonusesAlreadyApplied = true;  // LevelUpUI already applied them
 
         Vector3 ejectDir = spawnOffset.normalized == Vector3.zero ? Vector3.up : spawnOffset.normalized;
         orb.Initialize(ejectDir, spawnEjectForce);

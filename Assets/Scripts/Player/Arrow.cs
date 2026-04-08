@@ -14,9 +14,6 @@ public class Arrow : MonoBehaviour
 
     [HideInInspector] public ArrowFireType fireType = ArrowFireType.Weak;
     [HideInInspector] public float chargeAmount = 0f;
-
-    // Injected by PlayerShooting — how much extra damage per 1% charge
-    // Default 2f means 100% charge = 2× base damage bonus on top of base
     [HideInInspector] public float chargeDamageMultiplierPerPercent = 2f;
 
     private Vector3 direction;
@@ -57,7 +54,6 @@ public class Arrow : MonoBehaviour
         if (Physics.Raycast(transform.position, direction, out RaycastHit hit,
                             move.magnitude, stickableLayers))
         {
-            // ── Check for destructibles before sticking ─────────────
             GameObject root = hit.collider.transform.root.gameObject;
 
             ExplosiveBarrel barrel = root.GetComponent<ExplosiveBarrel>()
@@ -67,20 +63,21 @@ public class Arrow : MonoBehaviour
 
             if (barrel != null)
             {
-                int dmg = ArrowDamage();
-                barrel.TakeDamage(dmg);
-                Destroy(gameObject);
+                // Hit and pierce — keep flying
+                barrel.TakeDamage(ArrowDamage());
+                transform.position = nextPosition;
                 return;
             }
 
             if (vase != null)
             {
-                int dmg = ArrowDamage();
-                vase.TakeDamage(dmg);
-                Destroy(gameObject);
+                // Hit and pierce — keep flying
+                vase.TakeDamage(ArrowDamage());
+                transform.position = nextPosition;
                 return;
             }
 
+            // Solid surface — stick
             StickToSurface(hit.point);
             playerStats?.RecordArrowHitWall();
             upgradeManager?.ArrowHitWall(hit.point);
@@ -94,7 +91,6 @@ public class Arrow : MonoBehaviour
     private int ArrowDamage()
     {
         float base_dmg = playerStats != null ? playerStats.arrowDamage : 1f;
-        // charge scales at chargeDamageMultiplierPerPercent per 1% charge
         float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
         float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
         return Mathf.Max(1, Mathf.RoundToInt(base_dmg * chargeMult * streakMult));
@@ -165,6 +161,6 @@ public class Arrow : MonoBehaviour
             else
                 Destroy(gameObject);
         }
-        // If willKill: arrow always passes through (free)
+        // willKill: arrow passes through for free
     }
 }

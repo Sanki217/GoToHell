@@ -2,16 +2,15 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Generic upgrade orb component. Attach this to every upgrade orb prefab alongside
-/// a PlayerUpgrade subclass (e.g. UpgradeBurningArrow).
+/// Generic upgrade orb component. Attach to every upgrade orb prefab alongside a PlayerUpgrade subclass.
 ///
 /// Responsibilities:
 ///   - Soul-style attraction toward the player
-///   - On arrival: passes rolled stat bonuses to PlayerStats,
+///   - On arrival: applies rolled stat bonuses (unless already applied by LevelUpUI),
 ///     then calls PlayerUpgrade.OnAdded() for behaviour wiring
 ///
-/// The PlayerUpgrade subclass on the same prefab provides all tuning and display data.
-/// This script never needs to know which upgrade it is.
+/// statBonusesAlreadyApplied: set to true by LevelUpUI when it applies bonuses immediately
+/// on card pick. This skips double-application while still calling OnAdded() for behaviour.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class UpgradeOrb : MonoBehaviour
@@ -23,9 +22,15 @@ public class UpgradeOrb : MonoBehaviour
     public float attractAccelerationTime = 0.6f;
     public float shrinkStartDistance = 1.5f;
 
-    // Set by the pool after rolling — not configured in prefab Inspector
+    // Set by spawn site after rolling — not configured in prefab Inspector
     [HideInInspector] public UpgradeStatBonus[] rolledStatBonuses;
     [HideInInspector] public UpgradeRarity rolledRarity;
+
+    /// <summary>
+    /// When true, Apply() skips stat bonus application (already done by LevelUpUI)
+    /// but still calls OnAdded() for behaviour wiring.
+    /// </summary>
+    [HideInInspector] public bool statBonusesAlreadyApplied = false;
 
     private Rigidbody rb;
     private bool isAttracted = false;
@@ -42,14 +47,12 @@ public class UpgradeOrb : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
     }
 
-    /// <summary>Called by spawn site to give the orb an initial pop.</summary>
     public void Initialize(Vector3 ejectDir, float ejectForce)
     {
         rb.linearVelocity = ejectDir.normalized * ejectForce;
         dampRoutine = StartCoroutine(InitialDampCoroutine());
     }
 
-    /// <summary>Called by Looter when the orb enters loot range.</summary>
     public void StartAttract(Transform playerTransform, PlayerUpgradeManager mgr, PlayerStats stats)
     {
         if (isAttracted) return;
@@ -117,18 +120,17 @@ public class UpgradeOrb : MonoBehaviour
 
     private void Apply()
     {
-        // Apply rolled stat bonuses
-        if (playerStats != null && rolledStatBonuses != null)
+        // Apply stat bonuses only if LevelUpUI hasn't already done it
+        if (!statBonusesAlreadyApplied && playerStats != null && rolledStatBonuses != null)
             foreach (var bonus in rolledStatBonuses)
                 bonus.Apply(playerStats);
 
-        // Apply the upgrade behaviour
+        // Always wire up the upgrade behaviour
         if (upgradeManager != null)
         {
             PlayerUpgrade upgrade = GetComponent<PlayerUpgrade>();
             if (upgrade != null)
             {
-                // Detach from the orb so it survives destruction
                 upgrade.transform.SetParent(upgradeManager.transform);
                 upgradeManager.ApplyUpgrade(upgrade);
             }
