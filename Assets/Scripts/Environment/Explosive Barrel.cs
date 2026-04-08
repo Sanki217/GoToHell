@@ -189,7 +189,7 @@ public class ExplosiveBarrel : MonoBehaviour
         if (!exploded) barrelRenderer.material.color = orig;
     }
 
-    public void SpawnDebugSphere(Vector3 pos, float radius)
+    private void SpawnDebugSphere(Vector3 pos, float radius)
     {
         GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         Destroy(sphere.GetComponent<Collider>());

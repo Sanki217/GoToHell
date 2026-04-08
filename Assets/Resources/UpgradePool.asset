@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc2782f6c95e41f44a7bc7a4ea23bda1, type: 3}
   m_Name: UpgradePool
   m_EditorClassIdentifier: 
-  upgrades:
-  - {fileID: 11400000, guid: d8f9e64bb2838b142ba92d38c62157bd, type: 2}
-  - {fileID: 11400000, guid: e425287a3416bf74387f853b494b6476, type: 2}
-  - {fileID: 11400000, guid: d89ff3a692dd9da4eb551a05837a246c, type: 2}
-  - {fileID: 11400000, guid: 96b4b8db09d0363499f0653a92f909d7, type: 2}
-  - {fileID: 11400000, guid: 316b2131226abc246b2eccb05f596ba6, type: 2}
+  upgradePrefabs:
+  - {fileID: 440265961167594197, guid: 99c9facf82d26544f8465b1aae8472e5, type: 3}
+  - {fileID: 1800952367939015602, guid: c738555939f2ecf4e97b13dbabb44ff0, type: 3}
+  - {fileID: 1923199815895099225, guid: 9c1b0a6ac102f7849841e05b74100bec, type: 3}
+  - {fileID: 4843489735958322590, guid: fefdb1fc1763efc448b08e1645b20106, type: 3}
+  - {fileID: 9218952406192997915, guid: 0e849e8148512874ba41d124c71ee53d, type: 3}
   statRanges:
   - stat: 0
     commonMin: 1
