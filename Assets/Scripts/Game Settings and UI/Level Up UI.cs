@@ -27,6 +27,9 @@ public class LevelUpUI : MonoBehaviour
 
     private bool isOpen = false;
 
+    /// <summary>Used by CameraFollow to suppress shake while UI is open.</summary>
+    public bool IsOpen => isOpen;
+
     private void Awake()
     {
         Instance = this;

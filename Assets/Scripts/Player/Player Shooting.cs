@@ -36,6 +36,12 @@ public class PlayerShooting : MonoBehaviour
     public float timeSlowDuration = 2f;
     public float minTimeScale = 0.2f;
 
+    [Header("Charge Damage Scaling")]
+    [Tooltip("Extra damage multiplier applied per 1% of charge. " +
+             "2.0 = 100% charge adds 200% of base damage on top (total 3× base). " +
+             "1.0 was the old behaviour.")]
+    public float chargeDamageMultiplierPerPercent = 2f;
+
     [Header("Charge Energy Cost — default, overridden by PlayerStats at runtime")]
     public float chargeEnergyPerSecond = 5f;
 
@@ -260,6 +266,7 @@ public class PlayerShooting : MonoBehaviour
         a.speed = baseArrowSpeed * speedMultiplier;
         a.fireType = fireType;
         a.chargeAmount = chargeAmount;
+        a.chargeDamageMultiplierPerPercent = chargeDamageMultiplierPerPercent;
 
         if (consumeAmmo)
         {

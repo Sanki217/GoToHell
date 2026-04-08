@@ -73,6 +73,10 @@ public class Enemy : MonoBehaviour
         if (enemyRenderer != null)
             StartCoroutine(HitFlash());
 
+        // Notify kill streak that damage was dealt (resets the timer)
+        GameObject player = GameObject.FindWithTag("Player");
+        player?.GetComponent<KillStreak>()?.RegisterDamageDealt();
+
         if (currentHealth <= 0)
             Die();
     }
@@ -157,6 +161,7 @@ public class Enemy : MonoBehaviour
             player.GetComponent<PlayerEnergy>()?.RestoreEnergy(energyRestoredOnDeath);
             player.GetComponent<PlayerUpgradeManager>()?.EnemyKilled(gameObject);
             player.GetComponent<PlayerStats>()?.RecordEnemyKilled();
+            player.GetComponent<KillStreak>()?.RegisterKill();
         }
 
         Destroy(gameObject);

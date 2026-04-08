@@ -23,6 +23,14 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask wallLayer;
     public float wallCheckDistance = 0.6f;
 
+    [Header("Wall Check — vertical spread")]
+    [Tooltip("Number of raycasts stacked vertically for wall detection. " +
+             "More rays = better edge detection. 3 is a good default.")]
+    public int wallCheckRayCount = 3;
+    [Tooltip("Half-height of the spread. Rays go from -wallCheckHalfHeight to +wallCheckHalfHeight " +
+             "relative to the player's centre. Match to roughly half your collider height.")]
+    public float wallCheckHalfHeight = 0.4f;
+
     [Header("Ground Check")]
     public Transform groundCheck;
     public float groundCheckRadius = 0.3f;
@@ -97,7 +105,6 @@ public class PlayerMovement : MonoBehaviour
         Vector3 delta = transform.position - previousPosition;
         if (delta.sqrMagnitude > 0f)
         {
-            // airborne = in the air AND not wall sliding
             bool airborne = !isGrounded && !isWallSliding;
             playerStats?.RecordMovement(delta.x, delta.y, Time.deltaTime, isGrounded, airborne);
         }
@@ -187,10 +194,31 @@ public class PlayerMovement : MonoBehaviour
         if (isGrounded) jumpCount = 0;
     }
 
+    /// <summary>
+    /// Casts multiple rays vertically spread across the player's height in each horizontal direction.
+    /// A single centre ray misses edge contacts — multi-ray catches the player hanging on a ledge corner.
+    /// </summary>
     private void CheckWallContacts()
     {
-        touchingWallRight = Physics.Raycast(transform.position, Vector3.right, wallCheckDistance, wallLayer);
-        touchingWallLeft = Physics.Raycast(transform.position, Vector3.left, wallCheckDistance, wallLayer);
+        touchingWallRight = false;
+        touchingWallLeft = false;
+
+        int count = Mathf.Max(1, wallCheckRayCount);
+        for (int i = 0; i < count; i++)
+        {
+            float t = count == 1 ? 0.5f : (float)i / (count - 1); // 0..1
+            float yOffset = Mathf.Lerp(-wallCheckHalfHeight, wallCheckHalfHeight, t);
+            Vector3 origin = transform.position + Vector3.up * yOffset;
+
+            if (!touchingWallRight && Physics.Raycast(origin, Vector3.right, wallCheckDistance, wallLayer))
+                touchingWallRight = true;
+
+            if (!touchingWallLeft && Physics.Raycast(origin, Vector3.left, wallCheckDistance, wallLayer))
+                touchingWallLeft = true;
+
+            // Early out once both sides confirmed
+            if (touchingWallRight && touchingWallLeft) break;
+        }
     }
 
     private void CheckWallSlideState()
@@ -281,8 +309,17 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
+
+        // Draw all wall check rays
+        int count = Mathf.Max(1, wallCheckRayCount);
         Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, Vector3.right * wallCheckDistance);
-        Gizmos.DrawRay(transform.position, Vector3.left * wallCheckDistance);
+        for (int i = 0; i < count; i++)
+        {
+            float t = count == 1 ? 0.5f : (float)i / (count - 1);
+            float yOffset = Mathf.Lerp(-wallCheckHalfHeight, wallCheckHalfHeight, t);
+            Vector3 origin = transform.position + Vector3.up * yOffset;
+            Gizmos.DrawRay(origin, Vector3.right * wallCheckDistance);
+            Gizmos.DrawRay(origin, Vector3.left * wallCheckDistance);
+        }
     }
 }

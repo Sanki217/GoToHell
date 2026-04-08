@@ -9,14 +9,31 @@ public class CameraFollow : MonoBehaviour
     public float parallaxRatio = 0.2f;
     public float yOffset = 0f;
 
-    [Header("Settings")]
+    [Header("Shake Settings")]
     public bool shakeEnabled = true;
+    [Tooltip("Global intensity scale applied to all shakes. 0 = off, 1 = full.")]
+    [Range(0f, 2f)]
+    public float shakeIntensity = 1f;
+
+    [Header("Shake Decay")]
+    [Tooltip("How fast trauma decays per second. Higher = shorter shakes.")]
+    public float traumaDecayRate = 3f;
 
     private Vector3 velocity = Vector3.zero;
     private Vector3 shakeOffset = Vector3.zero;
 
-    private float shakeDuration = 0f;
-    private float shakeMagnitude = 0f;
+    // Trauma-based shake: 0–1 value, decays over time
+    private float trauma = 0f;
+
+    // Shake noise seed so offsets look random but are smooth
+    private float seedX;
+    private float seedY;
+
+    private void Start()
+    {
+        seedX = Random.value * 100f;
+        seedY = Random.value * 100f;
+    }
 
     void LateUpdate()
     {
@@ -34,11 +51,18 @@ public class CameraFollow : MonoBehaviour
             1f / smoothSpeed
         );
 
-        if (shakeEnabled && shakeDuration > 0f)
+        // Decay trauma every frame — framerate-independent
+        trauma = Mathf.Max(0f, trauma - traumaDecayRate * Time.unscaledDeltaTime);
+
+        if (shakeEnabled && shakeIntensity > 0f && trauma > 0f && !IsBlockedByUI())
         {
-            shakeOffset = Random.insideUnitSphere * shakeMagnitude;
-            shakeOffset.z = 0f;
-            shakeDuration -= Time.deltaTime;
+            float magnitude = trauma * trauma; // squaring gives more dramatic falloff
+
+            // Perlin noise gives smooth but unpredictable shake — framerate-independent
+            float t = Time.unscaledTime;
+            float nx = Mathf.PerlinNoise(seedX, t * 10f) * 2f - 1f;
+            float ny = Mathf.PerlinNoise(seedY, t * 10f) * 2f - 1f;
+            shakeOffset = new Vector3(nx, ny, 0f) * magnitude * shakeIntensity;
         }
         else
         {
@@ -48,9 +72,23 @@ public class CameraFollow : MonoBehaviour
         transform.position = smoothedPosition + shakeOffset;
     }
 
+    /// <summary>
+    /// Add shake trauma (0–1). Multiple calls accumulate.
+    /// duration param kept for backwards compatibility but is no longer used — 
+    /// decay is controlled by traumaDecayRate.
+    /// magnitude maps to trauma added.
+    /// </summary>
     public void Shake(float duration, float magnitude)
     {
-        shakeDuration = duration;
-        shakeMagnitude = magnitude;
+        // Clamp trauma to 1 so it never over-accumulates
+        trauma = Mathf.Clamp01(trauma + magnitude);
+    }
+
+    private bool IsBlockedByUI()
+    {
+        // Check both chest UI and level-up UI
+        if (ChestRewardUI.Instance != null && ChestRewardUI.Instance.IsOpen) return true;
+        if (LevelUpUI.Instance != null && LevelUpUI.Instance.IsOpen) return true;
+        return false;
     }
 }

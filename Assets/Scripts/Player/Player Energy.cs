@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 
-public class Player_Energy : MonoBehaviour
+public class PlayerEnergy : MonoBehaviour
 {
     [Header("Energy Settings — defaults, overridden by PlayerStats at runtime")]
     public float maxEnergy = 100f;
@@ -16,7 +16,6 @@ public class Player_Energy : MonoBehaviour
 
     private PlayerMovement playerMovement;
     private PlayerStats playerStats;
-    private KillStreak killStreak;
     private LavaZone currentLavaZone;
     private Collider currentLavaCollider;
     private CapsuleCollider playerCapsule;
@@ -24,18 +23,13 @@ public class Player_Energy : MonoBehaviour
     // Always read max energy from PlayerStats when available
     private float MaxEnergy => playerStats != null ? playerStats.maxEnergy : maxEnergy;
 
-    // Base regen multiplier from PlayerStats
-    private float BaseRegenMultiplier => playerStats != null ? playerStats.energyRegenMultiplier : 1f;
-
-    // Combined multiplier including kill streak bonus
-    private float RegenMultiplier =>
-        BaseRegenMultiplier * (killStreak != null ? killStreak.EnergyRegenMultiplier : 1f);
+    // Regen multiplier from PlayerStats — applied to ALL energy gained
+    private float RegenMultiplier => playerStats != null ? playerStats.energyRegenMultiplier : 1f;
 
     void Start()
     {
         playerMovement = GetComponent<PlayerMovement>();
         playerStats = GetComponent<PlayerStats>();
-        killStreak = GetComponent<KillStreak>();
         playerCapsule = GetComponent<CapsuleCollider>();
 
         if (playerCapsule == null)
@@ -124,7 +118,7 @@ public class Player_Energy : MonoBehaviour
     }
 
     // ================================================================
-    //  LAVA ZONE DETECTION
+    //  LAVA ZONE DETECTION  (unchanged from original)
     // ================================================================
 
     private void OnTriggerEnter(Collider other)

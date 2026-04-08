@@ -15,6 +15,10 @@ public class Arrow : MonoBehaviour
     [HideInInspector] public ArrowFireType fireType = ArrowFireType.Weak;
     [HideInInspector] public float chargeAmount = 0f;
 
+    // Injected by PlayerShooting — how much extra damage per 1% charge
+    // Default 2f means 100% charge = 2× base damage bonus on top of base
+    [HideInInspector] public float chargeDamageMultiplierPerPercent = 2f;
+
     private Vector3 direction;
     private bool hasLanded = false;
     private float currentVelocity;
@@ -23,6 +27,7 @@ public class Arrow : MonoBehaviour
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
+    private KillStreak killStreak;
 
     public void Initialize(Vector3 shootDirection, LayerMask stickLayers)
     {
@@ -35,6 +40,7 @@ public class Arrow : MonoBehaviour
         {
             upgradeManager = player.GetComponent<PlayerUpgradeManager>();
             playerStats = player.GetComponent<PlayerStats>();
+            killStreak = player.GetComponent<KillStreak>();
         }
     }
 
@@ -52,7 +58,6 @@ public class Arrow : MonoBehaviour
                             move.magnitude, stickableLayers))
         {
             // ── Check for destructibles before sticking ─────────────
-            // Walk up the hit object's hierarchy to find barrel or vase
             GameObject root = hit.collider.transform.root.gameObject;
 
             ExplosiveBarrel barrel = root.GetComponent<ExplosiveBarrel>()
@@ -64,7 +69,7 @@ public class Arrow : MonoBehaviour
             {
                 int dmg = ArrowDamage();
                 barrel.TakeDamage(dmg);
-                Destroy(gameObject);   // arrow is consumed by the barrel hit
+                Destroy(gameObject);
                 return;
             }
 
@@ -72,11 +77,10 @@ public class Arrow : MonoBehaviour
             {
                 int dmg = ArrowDamage();
                 vase.TakeDamage(dmg);
-                Destroy(gameObject);   // arrow is consumed by the vase hit
+                Destroy(gameObject);
                 return;
             }
 
-            // Normal surface — stick and record
             StickToSurface(hit.point);
             playerStats?.RecordArrowHitWall();
             upgradeManager?.ArrowHitWall(hit.point);
@@ -90,8 +94,10 @@ public class Arrow : MonoBehaviour
     private int ArrowDamage()
     {
         float base_dmg = playerStats != null ? playerStats.arrowDamage : 1f;
-        float charge = 1f + chargeAmount;
-        return Mathf.Max(1, Mathf.RoundToInt(base_dmg * charge));
+        // charge scales at chargeDamageMultiplierPerPercent per 1% charge
+        float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
+        float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
+        return Mathf.Max(1, Mathf.RoundToInt(base_dmg * chargeMult * streakMult));
     }
 
     private void StickToSurface(Vector3 point)
@@ -112,8 +118,9 @@ public class Arrow : MonoBehaviour
         if (enemy == null) return;
 
         float baseArrowDamage = playerStats != null ? playerStats.arrowDamage : 1f;
-        float chargeMult = 1f + chargeAmount;
-        float baseDamage = baseArrowDamage * chargeMult;
+        float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
+        float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
+        float baseDamage = baseArrowDamage * chargeMult * streakMult;
 
         float finalDamage;
         bool isCrit;
@@ -144,11 +151,11 @@ public class Arrow : MonoBehaviour
             {
                 piercesUsed++;
 
-                // Bonus pierce damage on pass-through (set by Arrow Pierce upgrade)
                 if (playerStats != null && playerStats.pierceDmgAPScaling > 0f)
                 {
                     float pierceDmg = playerStats.pierceDamageBase
                                       + playerStats.pierceDmgAPScaling * playerStats.abilityPower;
+                    pierceDmg *= streakMult;
                     int pierceRound = Mathf.Max(1, Mathf.RoundToInt(pierceDmg));
                     enemy.TakeDamage(pierceRound, transform.position, kbDir, 0f, false,
                         FloatingTextManager.HitType.Normal);

@@ -62,6 +62,9 @@ public class ChestRewardUI : MonoBehaviour
     private UpgradeOrbOffer pendingOffer;
     private int pendingSouls;
 
+    /// <summary>Used by CameraFollow to suppress shake while UI is open.</summary>
+    public bool IsOpen => isOpen;
+
     // ================================================================
     //  INIT
     // ================================================================
@@ -191,7 +194,7 @@ public class ChestRewardUI : MonoBehaviour
         if (resultSoulsLabel != null)
             resultSoulsLabel.text = $"+ {pendingSouls} Souls";
 
-        // Stat bonus lines
+        // Stat bonus lines — show current → after
         if (resultStatContainer != null && pendingOffer.statBonuses != null)
         {
             foreach (Transform child in resultStatContainer) Destroy(child.gameObject);
@@ -202,7 +205,9 @@ public class ChestRewardUI : MonoBehaviour
                 TMP_Text txt = line.GetComponent<TMP_Text>();
                 if (txt != null)
                 {
-                    txt.text = bonus.GetDescription();
+                    txt.text = playerStats != null
+                        ? bonus.GetPreviewLine(playerStats)
+                        : bonus.GetDescription();
                     txt.color = bonus.value >= 0f ? Color.green : Color.red;
                 }
             }

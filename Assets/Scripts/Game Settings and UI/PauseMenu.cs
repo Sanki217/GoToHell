@@ -14,8 +14,14 @@ public class PauseMenu : MonoBehaviour
     public Button settingsButton;
     public Button settingsBackButton;
 
-    [Header("Settings")]
+    [Header("Settings — Camera Shake")]
     public Toggle cameraShakeToggle;
+    [Tooltip("Slider controlling shake intensity (0–2). Assign a UI Slider.")]
+    public Slider shakeIntensitySlider;
+
+    [Header("Settings — VSync")]
+    [Tooltip("Toggle to enable/disable VSync (QualitySettings.vSyncCount).")]
+    public Toggle vSyncToggle;
 
     [Header("Player Reference")]
     public PlayerStateController playerState;
@@ -41,10 +47,28 @@ public class PauseMenu : MonoBehaviour
 
         cameraFollow = Camera.main?.GetComponent<CameraFollow>();
 
+        // Camera shake toggle
         if (cameraShakeToggle != null && cameraFollow != null)
         {
             cameraShakeToggle.isOn = cameraFollow.shakeEnabled;
             cameraShakeToggle.onValueChanged.AddListener(val => cameraFollow.shakeEnabled = val);
+        }
+
+        // Shake intensity slider
+        if (shakeIntensitySlider != null && cameraFollow != null)
+        {
+            shakeIntensitySlider.minValue = 0f;
+            shakeIntensitySlider.maxValue = 2f;
+            shakeIntensitySlider.value = cameraFollow.shakeIntensity;
+            shakeIntensitySlider.onValueChanged.AddListener(val => cameraFollow.shakeIntensity = val);
+        }
+
+        // VSync toggle — on = vSyncCount 1, off = 0
+        if (vSyncToggle != null)
+        {
+            vSyncToggle.isOn = QualitySettings.vSyncCount > 0;
+            vSyncToggle.onValueChanged.AddListener(val =>
+                QualitySettings.vSyncCount = val ? 1 : 0);
         }
     }
 
