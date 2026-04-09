@@ -47,6 +47,7 @@ public class PlayerMovement : MonoBehaviour
     private float JumpForce => playerStats != null ? playerStats.jumpForce : jumpForce;
     private int MaxJumps => maxJumps;
     private float MaxWallSlide => playerStats != null ? playerStats.wallSlideSpeed : maxWallSlideSpeed;
+    private float Acceleration => playerStats != null ? playerStats.acceleration : acceleration;
 
     private Rigidbody rb;
     private PlayerStats playerStats;
@@ -203,7 +204,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         float targetSpeed = input * MoveSpeed;
-        float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : deceleration;
+        float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Acceleration : deceleration;
         float velocityX = Mathf.MoveTowards(rb.linearVelocity.x, targetSpeed, accelRate * Time.fixedDeltaTime);
         rb.linearVelocity = new Vector3(velocityX, rb.linearVelocity.y, -2f);
     }

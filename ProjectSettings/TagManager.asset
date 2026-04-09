@@ -12,6 +12,7 @@ TagManager:
   - Wall
   - Soul
   - Orb
+  - SoulLooter
   layers:
   - Default
   - TransparentFX

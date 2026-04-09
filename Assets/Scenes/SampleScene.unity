@@ -6653,7 +6653,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 10
   acceleration: 30
-  deceleration: 25
+  deceleration: 30
   jumpForce: 3
   maxJumps: 1
   wallJumpForce: 15
@@ -6669,6 +6669,7 @@ MonoBehaviour:
   wallCheckDistance: 0.6
   wallCheckRayCount: 3
   wallCheckHalfHeight: 1
+  wallJumpCooldown: 0.25
   groundCheck: {fileID: 2133932797}
   groundCheckRadius: 0.2
   groundLayer:
@@ -6775,6 +6776,7 @@ Transform:
   - {fileID: 620882561}
   - {fileID: 856474302}
   - {fileID: 1637232972}
+  - {fileID: 1592468986}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1048261597
@@ -7075,6 +7077,8 @@ MonoBehaviour:
   cooldown: 0
   baseMoveSpeed: 10
   moveSpeedPerAgility: 0.1
+  baseAcceleration: 30
+  accelerationPerAgility: 0.5
   baseDashDistance: 5
   dashDistPerAgility: 0.1
   baseChargeTime: 1.5
@@ -7122,6 +7126,7 @@ MonoBehaviour:
   baseMaxHP: 100
   hpPerHealth: 1
   moveSpeed: 10
+  acceleration: 0
   dashDistance: 6
   arrowChargeDuration: 1.5
   arrowDamage: 10
@@ -11856,6 +11861,59 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1577915795}
   m_CullTransparentMesh: 1
+--- !u!1 &1592468985
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1592468986}
+  - component: {fileID: 1592468987}
+  m_Layer: 8
+  m_Name: Soul Looter
+  m_TagString: SoulLooter
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1592468986
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1592468985}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1048261596}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &1592468987
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1592468985}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.55
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1592706005
 GameObject:
   m_ObjectHideFlags: 0

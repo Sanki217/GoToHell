@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(Collider))]
 public class EnemyProjectile : MonoBehaviour
@@ -28,9 +28,7 @@ public class EnemyProjectile : MonoBehaviour
         if (myCollider && ownerRoot)
         {
             foreach (Collider c in ownerRoot.GetComponentsInChildren<Collider>())
-            {
                 Physics.IgnoreCollision(myCollider, c);
-            }
         }
 
         Destroy(gameObject, lifeTime);
@@ -44,18 +42,16 @@ public class EnemyProjectile : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // Ignore owner
-        if (other.transform.root == ownerRoot)
-            return;
+        if (other.transform.root == ownerRoot) return;
 
         // Ignore pickups / sensors
         if (other.CompareTag("EnemySensor") || other.CompareTag("Orb") || other.CompareTag("Looter"))
             return;
 
         // Only react to allowed layers
-        if ((hitLayers.value & (1 << other.gameObject.layer)) == 0)
-            return;
+        if ((hitLayers.value & (1 << other.gameObject.layer)) == 0) return;
 
-        // PLAYER
+        // ── PLAYER ──────────────────────────────────────────────────
         if (other.CompareTag("Player"))
         {
             other.GetComponent<PlayerHealth>()?.TakeDamage(damage);
@@ -63,12 +59,16 @@ public class EnemyProjectile : MonoBehaviour
             return;
         }
 
-        // OTHER ENEMY
+        // ── OTHER ENEMY ─────────────────────────────────────────────
         if (other.CompareTag("Enemy"))
         {
             Enemy enemy = other.GetComponentInParent<Enemy>();
-            if (enemy != null && enemy.transform != ownerRoot)
+            if (enemy != null && enemy.transform.root != ownerRoot)
             {
+                // Show damage number at the hit position
+                FloatingTextManager.Show(damage, other.transform.position,
+                    FloatingTextManager.HitType.Normal);
+
                 enemy.TakeDamage(damage);
             }
 
@@ -76,7 +76,7 @@ public class EnemyProjectile : MonoBehaviour
             return;
         }
 
-        // WORLD (walls, ground, platforms)
+        // ── WORLD ───────────────────────────────────────────────────
         Destroy(gameObject);
     }
 }

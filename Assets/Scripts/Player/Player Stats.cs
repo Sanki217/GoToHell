@@ -81,6 +81,9 @@ public class PlayerStats : MonoBehaviour
     public float baseMoveSpeed = 10f;
     public float moveSpeedPerAgility = 0.10f;   // +10% agility → +1 move speed per 10 agility
 
+    public float baseAcceleration = 30f;
+    public float accelerationPerAgility = 0.5f; // +0.5 acceleration per 1 agility point
+
     public float baseDashDistance = 5f;
     public float dashDistPerAgility = 0.10f;
 
@@ -164,6 +167,7 @@ public class PlayerStats : MonoBehaviour
 
     [Header("=== DERIVED STATS (read-only) ===")]
     [HideInInspector] public float moveSpeed;
+    [HideInInspector] public float acceleration;
     [HideInInspector] public float dashDistance;
     [HideInInspector] public float arrowChargeDuration;
     [HideInInspector] public float arrowDamage;
@@ -211,6 +215,7 @@ public class PlayerStats : MonoBehaviour
     {
         // Movement
         moveSpeed = baseMoveSpeed + moveSpeedPerAgility * agility;
+        acceleration = baseAcceleration + accelerationPerAgility * agility;
         dashDistance = baseDashDistance + dashDistPerAgility * agility;
         arrowChargeDuration = Mathf.Max(0.1f, baseChargeTime + chargeTimePerAgility * agility);
 

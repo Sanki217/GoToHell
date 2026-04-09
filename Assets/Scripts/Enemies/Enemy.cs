@@ -25,6 +25,7 @@ public class Enemy : MonoBehaviour
     // ================================================================
 
     private int currentHealth;
+    private EnemyHealthBar healthBar;
 
     // ================================================================
     //  INIT
@@ -35,6 +36,9 @@ public class Enemy : MonoBehaviour
         currentHealth = maxHealth;
         if (enemyRenderer == null)
             enemyRenderer = GetComponentInChildren<Renderer>();
+
+        healthBar = GetComponent<EnemyHealthBar>();
+        healthBar?.Initialize(maxHealth, currentHealth);
     }
 
     // ================================================================
@@ -53,7 +57,6 @@ public class Enemy : MonoBehaviour
                            Vector3 knockbackDir, float knockbackForce,
                            bool isCrit, FloatingTextManager.HitType hitType)
     {
-        // Shock: consume before applying damage
         ShockEffect shock = GetComponent<ShockEffect>();
         if (shock != null)
         {
@@ -67,13 +70,14 @@ public class Enemy : MonoBehaviour
         FloatingTextManager.Show(amount, hitPosition,
             isCrit ? FloatingTextManager.HitType.Critical : hitType);
 
+        healthBar?.NotifyDamage(Mathf.Max(0, currentHealth));
+
         if (knockbackForce > 0f && knockbackDir != Vector3.zero)
             StartCoroutine(ApplyKnockback(knockbackDir.normalized * knockbackForce));
 
         if (enemyRenderer != null)
             StartCoroutine(HitFlash());
 
-        // Notify kill streak that damage was dealt (resets the timer)
         GameObject player = GameObject.FindWithTag("Player");
         player?.GetComponent<KillStreak>()?.RegisterDamageDealt();
 
@@ -110,17 +114,14 @@ public class Enemy : MonoBehaviour
 
     private IEnumerator ApplyKnockback(Vector3 impulse)
     {
-        // Notify movement scripts so they suspend and return to path afterward
         var hPatrol = GetComponent<EnemyPatrolHorizontal>();
         var vPatrol = GetComponent<EnemyPatrolVertical>();
-
         var shooter = GetComponent<EnemyShooter>();
 
         if (hPatrol != null) hPatrol.ReceiveKnockback(impulse, knockbackDuration);
         if (vPatrol != null) vPatrol.ReceiveKnockback(impulse, knockbackDuration);
         if (shooter != null) shooter.ReceiveKnockback(impulse, knockbackDuration);
 
-        // If no movement script, just displace the transform
         if (hPatrol == null && vPatrol == null && shooter == null)
         {
             float elapsed = 0f;

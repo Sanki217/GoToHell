@@ -11,16 +11,12 @@ public class Soul : MonoBehaviour
     public float initialDampDuration = 0.6f;
 
     [Header("Attract Movement")]
-    public float minAttractSpeed = 10f;   // raised from 6 — less likely to stall near centre
-    public float maxAttractSpeed = 22f;   // raised from 18
+    public float minAttractSpeed = 10f;
+    public float maxAttractSpeed = 22f;
     public float attractAccelerationTime = 0.4f;
 
     [Header("Arrival")]
-    [Tooltip("Soul is collected when closer than this. Raised to prevent sub-step stalling.")]
     public float arrivalDistance = 0.4f;
-
-    [Tooltip("If the soul has been attracting for this many seconds and is still within " +
-             "snapDistance of the player, it snaps and collects immediately.")]
     public float timeoutSeconds = 3f;
     public float snapDistance = 1.5f;
 
@@ -29,6 +25,7 @@ public class Soul : MonoBehaviour
 
     private Rigidbody rb;
     private bool isAttracted = false;
+    private bool collected = false;
     private Transform attractTarget;
     private PlayerInventory targetInventory;
     private Vector3 originalScale;
@@ -50,7 +47,6 @@ public class Soul : MonoBehaviour
     {
         float t = 0f;
         Vector3 startVelocity = rb.linearVelocity;
-
         while (t < initialDampDuration)
         {
             if (rb.isKinematic) yield break;
@@ -62,15 +58,18 @@ public class Soul : MonoBehaviour
         rb.linearVelocity = Vector3.zero;
     }
 
+    // ================================================================
+    //  START ATTRACT — called by Looter when soul enters loot range
+    // ================================================================
+
     public void StartAttract(Transform playerTransform, PlayerInventory inventory)
     {
-        if (isAttracted) return;
+        if (isAttracted || collected) return;
         isAttracted = true;
-
-        if (dampRoutine != null) { StopCoroutine(dampRoutine); dampRoutine = null; }
-
         attractTarget = playerTransform;
         targetInventory = inventory;
+
+        if (dampRoutine != null) { StopCoroutine(dampRoutine); dampRoutine = null; }
 
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
@@ -80,10 +79,29 @@ public class Soul : MonoBehaviour
     }
 
     // ================================================================
-    //  WHY WaitForFixedUpdate:
-    //  rb.MovePosition on a kinematic Rigidbody must be called once per
-    //  physics step. WaitForFixedUpdate fires exactly once per physics
-    //  step (50/sec) regardless of render fps — identical at 60 and 1975fps.
+    //  DIRECT CONTACT — SoulLooter child trigger collider on player
+    //
+    //  Tag the SoulLooter child GameObject with the tag "SoulLooter".
+    //  When the soul physically touches that collider it collects
+    //  immediately — no coroutine stalling possible.
+    // ================================================================
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (collected) return;
+        if (!other.CompareTag("SoulLooter")) return;
+
+        // Grab inventory from the player root if not yet set
+        if (targetInventory == null)
+        {
+            targetInventory = other.transform.root.GetComponent<PlayerInventory>();
+        }
+
+        Collect();
+    }
+
+    // ================================================================
+    //  ATTRACT COROUTINE — moves soul toward player root
     // ================================================================
 
     IEnumerator AttractCoroutine()
@@ -94,7 +112,7 @@ public class Soul : MonoBehaviour
         {
             yield return new WaitForFixedUpdate();
 
-            if (attractTarget == null) break;
+            if (attractTarget == null || collected) yield break;
 
             float dt = Time.fixedDeltaTime;
             elapsed += dt;
@@ -103,34 +121,18 @@ public class Soul : MonoBehaviour
             toPlayer.z = 0f;
             float dist = toPlayer.magnitude;
 
-            // ── Primary arrival check ──────────────────────────────
-            if (dist <= arrivalDistance)
-            {
-                Collect();
-                yield break;
-            }
+            // Distance arrival
+            if (dist <= arrivalDistance) { Collect(); yield break; }
 
-            // ── Timeout snap: been attracting too long and still close ─
-            // Catches the case where the soul oscillates just outside
-            // arrivalDistance and never actually closes the gap.
-            if (elapsed >= timeoutSeconds && dist <= snapDistance)
-            {
-                Collect();
-                yield break;
-            }
+            // Timeout snap
+            if (elapsed >= timeoutSeconds && dist <= snapDistance) { Collect(); yield break; }
 
-            // ── Speed ramp ────────────────────────────────────────
             float t = Mathf.Clamp01(elapsed / attractAccelerationTime);
             float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, t * t);
 
-            // ── Shrink ────────────────────────────────────────────
             float scaleT = Mathf.Clamp01(dist / shrinkStartDistance);
             transform.localScale = originalScale * scaleT;
 
-            // ── Move — clamp step so we never overshoot arrival ───
-            // The clamp is against (dist - arrivalDistance) so on the
-            // last step we land exactly at arrivalDistance rather than
-            // bouncing past and coming back.
             float step = Mathf.Min(speed * dt, Mathf.Max(0f, dist - arrivalDistance));
             rb.MovePosition(transform.position + toPlayer.normalized * step);
         }
@@ -138,6 +140,8 @@ public class Soul : MonoBehaviour
 
     private void Collect()
     {
+        if (collected) return;
+        collected = true;
         targetInventory?.AddSouls(value);
         Destroy(gameObject);
     }
