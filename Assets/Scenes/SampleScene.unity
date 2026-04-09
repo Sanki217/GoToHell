@@ -6538,7 +6538,7 @@ MonoBehaviour:
   player: {fileID: 1048261596}
   smoothSpeed: 5
   parallaxRatio: -0.2
-  yOffset: -1.8
+  yOffset: -2.4
   shakeEnabled: 1
   shakeIntensity: 1
   traumaDecayRate: 4
@@ -6656,8 +6656,8 @@ MonoBehaviour:
   deceleration: 30
   jumpForce: 3
   maxJumps: 1
-  wallJumpForce: 15
-  wallJumpDirection: {x: 0.8, y: 0.5}
+  wallJumpForce: 10
+  wallJumpDirection: {x: 1.32, y: 0.5}
   wallSlideStopSpeed: -1.26
   wallLerpToZeroTime: 4.01
   wallSlideDelay: 0

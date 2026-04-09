@@ -67,6 +67,14 @@ public class PlayerMovement : MonoBehaviour
     private float wallSlideAccelerationTimer;
     private float wallJumpCooldownTimer = 0f;
 
+    /// <summary>
+    /// True for a brief window after a wall jump. HoverAbility reads this
+    /// to prevent Space-hold hover from capping the jump velocity immediately.
+    /// </summary>
+    public bool justWallJumped { get; private set; } = false;
+    private float justWallJumpedTimer = 0f;
+    private const float JustWallJumpedDuration = 0.25f;
+
     private Vector3 previousPosition;
 
     public enum WallSlidePhase { None, LerpToZero, WaitingAtZero, AcceleratingToSlide, Sliding }
@@ -99,6 +107,13 @@ public class PlayerMovement : MonoBehaviour
 
         if (wallJumpCooldownTimer > 0f)
             wallJumpCooldownTimer -= Time.deltaTime;
+
+        if (justWallJumped)
+        {
+            justWallJumpedTimer -= Time.deltaTime;
+            if (justWallJumpedTimer <= 0f)
+                justWallJumped = false;
+        }
 
         HandleInput();
         CheckGround();
@@ -186,6 +201,8 @@ public class PlayerMovement : MonoBehaviour
 
         jumpCount++;
         wallJumpCooldownTimer = wallJumpCooldown;   // suppress wall contact briefly
+        justWallJumped = true;
+        justWallJumpedTimer = JustWallJumpedDuration;
         ResetWallSlide();
         playerStats?.RecordJump();
         upgradeManager?.Jump(jumpCount);

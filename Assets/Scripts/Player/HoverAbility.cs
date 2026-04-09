@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class HoverAbility : MonoBehaviour
@@ -8,7 +8,7 @@ public class HoverAbility : MonoBehaviour
     public float maxUpwardSpeed = 5f;
     public float minEnergyToHover = 5f;
 
-    [Tooltip("Default — overridden by PlayerStats.hoverDrainRate at runtime")]
+    [Tooltip("Default ï¿½ overridden by PlayerStats.hoverDrainRate at runtime")]
     public float energyDrainPerSecond = 10f;
 
     private Rigidbody rb;
@@ -44,7 +44,8 @@ public class HoverAbility : MonoBehaviour
         if (hasEnoughEnergy) wasOutOfEnergy = false;
 
         bool wantsHover = Input.GetKey(KeyCode.Space) && hasEnoughEnergy
-                          && !wasOutOfEnergy && !movement.isGrounded;
+                          && !wasOutOfEnergy && !movement.isGrounded
+                          && !movement.justWallJumped;  // don't hover-cap the wall jump impulse
 
         if (wantsHover && !isHovering)
         {
