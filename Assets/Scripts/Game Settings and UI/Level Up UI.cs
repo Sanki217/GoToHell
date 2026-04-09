@@ -1,9 +1,9 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using TMPro;
 
 /// <summary>
-/// Level-up UI — deferred Q-press system.
+/// Level-up UI - deferred Q-press system.
 ///
 /// KEY BEHAVIOURS:
 ///   - Offers are rolled and CACHED when the picker first opens.
@@ -11,6 +11,9 @@ using TMPro;
 ///   - Stat bonuses are applied IMMEDIATELY when a card is picked (before the orb flies),
 ///     so any chained picker always shows fully updated stats.
 ///   - Pending level-ups stack; chained pickers open automatically after each pick.
+///   - Orbs spawn scattered in a radius below the player so they're visible before pickup.
+///   - If the upgrade pool is exhausted, pending level-ups are silently discarded
+///     and the game is un-frozen so the player is never stuck.
 /// </summary>
 public class LevelUpUI : MonoBehaviour
 {
@@ -26,10 +29,14 @@ public class LevelUpUI : MonoBehaviour
     public TMP_Text pendingPromptLabel;
 
     [Header("Orb Spawn")]
-    public Vector3 spawnOffset = new Vector3(0f, 1f, 0f);
+    [Tooltip("Orbs are scattered in a radius below the player at this horizontal spread.")]
+    public float orbSpawnRadius = 1.2f;
+    [Tooltip("How far below the player the orb cluster centres.")]
+    public float orbSpawnDropBelow = 1.0f;
+    [Tooltip("Initial outward eject force applied to each orb.")]
     public float spawnEjectForce = 3f;
 
-    [Header("Player References — auto-found if not set")]
+    [Header("Player References - auto-found if not set")]
     public PlayerStats playerStats;
     public PlayerUpgradeManager upgradeManager;
     public PlayerStateController playerState;
@@ -83,7 +90,7 @@ public class LevelUpUI : MonoBehaviour
 
         if (isOpen)
         {
-            // Save and close — cached offers are kept, same roll next time.
+            // Save and close - cached offers are kept, same roll next time.
             // Also clear pending IDs: the player is breaking the chain intentionally,
             // so future independent Q-presses should roll fresh without the exclusions.
             pendingLevelUps++;
@@ -130,7 +137,13 @@ public class LevelUpUI : MonoBehaviour
 
         if (cachedOffers == null || cachedOffers.Count == 0)
         {
-            pendingLevelUps++;
+            // No valid upgrades available (pool exhausted). Discard all pending
+            // level-ups and restore the game so the player is never soft-locked.
+            pendingLevelUps = 0;
+            pendingPickedIds.Clear();
+            cachedOffers = null;
+            Time.timeScale = 1f;
+            playerState?.EnableControl();
             UpdatePrompt();
             return;
         }
@@ -155,7 +168,7 @@ public class LevelUpUI : MonoBehaviour
     {
         if (!isOpen) return;
 
-        // Apply stat bonuses NOW — before spawning the orb or opening the next picker.
+        // Apply stat bonuses NOW - before spawning the orb or opening the next picker.
         // This guarantees the chained picker's descriptions show the post-pick stats.
         if (playerStats != null && offer.statBonuses != null)
             foreach (var bonus in offer.statBonuses)
@@ -165,7 +178,7 @@ public class LevelUpUI : MonoBehaviour
         if (offer.upgrade != null)
             pendingPickedIds.Add(offer.upgrade.UpgradeId);
 
-        // Discard this pick's cache — next picker must roll fresh.
+        // Discard this pick's cache - next picker must roll fresh.
         cachedOffers = null;
 
         Close(restoreControl: false);
@@ -177,7 +190,7 @@ public class LevelUpUI : MonoBehaviour
             OpenPicker();
         else
         {
-            // No more picks queued — clear the pending set so it doesn't
+            // No more picks queued - clear the pending set so it doesn't
             // linger across future level-up sessions
             pendingPickedIds.Clear();
             Time.timeScale = 1f;
@@ -207,16 +220,27 @@ public class LevelUpUI : MonoBehaviour
 
         if (playerTransform == null) return;
 
-        Vector3 spawnPos = playerTransform.position + spawnOffset;
+        // Scatter orb in a semicircle below the player so it's visible before pickup.
+        // Angles 210-330 degrees give a downward fan (270 = straight down).
+        float angleDeg = Random.Range(210f, 330f);
+        float angleRad = angleDeg * Mathf.Deg2Rad;
+        float radius = Random.Range(orbSpawnRadius * 0.4f, orbSpawnRadius);
+        Vector3 offset = new Vector3(
+            Mathf.Cos(angleRad) * radius,
+            Mathf.Sin(angleRad) * radius - orbSpawnDropBelow,
+            0f);
+        Vector3 spawnPos = playerTransform.position + offset;
+
         GameObject obj = Instantiate(offer.prefab, spawnPos, Quaternion.identity);
         UpgradeOrb orb = obj.GetComponent<UpgradeOrb>();
         if (orb == null) return;
 
         orb.rolledStatBonuses = offer.statBonuses?.ToArray();
         orb.rolledRarity = offer.rarity;
-        orb.statBonusesAlreadyApplied = true;  // LevelUpUI already applied them
+        orb.statBonusesAlreadyApplied = true;
 
-        Vector3 ejectDir = spawnOffset.normalized == Vector3.zero ? Vector3.up : spawnOffset.normalized;
+        // Eject outward from the player (away from centre, mostly downward)
+        Vector3 ejectDir = offset.sqrMagnitude > 0.001f ? offset.normalized : Vector3.down;
         orb.Initialize(ejectDir, spawnEjectForce);
     }
 
@@ -229,7 +253,7 @@ public class LevelUpUI : MonoBehaviour
             pendingPromptLabel.gameObject.SetActive(true);
             pendingPromptLabel.text = pendingLevelUps == 1
                 ? "Press <color=#FFD700>Q</color> to level up"
-                : $"Press <color=#FFD700>Q</color> to level up  ×{pendingLevelUps}";
+                : $"Press <color=#FFD700>Q</color> to level up  x{pendingLevelUps}";
         }
         else
         {

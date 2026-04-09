@@ -8,6 +8,7 @@ using System.Collections;
 ///   - Soul-style attraction toward the player
 ///   - On arrival: applies rolled stat bonuses (unless already applied by LevelUpUI),
 ///     then calls PlayerUpgrade.OnAdded() for behaviour wiring
+///   - Direct pickup when touching the SoulLooter collider (same tag as Soul pickups)
 ///
 /// statBonusesAlreadyApplied: set to true by LevelUpUI when it applies bonuses immediately
 /// on card pick. This skips double-application while still calling OnAdded() for behaviour.
@@ -22,7 +23,12 @@ public class UpgradeOrb : MonoBehaviour
     public float attractAccelerationTime = 0.6f;
     public float shrinkStartDistance = 1.5f;
 
-    // Set by spawn site after rolling — not configured in prefab Inspector
+    [Header("Pickup Delay")]
+    [Tooltip("Orb ignores attract / SoulLooter contact for this many real-time seconds after " +
+             "spawning, giving the player a moment to see it before it flies in.")]
+    public float attractDelay = 0.7f;
+
+    // Set by spawn site after rolling - not configured in prefab Inspector
     [HideInInspector] public UpgradeStatBonus[] rolledStatBonuses;
     [HideInInspector] public UpgradeRarity rolledRarity;
 
@@ -34,11 +40,14 @@ public class UpgradeOrb : MonoBehaviour
 
     private Rigidbody rb;
     private bool isAttracted = false;
+    private bool attractQueued = false;
+    private bool isCollected = false;
     private Transform attractTarget;
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
     private Vector3 originalScale;
     private Coroutine dampRoutine;
+    private float attractAvailableTime; // unscaled real time
 
     void Awake()
     {
@@ -49,13 +58,63 @@ public class UpgradeOrb : MonoBehaviour
 
     public void Initialize(Vector3 ejectDir, float ejectForce)
     {
+        attractAvailableTime = Time.unscaledTime + attractDelay;
         rb.linearVelocity = ejectDir.normalized * ejectForce;
         dampRoutine = StartCoroutine(InitialDampCoroutine());
     }
 
     public void StartAttract(Transform playerTransform, PlayerUpgradeManager mgr, PlayerStats stats)
     {
-        if (isAttracted) return;
+        if (isAttracted || isCollected || attractQueued) return;
+
+        float remaining = attractAvailableTime - Time.unscaledTime;
+        if (remaining > 0f)
+        {
+            // Too early to attract. Queue it with a coroutine so the orb still gets
+            // pulled in even if OnTriggerEnter only fires once (orb spawned inside range).
+            attractQueued = true;
+            StartCoroutine(DelayedAttractCoroutine(playerTransform, mgr, stats, remaining));
+            return;
+        }
+
+        BeginAttract(playerTransform, mgr, stats);
+    }
+
+    // ================================================================
+    //  SOUL LOOTER direct contact - instant pickup (mirrors Soul.cs)
+    // ================================================================
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (isCollected) return;
+        if (!other.CompareTag("SoulLooter")) return;
+        if (Time.unscaledTime < attractAvailableTime) return; // still in grace window
+
+        // Grab refs from the player root if attract hasn't started yet
+        if (upgradeManager == null)
+            upgradeManager = other.transform.root.GetComponent<PlayerUpgradeManager>();
+        if (playerStats == null)
+            playerStats = other.transform.root.GetComponent<PlayerStats>();
+
+        Apply();
+        Destroy(gameObject);
+    }
+
+    // ================================================================
+    //  PRIVATE HELPERS
+    // ================================================================
+
+    private IEnumerator DelayedAttractCoroutine(
+        Transform playerTransform, PlayerUpgradeManager mgr, PlayerStats stats, float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        attractQueued = false;
+        BeginAttract(playerTransform, mgr, stats);
+    }
+
+    private void BeginAttract(Transform playerTransform, PlayerUpgradeManager mgr, PlayerStats stats)
+    {
+        if (isAttracted || isCollected) return;
         isAttracted = true;
 
         if (dampRoutine != null) { StopCoroutine(dampRoutine); dampRoutine = null; }
@@ -92,7 +151,7 @@ public class UpgradeOrb : MonoBehaviour
         while (true)
         {
             yield return new WaitForFixedUpdate();
-            if (attractTarget == null) break;
+            if (attractTarget == null || isCollected) break;
 
             float dt = Time.fixedDeltaTime;
             elapsed += dt;
@@ -120,6 +179,9 @@ public class UpgradeOrb : MonoBehaviour
 
     private void Apply()
     {
+        if (isCollected) return;
+        isCollected = true;
+
         // Apply stat bonuses only if LevelUpUI hasn't already done it
         if (!statBonusesAlreadyApplied && playerStats != null && rolledStatBonuses != null)
             foreach (var bonus in rolledStatBonuses)
