@@ -46,6 +46,10 @@ public class LevelUpUI : MonoBehaviour
     // Cleared only when a card is actually picked.
     private List<UpgradeOrbOffer> cachedOffers = null;
 
+    // IDs of upgrades picked but whose orbs haven't landed yet.
+    // Excluded from future rolls in the same chained session so duplicates never appear.
+    private readonly HashSet<string> pendingPickedIds = new HashSet<string>();
+
     public bool IsOpen => isOpen;
 
     // ================================================================
@@ -79,8 +83,11 @@ public class LevelUpUI : MonoBehaviour
 
         if (isOpen)
         {
-            // Save and close — cached offers are kept, same roll next time
+            // Save and close — cached offers are kept, same roll next time.
+            // Also clear pending IDs: the player is breaking the chain intentionally,
+            // so future independent Q-presses should roll fresh without the exclusions.
             pendingLevelUps++;
+            pendingPickedIds.Clear();
             Close(restoreControl: true);
             UpdatePrompt();
             return;
@@ -118,7 +125,7 @@ public class LevelUpUI : MonoBehaviour
         {
             float luck = playerStats != null ? playerStats.luck : 0f;
             cachedOffers = upgradePool.RollLevelUpOffers(
-                storedLayer, luck, playerStats, 3, upgradeManager);
+                storedLayer, luck, playerStats, 3, upgradeManager, pendingPickedIds);
         }
 
         if (cachedOffers == null || cachedOffers.Count == 0)
@@ -154,6 +161,10 @@ public class LevelUpUI : MonoBehaviour
             foreach (var bonus in offer.statBonuses)
                 bonus.Apply(playerStats);
 
+        // Track this upgrade as picked-but-not-yet-landed so the next roll excludes it
+        if (offer.upgrade != null)
+            pendingPickedIds.Add(offer.upgrade.UpgradeId);
+
         // Discard this pick's cache — next picker must roll fresh.
         cachedOffers = null;
 
@@ -166,6 +177,9 @@ public class LevelUpUI : MonoBehaviour
             OpenPicker();
         else
         {
+            // No more picks queued — clear the pending set so it doesn't
+            // linger across future level-up sessions
+            pendingPickedIds.Clear();
             Time.timeScale = 1f;
             playerState?.EnableControl();
         }

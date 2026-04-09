@@ -81,7 +81,8 @@ public class PlayerUpgradePool : ScriptableObject
     /// </summary>
     public List<UpgradeOrbOffer> RollLevelUpOffers(int layer, float luck,
                                                     PlayerStats stats = null, int count = 3,
-                                                    PlayerUpgradeManager upgradeManager = null)
+                                                    PlayerUpgradeManager upgradeManager = null,
+                                                    System.Collections.Generic.HashSet<string> extraExcludeIds = null)
     {
         // Roll ONE rarity for ALL cards this level-up
         UpgradeRarity sharedRarity = UpgradeRarityRoller.RollLevelUpRarity(luck);
@@ -102,7 +103,11 @@ public class PlayerUpgradePool : ScriptableObject
             PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
             if (upgrade == null) continue;
 
+            // Skip upgrades already owned by the manager
             if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
+
+            // Skip upgrades picked this session but whose orbs haven't landed yet
+            if (extraExcludeIds != null && extraExcludeIds.Contains(upgrade.UpgradeId)) continue;
 
             offers.Add(BuildOffer(prefab, upgrade, sharedRarity, stats));
         }

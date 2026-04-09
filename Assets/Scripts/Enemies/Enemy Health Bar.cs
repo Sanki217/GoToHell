@@ -1,91 +1,45 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
-/// Enemy health bar using two SpriteRenderers (no Canvas, no UI).
+/// Enemy health bar — World Space Canvas with a UI Slider.
+/// Builds itself entirely in code. No prefab work needed.
 /// Appears only after the enemy first takes damage.
 ///
-/// ──────────────────────────────────────────────────────────────
-///  SETUP — follow exactly:
-/// ──────────────────────────────────────────────────────────────
-///
-///  1. Select your enemy prefab in the Project window and open it.
-///
-///  2. In the Hierarchy, right-click the enemy root → Create Empty.
-///     Name it: HealthBar
-///     Local Position: (0, 0.7, 0)   ← adjust Y later if needed
-///     Local Scale:    (1, 1, 1)      ← leave at default
-///     Leave it ACTIVE (checked).
-///
-///  3. Right-click HealthBar → Create Empty → name it: Background
-///     Local Position: (0, 0, 0)
-///     Local Scale:    (1.1, 0.15, 1)
-///     Add Component → Sprite Renderer
-///       Sprite: the built-in "UISprite" or "Square" — in the Project
-///               window search bar type "Square" and look for the one
-///               under Packages or built-in resources. Alternatively:
-///               create a 4×4 white PNG, import it, set Texture Type
-///               to "Sprite (2D and UI)" and use that.
-///       Color:  (0.1, 0.1, 0.1, 0.85)   ← dark background
-///       Sorting Layer: Default (or whichever layer your enemies use)
-///       Order in Layer: 10
-///
-///  4. Right-click HealthBar → Create Empty → name it: Fill
-///     Local Position: (0, 0, 0)
-///     Local Scale:    (1.0, 0.11, 1)
-///     Add Component → Sprite Renderer
-///       Sprite: same sprite as Background
-///       Color:  (0.15, 0.85, 0.15, 1.0)  ← green
-///       Sorting Layer: same as Background
-///       Order in Layer: 11
-///
-///  5. Select the ENEMY ROOT → Add Component → EnemyHealthBar
-///     Drag "HealthBar"   into the Health Bar Root field
-///     Drag "Fill"        into the Fill Renderer field
-///
-///  6. Leave all other fields at their defaults.
-///     The script hides the bar at Start and shows it on first damage.
-///
-/// ──────────────────────────────────────────────────────────────
+/// ADD THIS SCRIPT TO THE ENEMY ROOT. That's the only step.
 /// </summary>
 public class EnemyHealthBar : MonoBehaviour
 {
-    [Header("References — MUST assign both")]
-    [Tooltip("The 'HealthBar' empty GameObject child.")]
-    public GameObject healthBarRoot;
-
-    [Tooltip("The SpriteRenderer on the 'Fill' child.")]
-    public SpriteRenderer fillRenderer;
-
-    [Header("Position")]
-    [Tooltip("How far above the enemy pivot the bar floats.")]
-    public float yOffset = 0.7f;
-
-    [Tooltip("Z position of the health bar in world space. " +
-             "Must be CLOSER to the camera than your sprites. " +
-             "If your camera looks toward +Z, use a MORE NEGATIVE value. " +
-             "If camera looks toward -Z (typical Unity setup), use a MORE POSITIVE value. " +
-             "Default -3 works for most Unity 2.5D setups where sprites are at Z=0 " +
-             "and the camera is at Z=-10.")]
-    public float zPosition = -1f;
+    [Header("Layout")]
+    [Tooltip("How far above the enemy pivot the bar floats (world units).")]
+    public float yOffset = 0.8f;
+    [Tooltip("Width of the bar in world units.")]
+    public float barWidth = 1.2f;
+    [Tooltip("Height of the bar in world units.")]
+    public float barHeight = 0.12f;
 
     [Header("Colors")]
+    public Color colorBackground = new Color(0.1f, 0.1f, 0.1f, 0.85f);
     public Color colorFull = new Color(0.15f, 0.85f, 0.15f, 1f);
     public Color colorMid = new Color(0.95f, 0.75f, 0.05f, 1f);
     public Color colorLow = new Color(0.90f, 0.15f, 0.10f, 1f);
 
-    [Tooltip("Below this fraction the bar turns yellow.")]
+    [Tooltip("HP fraction below which bar turns yellow.")]
     public float midThreshold = 0.5f;
-    [Tooltip("Below this fraction the bar turns red.")]
+    [Tooltip("HP fraction below which bar turns red.")]
     public float lowThreshold = 0.25f;
 
     // ================================================================
-    //  STATE
+    //  PRIVATE
     // ================================================================
 
     private bool visible = false;
-    private int maxHP;
-    private int currentHP;
-    private float fillFullScaleX;
+    private int maxHP = 1;
+    private int currentHP = 1;
+
+    private GameObject canvasGO;
+    private Slider slider;
+    private Image fillImage;
 
     // ================================================================
     //  INIT
@@ -93,21 +47,23 @@ public class EnemyHealthBar : MonoBehaviour
 
     private void Awake()
     {
-        if (fillRenderer != null)
-            fillFullScaleX = fillRenderer.transform.localScale.x;
-
-        if (healthBarRoot != null)
-            healthBarRoot.SetActive(false);
+        BuildBar();
+        canvasGO.SetActive(false);
     }
 
     public void Initialize(int max, int current)
     {
-        maxHP = max;
+        maxHP = Mathf.Max(1, max);
         currentHP = current;
+        if (slider != null)
+        {
+            slider.maxValue = maxHP;
+            slider.value = currentHP;
+        }
     }
 
     // ================================================================
-    //  PUBLIC API
+    //  PUBLIC API — called by Enemy.cs
     // ================================================================
 
     public void NotifyDamage(int newHP)
@@ -124,49 +80,119 @@ public class EnemyHealthBar : MonoBehaviour
     }
 
     // ================================================================
+    //  BUILD
+    // ================================================================
+
+    private void BuildBar()
+    {
+        // ── Canvas ──────────────────────────────────────────────────
+        canvasGO = new GameObject("EnemyHPCanvas");
+        canvasGO.transform.SetParent(transform, false);   // child of enemy
+
+        Canvas canvas = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+
+        // Scale: 1 canvas unit = 1 pixel by default, so shrink to world size.
+        // We want the canvas to be barWidth × barHeight in world units.
+        // Canvas RectTransform defaults to 100×100 px, so scale = barWidth/100.
+        float scale = barWidth / 100f;
+        canvasGO.transform.localScale = Vector3.one * scale;
+
+        RectTransform canvasRect = canvasGO.GetComponent<RectTransform>();
+        canvasRect.sizeDelta = new Vector2(100f, barHeight / scale);
+
+        // ── Background Image ─────────────────────────────────────────
+        GameObject bgGO = new GameObject("Background");
+        bgGO.transform.SetParent(canvasGO.transform, false);
+        Image bgImage = bgGO.AddComponent<Image>();
+        bgImage.color = colorBackground;
+        RectTransform bgRect = bgGO.GetComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = Vector2.zero;
+        bgRect.offsetMax = Vector2.zero;
+
+        // ── Slider ───────────────────────────────────────────────────
+        GameObject sliderGO = new GameObject("HPSlider");
+        sliderGO.transform.SetParent(canvasGO.transform, false);
+        slider = sliderGO.AddComponent<Slider>();
+        slider.minValue = 0;
+        slider.maxValue = maxHP;
+        slider.value = currentHP;
+        slider.wholeNumbers = false;
+        slider.interactable = false;   // enemies can't click their own bar
+
+        RectTransform sliderRect = sliderGO.GetComponent<RectTransform>();
+        sliderRect.anchorMin = Vector2.zero;
+        sliderRect.anchorMax = Vector2.one;
+        sliderRect.offsetMin = Vector2.zero;
+        sliderRect.offsetMax = Vector2.zero;
+
+        // ── Fill Area ────────────────────────────────────────────────
+        // Unity Slider needs: sliderGO → Fill Area → Fill
+        GameObject fillAreaGO = new GameObject("Fill Area");
+        fillAreaGO.transform.SetParent(sliderGO.transform, false);
+        RectTransform fillAreaRect = fillAreaGO.AddComponent<RectTransform>();
+        fillAreaRect.anchorMin = Vector2.zero;
+        fillAreaRect.anchorMax = Vector2.one;
+        fillAreaRect.offsetMin = Vector2.zero;
+        fillAreaRect.offsetMax = Vector2.zero;
+
+        GameObject fillGO = new GameObject("Fill");
+        fillGO.transform.SetParent(fillAreaGO.transform, false);
+        fillImage = fillGO.AddComponent<Image>();
+        fillImage.color = colorFull;
+        RectTransform fillRect = fillGO.GetComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+
+        // Wire fill to slider
+        slider.fillRect = fillRect;
+
+        // ── No Handle ────────────────────────────────────────────────
+        // Do NOT create a handle. Slider works fine without one.
+        // (The default Unity Slider prefab has a handle; we just don't add one here.)
+        slider.handleRect = null;
+    }
+
+    // ================================================================
     //  PRIVATE
     // ================================================================
 
     private void Show()
     {
         visible = true;
-        if (healthBarRoot != null)
-            healthBarRoot.SetActive(true);
+        canvasGO.SetActive(true);
     }
 
     private void Refresh()
     {
-        if (maxHP <= 0 || fillRenderer == null) return;
+        if (slider == null) return;
+        slider.maxValue = maxHP;
+        slider.value = currentHP;
 
-        float fraction = Mathf.Clamp01((float)currentHP / maxHP);
-
-        // Scale fill on X
-        Vector3 s = fillRenderer.transform.localScale;
-        s.x = fillFullScaleX * fraction;
-        fillRenderer.transform.localScale = s;
-
-        // Shift fill left so it shrinks from the right edge, not the centre
-        Vector3 p = fillRenderer.transform.localPosition;
-        p.x = fillFullScaleX * (fraction - 1f) * 0.5f;
-        fillRenderer.transform.localPosition = p;
-
-        // Color
-        fillRenderer.color = fraction > midThreshold ? colorFull
-                           : fraction > lowThreshold ? colorMid
-                           : colorLow;
+        if (fillImage == null) return;
+        float fraction = maxHP > 0 ? (float)currentHP / maxHP : 0f;
+        fillImage.color = fraction > midThreshold ? colorFull
+                        : fraction > lowThreshold ? colorMid
+                        : colorLow;
     }
 
     private void LateUpdate()
     {
-        if (!visible || healthBarRoot == null) return;
+        if (!visible || canvasGO == null) return;
 
-        // Position: follow enemy in XY, but use a fixed Z so it's
-        // always in front of the enemy sprite and not occluded by geometry.
+        // Follow enemy in world space, fixed Y offset, same Z as enemy
+        // (SpriteRenderer sorting handles draw order, not Z)
         Vector3 pos = transform.position;
         pos.y += yOffset;
-        pos.z = zPosition;
-        healthBarRoot.transform.position = pos;
+        canvasGO.transform.position = pos;
 
-        // No rotation needed — SpriteRenderers always face the camera.
+        // Face the camera — required for World Space Canvas
+        Camera cam = Camera.main;
+        if (cam != null)
+            canvasGO.transform.rotation = cam.transform.rotation;
     }
 }
