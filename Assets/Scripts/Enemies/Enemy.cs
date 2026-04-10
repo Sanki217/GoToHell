@@ -114,15 +114,17 @@ public class Enemy : MonoBehaviour
 
     private IEnumerator ApplyKnockback(Vector3 impulse)
     {
-        var hPatrol = GetComponent<EnemyPatrolHorizontal>();
-        var vPatrol = GetComponent<EnemyPatrolVertical>();
-        var shooter = GetComponent<EnemyShooter>();
+        var hPatrol    = GetComponent<EnemyPatrolHorizontal>();
+        var vPatrol    = GetComponent<EnemyPatrolVertical>();
+        var shooter    = GetComponent<EnemyShooter>();
+        var wallJumper = GetComponent<EnemyWallJumper>();
 
-        if (hPatrol != null) hPatrol.ReceiveKnockback(impulse, knockbackDuration);
-        if (vPatrol != null) vPatrol.ReceiveKnockback(impulse, knockbackDuration);
-        if (shooter != null) shooter.ReceiveKnockback(impulse, knockbackDuration);
+        if (hPatrol    != null) hPatrol.ReceiveKnockback(impulse, knockbackDuration);
+        if (vPatrol    != null) vPatrol.ReceiveKnockback(impulse, knockbackDuration);
+        if (shooter    != null) shooter.ReceiveKnockback(impulse, knockbackDuration);
+        if (wallJumper != null) wallJumper.ReceiveKnockback(impulse, knockbackDuration);
 
-        if (hPatrol == null && vPatrol == null && shooter == null)
+        if (hPatrol == null && vPatrol == null && shooter == null && wallJumper == null)
         {
             float elapsed = 0f;
             while (elapsed < knockbackDuration)
