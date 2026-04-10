@@ -2,91 +2,111 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Blood Arrow upgrade. Attach to an upgrade orb prefab alongside UpgradeOrb.
+/// Blood Arrow — a CURSE upgrade with a two-phase lifecycle.
 ///
-/// Effect:
-///   - Arrows cost HP instead of ammo. Each shot costs hpCostPerShot (default 3).
-///   - The player effectively has unlimited arrows (ammo is restored immediately after each shot).
-///   - HP cost is clamped to min 1 HP — the player cannot die from shooting.
-///   - Below lowHPThreshold (default 30%) of max HP, arrow damage is doubled.
+/// PHASE 1 (curse active, 3-5 player levels):
+///   Penalty:  each arrow costs 5 HP (HP floored at 1; player cannot die from shots).
+///             Arrows are immediately restored so ammo never runs dry.
+///   Bonus:    arrow damage is multiplied by (1 + 0.20 + 0.05 * attackDamage).
 ///
-/// bloodArrowMultiplier on PlayerStats is read by Arrow.cs to scale damage.
-/// It is updated every frame so the threshold responds to real-time HP changes.
+/// PHASE 2 (curse lifted, permanent):
+///   Penalty ends — no more HP cost per shot.
+///   Bonus stays — damage multiplier continues for the rest of the run.
+///
+/// bloodArrowMultiplier on PlayerStats is read by Arrow.cs every hit.
+/// It is updated every frame so AttackDamage gains during the run are reflected immediately.
 /// </summary>
-public class UpgradeBloodArrow : PlayerUpgrade
+public class UpgradeBloodArrow : PlayerUpgradeCurse
 {
-    [Header("Blood Arrow - Tuning")]
-    [Tooltip("HP deducted per arrow fired.")]
-    public int hpCostPerShot = 3;
+    [Header("Blood Arrow - Penalty")]
+    [Tooltip("HP deducted per arrow fired while the curse is active.")]
+    public int hpCostPerShot = 5;
 
-    [Tooltip("HP fraction below which arrow damage is doubled. 0.3 = 30%.")]
-    public float lowHPThreshold = 0.30f;
+    [Header("Blood Arrow - Bonus (permanent)")]
+    [Tooltip("Flat damage multiplier bonus added on top of the 1.0 base. 0.20 = +20%.")]
+    public float baseDamageBonus = 0.20f;
 
-    [Tooltip("Damage multiplier applied when below the HP threshold.")]
-    public float lowHPDamageMultiplier = 2f;
+    [Tooltip("Additional damage multiplier bonus per 1 point of Attack Damage. 0.05 = +5% per AD.")]
+    public float damagePerAttackDamage = 0.05f;
 
     private PlayerStats playerStats;
     private PlayerHealth playerHealth;
     private PlayerShooting playerShooting;
-    private PlayerUpgradeManager upgradeManager;
 
-    public override void OnAdded(PlayerUpgradeManager mgr)
+    // ================================================================
+    //  CURSE LIFECYCLE
+    // ================================================================
+
+    protected override void OnCurseActivated(PlayerUpgradeManager mgr)
     {
-        upgradeManager = mgr;
         playerStats = mgr.GetComponent<PlayerStats>();
         playerHealth = mgr.GetComponent<PlayerHealth>();
         playerShooting = mgr.GetComponent<PlayerShooting>();
 
-        // Subscribe to all arrow fire events to pay HP and restore ammo
-        mgr.OnWeakArrowFired += OnAnyArrowFired;
-        mgr.OnMediumArrowFired += OnAnyArrowFired;
-        mgr.OnChargedArrowFired += OnAnyArrowFired;
+        // Subscribe to all three fire events to impose the HP cost
+        mgr.OnWeakArrowFired += OnArrowFired;
+        mgr.OnMediumArrowFired += OnArrowFired;
+        mgr.OnChargedArrowFired += OnArrowFired;
     }
+
+    protected override void OnCurseLifted()
+    {
+        // Unsubscribe from the penalty (HP cost) — bonus stays via Update()
+        curseMgr.OnWeakArrowFired -= OnArrowFired;
+        curseMgr.OnMediumArrowFired -= OnArrowFired;
+        curseMgr.OnChargedArrowFired -= OnArrowFired;
+    }
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+        // Always clean up if removed mid-run
+        if (curseMgr != null)
+        {
+            curseMgr.OnWeakArrowFired -= OnArrowFired;
+            curseMgr.OnMediumArrowFired -= OnArrowFired;
+            curseMgr.OnChargedArrowFired -= OnArrowFired;
+        }
+        if (playerStats != null)
+            playerStats.bloodArrowMultiplier = 1f;
+    }
+
+    // ================================================================
+    //  UPDATE — keep damage multiplier live (responds to AD changes)
+    // ================================================================
 
     private void Update()
     {
-        if (playerStats == null || playerHealth == null) return;
-
-        // Keep the multiplier live so it responds immediately to HP changes
-        bool isLowHP = playerHealth.CurrentHP < playerHealth.maxHP * lowHPThreshold;
-        playerStats.bloodArrowMultiplier = isLowHP ? lowHPDamageMultiplier : 1f;
+        if (playerStats == null) return;
+        float bonus = baseDamageBonus + damagePerAttackDamage * playerStats.attackDamage;
+        playerStats.bloodArrowMultiplier = 1f + bonus;
     }
 
-    private void OnAnyArrowFired(Vector3 dir, float _)
+    // ================================================================
+    //  PENALTY — HP cost per shot (only active while curse is on)
+    // ================================================================
+
+    private void OnArrowFired(Vector3 dir, float _)
     {
-        // Restore ammo so the player never runs dry
+        // Restore ammo so the player has unlimited arrows
         if (playerShooting != null)
             playerShooting.SetCurrentArrows(playerShooting.maxArrows);
 
-        // Deduct HP (floor at 1 — player can't die from their own shots)
+        // Deduct HP — floor at 1 so player cannot die from their own shots
         if (playerHealth != null)
-        {
-            int newHP = Mathf.Max(1, playerHealth.CurrentHP - hpCostPerShot);
-            playerHealth.SetHP(newHP);
-        }
+            playerHealth.SetHP(Mathf.Max(1, playerHealth.CurrentHP - hpCostPerShot));
     }
 
-    // OnExtraArrowFired uses a different signature — wire it up separately if needed.
-    // For now, the extra arrow (from upgrades) does not cost HP, which keeps things fair.
+    // ================================================================
+    //  DESCRIPTION
+    // ================================================================
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        int thresholdPct = Mathf.RoundToInt(lowHPThreshold * 100f);
-        return $"Arrows cost {HP(hpCostPerShot, "F0")} HP instead of ammo. Unlimited arrows.\n" +
-               $"Below {thresholdPct}% HP, arrow damage is {AD(lowHPDamageMultiplier, "F0")}x.";
-    }
-
-    private void OnDestroy()
-    {
-        // Reset multiplier if upgrade is somehow removed
-        if (playerStats != null)
-            playerStats.bloodArrowMultiplier = 1f;
-
-        if (upgradeManager != null)
-        {
-            upgradeManager.OnWeakArrowFired -= OnAnyArrowFired;
-            upgradeManager.OnMediumArrowFired -= OnAnyArrowFired;
-            upgradeManager.OnChargedArrowFired -= OnAnyArrowFired;
-        }
+        var s = Simulate(stats, simulatedBonuses);
+        float bonusPct = (baseDamageBonus + damagePerAttackDamage * s.attackDamage) * 100f;
+        return $"<color=#FF4466>[CURSE: {minCurseLevels}-{maxCurseLevels} levels]</color>\n" +
+               $"Arrows cost {HP(hpCostPerShot, "F0")} HP. Unlimited ammo.\n" +
+               $"Arrow damage {AD(bonusPct, "F0")}% bonus. Curse ends — bonus stays.";
     }
 }

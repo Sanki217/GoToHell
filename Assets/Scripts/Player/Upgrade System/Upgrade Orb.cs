@@ -10,6 +10,12 @@ using System.Collections;
 ///     then calls PlayerUpgrade.OnAdded() for behaviour wiring
 ///   - Direct pickup when touching the SoulLooter collider (same tag as Soul pickups)
 ///
+/// IMPORTANT — UPGRADE LIFETIME:
+///   After Apply() the orb's physics, colliders, and renderers are stripped,
+///   but the GameObject itself is KEPT as an invisible child of the player.
+///   This ensures the PlayerUpgrade MonoBehaviour persists so Update() runs,
+///   coroutines work, and event subscriptions remain valid for the full run.
+///
 /// statBonusesAlreadyApplied: set to true by LevelUpUI when it applies bonuses immediately
 /// on card pick. This skips double-application while still calling OnAdded() for behaviour.
 /// </summary>
@@ -47,7 +53,7 @@ public class UpgradeOrb : MonoBehaviour
     private PlayerStats playerStats;
     private Vector3 originalScale;
     private Coroutine dampRoutine;
-    private float attractAvailableTime; // unscaled real time
+    private float attractAvailableTime;
 
     void Awake()
     {
@@ -70,8 +76,6 @@ public class UpgradeOrb : MonoBehaviour
         float remaining = attractAvailableTime - Time.unscaledTime;
         if (remaining > 0f)
         {
-            // Too early to attract. Queue it with a coroutine so the orb still gets
-            // pulled in even if OnTriggerEnter only fires once (orb spawned inside range).
             attractQueued = true;
             StartCoroutine(DelayedAttractCoroutine(playerTransform, mgr, stats, remaining));
             return;
@@ -81,23 +85,21 @@ public class UpgradeOrb : MonoBehaviour
     }
 
     // ================================================================
-    //  SOUL LOOTER direct contact - instant pickup (mirrors Soul.cs)
+    //  SOUL LOOTER direct contact — instant pickup (mirrors Soul.cs)
     // ================================================================
 
     private void OnTriggerEnter(Collider other)
     {
         if (isCollected) return;
         if (!other.CompareTag("SoulLooter")) return;
-        if (Time.unscaledTime < attractAvailableTime) return; // still in grace window
+        if (Time.unscaledTime < attractAvailableTime) return;
 
-        // Grab refs from the player root if attract hasn't started yet
         if (upgradeManager == null)
             upgradeManager = other.transform.root.GetComponent<PlayerUpgradeManager>();
         if (playerStats == null)
             playerStats = other.transform.root.GetComponent<PlayerStats>();
 
         Apply();
-        Destroy(gameObject);
     }
 
     // ================================================================
@@ -165,7 +167,6 @@ public class UpgradeOrb : MonoBehaviour
             if (dist <= 0.15f)
             {
                 Apply();
-                Destroy(gameObject);
                 yield break;
             }
 
@@ -187,15 +188,31 @@ public class UpgradeOrb : MonoBehaviour
             foreach (var bonus in rolledStatBonuses)
                 bonus.Apply(playerStats);
 
-        // Always wire up the upgrade behaviour
         if (upgradeManager != null)
         {
             PlayerUpgrade upgrade = GetComponent<PlayerUpgrade>();
             if (upgrade != null)
             {
-                upgrade.transform.SetParent(upgradeManager.transform);
+                // Parent to the player so it lives on as a persistent upgrade host
+                transform.SetParent(upgradeManager.transform);
+                gameObject.name = $"[Upgrade] {upgrade.UpgradeId}";
+
+                // Strip physics and visuals — the upgrade MonoBehaviour stays alive
+                // so Update(), coroutines, and event subscriptions all keep working
+                foreach (var col in GetComponents<Collider>()) Destroy(col);
+                var rigidbody = GetComponent<Rigidbody>();
+                if (rigidbody != null) Destroy(rigidbody);
+                foreach (var rend in GetComponentsInChildren<Renderer>()) rend.enabled = false;
+
+                // Destroy this UpgradeOrb controller — no longer needed
+                Destroy(this);
+
                 upgradeManager.ApplyUpgrade(upgrade);
             }
+        }
+        else
+        {
+            Destroy(gameObject);
         }
     }
 }

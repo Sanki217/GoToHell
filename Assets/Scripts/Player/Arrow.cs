@@ -16,8 +16,11 @@ public class Arrow : MonoBehaviour
     [HideInInspector] public float chargeAmount = 0f;
     [HideInInspector] public float chargeDamageMultiplierPerPercent = 2f;
 
-    /// <summary>Extra damage multiplier — set to 0.5 on Soul Arrow chain copies.</summary>
+    /// <summary>Multiplicative damage scalar. 0.5 on Soul Arrow chain copies.</summary>
     [HideInInspector] public float damageMultiplier = 1f;
+
+    /// <summary>Flat damage added after all multipliers (used by Soul Arrow for AP scaling).</summary>
+    [HideInInspector] public float flatDamageBonus = 0f;
 
     /// <summary>When true this arrow is a Soul Arrow chain copy and will not trigger further chains.</summary>
     [HideInInspector] public bool isChainCopy = false;
@@ -81,7 +84,6 @@ public class Arrow : MonoBehaviour
                 return;
             }
 
-            // Solid surface — stick
             StickToSurface(hit.point);
             playerStats?.RecordArrowHitWall();
             upgradeManager?.ArrowHitWall(hit.point);
@@ -98,7 +100,8 @@ public class Arrow : MonoBehaviour
         float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
         float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
         float bloodMult = playerStats != null ? playerStats.bloodArrowMultiplier : 1f;
-        return Mathf.Max(1, Mathf.RoundToInt(base_dmg * chargeMult * streakMult * damageMultiplier * bloodMult));
+        return Mathf.Max(1, Mathf.RoundToInt(
+            base_dmg * chargeMult * streakMult * damageMultiplier * bloodMult + flatDamageBonus));
     }
 
     private void StickToSurface(Vector3 point)
@@ -122,13 +125,14 @@ public class Arrow : MonoBehaviour
         float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
         float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
         float bloodMult = playerStats != null ? playerStats.bloodArrowMultiplier : 1f;
-        float baseDamage = baseArrowDamage * chargeMult * streakMult * damageMultiplier * bloodMult;
+        float baseDamage = baseArrowDamage * chargeMult * streakMult * damageMultiplier * bloodMult
+                           + flatDamageBonus;
 
         float finalDamage;
         bool isCrit;
 
         if (playerStats != null)
-            (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, other.gameObject);
+            (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, enemy.gameObject);
         else { finalDamage = baseDamage; isCrit = false; }
 
         float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
@@ -144,12 +148,11 @@ public class Arrow : MonoBehaviour
 
         playerStats?.RecordArrowHitEnemy();
         playerStats?.RecordDamageDealt(finalDamage, DamageSource.Arrow);
-        upgradeManager?.ArrowHitEnemy(other.gameObject, chargeAmount, isCrit);
+        upgradeManager?.ArrowHitEnemy(enemy.gameObject, chargeAmount, isCrit);
 
-        // Notify upgrade manager of kills — Soul Arrow listens here.
-        // Chain copies are excluded to prevent infinite chaining.
+        // Notify Soul Arrow (chain copies excluded to prevent infinite chaining)
         if (willKill && !isChainCopy)
-            upgradeManager?.ArrowKill(other.gameObject);
+            upgradeManager?.ArrowKill(enemy.gameObject);
 
         if (!willKill)
         {
@@ -172,6 +175,6 @@ public class Arrow : MonoBehaviour
             else
                 Destroy(gameObject);
         }
-        // willKill: arrow passes through for free
+        // willKill: arrow passes through the dying enemy for free
     }
 }
