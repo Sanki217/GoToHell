@@ -174,6 +174,9 @@ public class PlayerShooting : MonoBehaviour
 
     void UpdateCameraZoom()
     {
+        // Don't zoom while the camera is locked to a merchant/zone anchor
+        if (cam != null && cam.IsLocked) return;
+
         if (isZoomingIn)
         {
             camZoomT += Time.unscaledDeltaTime / cameraZoomInTime;

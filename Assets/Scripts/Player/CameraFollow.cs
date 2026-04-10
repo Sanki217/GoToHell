@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
@@ -19,48 +19,58 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("How fast trauma decays per second. Higher = shorter shakes.")]
     public float traumaDecayRate = 3f;
 
-    [Header("Zone Override (set by MerchantZone)")]
-    [Tooltip("How fast the camera Z and Y offset transition to zone-override values.")]
-    public float zoneTransitionSpeed = 2f;
+    // ================================================================
+    //  STATE
+    // ================================================================
 
     private Vector3 velocity = Vector3.zero;
     private Vector3 shakeOffset = Vector3.zero;
-
-    // Trauma-based shake: 0–1 value, decays over time
     private float trauma = 0f;
-
-    // Shake noise seed so offsets look random but are smooth
     private float seedX;
     private float seedY;
 
-    // Zone override targets — set by MerchantZone
-    private float targetZ;
-    private float targetYOffset;
-    private float zVelocity;
-    private float yOffsetVelocity;
+    // Zone anchor lock — set by MerchantZone
+    private Transform lockedAnchor = null;
+    private float lockedSmoothTime = 0.5f;
+    private bool isLocked = false;
+
+    /// <summary>True while the camera is locked to a zone anchor (e.g. merchant zone).</summary>
+    public bool IsLocked => isLocked;
+
+    // ================================================================
+    //  INIT
+    // ================================================================
 
     private void Start()
     {
         seedX = Random.value * 100f;
         seedY = Random.value * 100f;
-        targetZ = transform.position.z;
-        targetYOffset = yOffset;
     }
+
+    // ================================================================
+    //  LATE UPDATE
+    // ================================================================
 
     void LateUpdate()
     {
-        if (player == null) return;
+        if (isLocked && lockedAnchor != null)
+        {
+            // Smoothly travel to the anchor — ignore player, shake, and zoom
+            transform.position = Vector3.SmoothDamp(
+                transform.position,
+                lockedAnchor.position,
+                ref velocity,
+                lockedSmoothTime
+            );
+            return;
+        }
 
-        // Smoothly transition zone-overridden Z and Y offset
-        float smoothZ = Mathf.SmoothDamp(transform.position.z, targetZ,
-                                         ref zVelocity, 1f / zoneTransitionSpeed);
-        yOffset = Mathf.SmoothDamp(yOffset, targetYOffset,
-                                   ref yOffsetVelocity, 1f / zoneTransitionSpeed);
+        if (player == null) return;
 
         float targetX = player.position.x * -parallaxRatio;
         float targetY = player.position.y + yOffset;
 
-        Vector3 targetPosition = new Vector3(targetX, targetY, smoothZ);
+        Vector3 targetPosition = new Vector3(targetX, targetY, transform.position.z);
 
         Vector3 smoothedPosition = Vector3.SmoothDamp(
             transform.position,
@@ -74,9 +84,7 @@ public class CameraFollow : MonoBehaviour
 
         if (shakeEnabled && shakeIntensity > 0f && trauma > 0f && !IsBlockedByUI())
         {
-            float magnitude = trauma * trauma; // squaring gives more dramatic falloff
-
-            // Perlin noise gives smooth but unpredictable shake — framerate-independent
+            float magnitude = trauma * trauma;
             float t = Time.unscaledTime;
             float nx = Mathf.PerlinNoise(seedX, t * 10f) * 2f - 1f;
             float ny = Mathf.PerlinNoise(seedY, t * 10f) * 2f - 1f;
@@ -90,36 +98,56 @@ public class CameraFollow : MonoBehaviour
         transform.position = smoothedPosition + shakeOffset;
     }
 
+    // ================================================================
+    //  SHAKE — public API
+    // ================================================================
+
     /// <summary>
     /// Add shake trauma (0–1). Multiple calls accumulate.
-    /// duration param kept for backwards compatibility but is no longer used — 
-    /// decay is controlled by traumaDecayRate.
-    /// magnitude maps to trauma added.
+    /// duration param kept for backwards compatibility — decay controlled by traumaDecayRate.
     /// </summary>
     public void Shake(float duration, float magnitude)
     {
-        // Clamp trauma to 1 so it never over-accumulates
+        if (isLocked) return; // no shake while locked to zone anchor
         trauma = Mathf.Clamp01(trauma + magnitude);
     }
 
+    // ================================================================
+    //  ZONE ANCHOR LOCK — called by MerchantZone (or any trigger zone)
+    // ================================================================
+
+    /// <summary>
+    /// Lock the camera to a fixed anchor Transform.
+    /// The camera smoothly travels to the anchor's world position and stays there.
+    /// While locked, player-follow, shake, and charge-zoom are all suppressed.
+    /// </summary>
+    public void LockToAnchor(Transform anchor, float smoothTime)
+    {
+        lockedAnchor = anchor;
+        lockedSmoothTime = Mathf.Max(0.01f, smoothTime);
+        isLocked = true;
+        // Clear shake so it doesn't bleed in at the start
+        trauma = 0f;
+        shakeOffset = Vector3.zero;
+    }
+
+    /// <summary>Release the zone lock — camera resumes following the player.</summary>
+    public void Unlock()
+    {
+        isLocked = false;
+        lockedAnchor = null;
+        // Reset velocity so the return-to-player motion starts smoothly
+        velocity = Vector3.zero;
+    }
+
+    // ================================================================
+    //  HELPERS
+    // ================================================================
+
     private bool IsBlockedByUI()
     {
-        // Check both chest UI and level-up UI
         if (ChestRewardUI.Instance != null && ChestRewardUI.Instance.IsOpen) return true;
         if (LevelUpUI.Instance != null && LevelUpUI.Instance.IsOpen) return true;
         return false;
     }
-
-    // ================================================================
-    //  ZONE OVERRIDES — called by MerchantZone (or any trigger zone)
-    // ================================================================
-
-    /// <summary>Set the camera Z target. Camera smoothly lerps to this value.</summary>
-    public void SetTargetZ(float z) => targetZ = z;
-
-    /// <summary>Set the camera Y offset target. Camera smoothly lerps to this value.</summary>
-    public void SetTargetYOffset(float offset) => targetYOffset = offset;
-
-    /// <summary>Returns the current baseline Z (before any zone override).</summary>
-    public float DefaultZ => targetZ;
 }
