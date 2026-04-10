@@ -7149,6 +7149,7 @@ MonoBehaviour:
   shockStrength: 1
   maxHP: 100
   lifeSteal: 0
+  bloodArrowMultiplier: 1
   arrowPierceCount: 0
   pierceDamageBase: 5
   pierceDmgAPScaling: 0
@@ -7222,6 +7223,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   xpPerLevel:
+  - 1
+  - 2
+  - 3
+  - 4
   - 10
   - 25
   - 45
@@ -7288,6 +7293,8 @@ MonoBehaviour:
   killsToActivate: 2
   damagePerKill: 0.02
   energyRegenPerKill: 0.01
+  graceDuration: 1
+  flashInterval: 0.12
   streakPanel: {fileID: 89862268}
   streakLabel: {fileID: 1307358702}
   timerSlider: {fileID: 242550916}
@@ -13805,7 +13812,8 @@ MonoBehaviour:
   - {fileID: 80641819}
   upgradePool: {fileID: 11400000, guid: 02c3df621c5792d479ab11c0db5de8c1, type: 2}
   pendingPromptLabel: {fileID: 173880270}
-  spawnOffset: {x: 0, y: 1, z: 0}
+  orbSpawnRadius: 1.2
+  orbSpawnDropBelow: 1
   spawnEjectForce: 3
   playerStats: {fileID: 1048261606}
   upgradeManager: {fileID: 1048261605}

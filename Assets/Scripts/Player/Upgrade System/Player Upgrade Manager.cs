@@ -106,6 +106,12 @@ public class PlayerUpgradeManager : MonoBehaviour
     public event Action OnLavaZoneDrained;
 
     // ============================================================
+    //  EVENTS — Arrow Kills (for Soul Arrow chaining — chain copies excluded)
+    // ============================================================
+
+    public event Action<GameObject> OnArrowKill;
+
+    // ============================================================
     //  EVENTS — Resources
     // ============================================================
 
@@ -200,6 +206,8 @@ public class PlayerUpgradeManager : MonoBehaviour
     // ============================================================
     //  EVENT TRIGGERS — Resources
     // ============================================================
+
+    public void ArrowKill(GameObject enemy) => OnArrowKill?.Invoke(enemy);
 
     public void SoulCollected(int amount) => OnSoulCollected?.Invoke(amount);
     public void EnergyGained(float amt, EnergySource s) => OnEnergyGained?.Invoke(amt, s);

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
@@ -15,6 +15,12 @@ public class Arrow : MonoBehaviour
     [HideInInspector] public ArrowFireType fireType = ArrowFireType.Weak;
     [HideInInspector] public float chargeAmount = 0f;
     [HideInInspector] public float chargeDamageMultiplierPerPercent = 2f;
+
+    /// <summary>Extra damage multiplier — set to 0.5 on Soul Arrow chain copies.</summary>
+    [HideInInspector] public float damageMultiplier = 1f;
+
+    /// <summary>When true this arrow is a Soul Arrow chain copy and will not trigger further chains.</summary>
+    [HideInInspector] public bool isChainCopy = false;
 
     private Vector3 direction;
     private bool hasLanded = false;
@@ -63,7 +69,6 @@ public class Arrow : MonoBehaviour
 
             if (barrel != null)
             {
-                // Hit and pierce — keep flying
                 barrel.TakeDamage(ArrowDamage());
                 transform.position = nextPosition;
                 return;
@@ -71,7 +76,6 @@ public class Arrow : MonoBehaviour
 
             if (vase != null)
             {
-                // Hit and pierce — keep flying
                 vase.TakeDamage(ArrowDamage());
                 transform.position = nextPosition;
                 return;
@@ -93,7 +97,8 @@ public class Arrow : MonoBehaviour
         float base_dmg = playerStats != null ? playerStats.arrowDamage : 1f;
         float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
         float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
-        return Mathf.Max(1, Mathf.RoundToInt(base_dmg * chargeMult * streakMult));
+        float bloodMult = playerStats != null ? playerStats.bloodArrowMultiplier : 1f;
+        return Mathf.Max(1, Mathf.RoundToInt(base_dmg * chargeMult * streakMult * damageMultiplier * bloodMult));
     }
 
     private void StickToSurface(Vector3 point)
@@ -116,7 +121,8 @@ public class Arrow : MonoBehaviour
         float baseArrowDamage = playerStats != null ? playerStats.arrowDamage : 1f;
         float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
         float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
-        float baseDamage = baseArrowDamage * chargeMult * streakMult;
+        float bloodMult = playerStats != null ? playerStats.bloodArrowMultiplier : 1f;
+        float baseDamage = baseArrowDamage * chargeMult * streakMult * damageMultiplier * bloodMult;
 
         float finalDamage;
         bool isCrit;
@@ -139,6 +145,11 @@ public class Arrow : MonoBehaviour
         playerStats?.RecordArrowHitEnemy();
         playerStats?.RecordDamageDealt(finalDamage, DamageSource.Arrow);
         upgradeManager?.ArrowHitEnemy(other.gameObject, chargeAmount, isCrit);
+
+        // Notify upgrade manager of kills — Soul Arrow listens here.
+        // Chain copies are excluded to prevent infinite chaining.
+        if (willKill && !isChainCopy)
+            upgradeManager?.ArrowKill(other.gameObject);
 
         if (!willKill)
         {

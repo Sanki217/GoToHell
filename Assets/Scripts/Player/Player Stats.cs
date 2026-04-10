@@ -193,6 +193,9 @@ public class PlayerStats : MonoBehaviour
     // Lifesteal — internal only, acquired through upgrades
     [HideInInspector] public float lifeSteal = 0f;
 
+    // Blood Arrow — damage multiplier when below HP threshold (set by UpgradeBloodArrow)
+    [HideInInspector] public float bloodArrowMultiplier = 1f;
+
     // Pierce — set by upgrade
     [HideInInspector] public int arrowPierceCount = 0;
     [HideInInspector] public float pierceDamageBase = 5f;   // flat bonus per pierce
