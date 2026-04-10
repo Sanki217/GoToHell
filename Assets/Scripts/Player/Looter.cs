@@ -11,6 +11,7 @@ public class Looter : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerShooting player;
     private PlayerStats playerStats;
+    private PlayerHealth playerHealth;
     private PlayerUpgradeManager upgradeManager;
     private SphereCollider sphereCollider;
 
@@ -20,6 +21,7 @@ public class Looter : MonoBehaviour
     {
         player = GetComponentInParent<PlayerShooting>();
         playerStats = GetComponentInParent<PlayerStats>();
+        playerHealth = GetComponentInParent<PlayerHealth>();
         upgradeManager = GetComponentInParent<PlayerUpgradeManager>();
 
         if (playerTransform == null && transform.parent != null)
@@ -68,7 +70,11 @@ public class Looter : MonoBehaviour
         if (other.TryGetComponent<Soul>(out Soul soul))
             soul.StartAttract(playerTransform, playerInventory);
 
-        // Upgrade orb — attract it in, applies itself on arrival
+        // Health orb â€” attracts in, heals on arrival
+        if (other.TryGetComponent<HealthOrb>(out HealthOrb healthOrb))
+            healthOrb.StartAttract(playerTransform, playerHealth);
+
+        // Upgrade orb ï¿½ attract it in, applies itself on arrival
         if (other.TryGetComponent<UpgradeOrb>(out UpgradeOrb upgradeOrb))
             upgradeOrb.StartAttract(playerTransform, upgradeManager, playerStats);
     }

@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Vase — destructible world object. Breaks on arrow or dash hit, drops souls and arrows.
+/// Vase ï¿½ destructible world object. Breaks on arrow or dash hit, drops souls and arrows.
 ///
 /// DAMAGE SOURCES:
 ///   - Arrows:     Arrow.cs calls TakeDamage() directly via raycast hit
@@ -11,12 +11,12 @@ using System.Collections;
 ///
 /// SETUP:
 ///   1. Create a small GameObject (Sphere works as placeholder)
-///   2. Add a Sphere/Box Collider — Is Trigger = FALSE (arrows must stick to it)
+///   2. Add a Sphere/Box Collider ï¿½ Is Trigger = FALSE (arrows must stick to it)
 ///      Make sure it's on a layer included in Arrow's stickableLayers
 ///   3. Add this script
 ///   4. Assign vaseRenderer
 ///   5. Assign soulPrefab (for soul drops)
-///   6. Assign arrowPrefab (your wall-arrow prefab — same one that spawns in walls)
+///   6. Assign arrowPrefab (your wall-arrow prefab ï¿½ same one that spawns in walls)
 ///   7. Set minSouls/maxSouls and minArrows/maxArrows
 ///   8. No special tag required
 /// </summary>
@@ -31,10 +31,15 @@ public class Vase : MonoBehaviour
     public int maxSouls = 4;
 
     [Header("Arrow Drops")]
-    [Tooltip("Assign your wall-arrow prefab — the same one that gets spawned in walls")]
+    [Tooltip("Assign your wall-arrow prefab ï¿½ the same one that gets spawned in walls")]
     public GameObject arrowPrefab;
     public int minArrows = 0;
     public int maxArrows = 2;
+
+    [Header("Health Orb Drops")]
+    public GameObject healthOrbPrefab;
+    public int minHealthOrbs = 1;
+    public int maxHealthOrbs = 3;
 
     [Header("Hit Flash")]
     public Renderer vaseRenderer;
@@ -61,7 +66,7 @@ public class Vase : MonoBehaviour
     }
 
     // ================================================================
-    //  PUBLIC API — called by Arrow.cs, explosions, etc.
+    //  PUBLIC API ï¿½ called by Arrow.cs, explosions, etc.
     // ================================================================
 
     public void TakeDamage(int amount)
@@ -131,6 +136,21 @@ public class Vase : MonoBehaviour
             // Disable movement so it doesn't fly
             Arrow arrowScript = arrowGO.GetComponent<Arrow>();
             if (arrowScript != null) arrowScript.enabled = false;
+        }
+
+        // Drop health orbs
+        int healthOrbCount = Random.Range(minHealthOrbs, maxHealthOrbs + 1);
+        for (int i = 0; i < healthOrbCount; i++)
+        {
+            if (!healthOrbPrefab) break;
+            GameObject orb = Instantiate(healthOrbPrefab, pos, Quaternion.identity);
+            HealthOrb healthOrb = orb.GetComponent<HealthOrb>();
+            if (healthOrb != null)
+            {
+                float angle = Random.Range(-80f, 80f) * Mathf.Deg2Rad;
+                Vector3 dir = new Vector3(Mathf.Sin(angle), Mathf.Cos(angle), 0f).normalized;
+                healthOrb.Initialize(dir, Random.Range(3f, 7f));
+            }
         }
 
         Destroy(gameObject);

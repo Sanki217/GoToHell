@@ -19,6 +19,10 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("How fast trauma decays per second. Higher = shorter shakes.")]
     public float traumaDecayRate = 3f;
 
+    [Header("Zone Override (set by MerchantZone)")]
+    [Tooltip("How fast the camera Z and Y offset transition to zone-override values.")]
+    public float zoneTransitionSpeed = 2f;
+
     private Vector3 velocity = Vector3.zero;
     private Vector3 shakeOffset = Vector3.zero;
 
@@ -29,20 +33,34 @@ public class CameraFollow : MonoBehaviour
     private float seedX;
     private float seedY;
 
+    // Zone override targets — set by MerchantZone
+    private float targetZ;
+    private float targetYOffset;
+    private float zVelocity;
+    private float yOffsetVelocity;
+
     private void Start()
     {
         seedX = Random.value * 100f;
         seedY = Random.value * 100f;
+        targetZ = transform.position.z;
+        targetYOffset = yOffset;
     }
 
     void LateUpdate()
     {
         if (player == null) return;
 
+        // Smoothly transition zone-overridden Z and Y offset
+        float smoothZ = Mathf.SmoothDamp(transform.position.z, targetZ,
+                                         ref zVelocity, 1f / zoneTransitionSpeed);
+        yOffset = Mathf.SmoothDamp(yOffset, targetYOffset,
+                                   ref yOffsetVelocity, 1f / zoneTransitionSpeed);
+
         float targetX = player.position.x * -parallaxRatio;
         float targetY = player.position.y + yOffset;
 
-        Vector3 targetPosition = new Vector3(targetX, targetY, transform.position.z);
+        Vector3 targetPosition = new Vector3(targetX, targetY, smoothZ);
 
         Vector3 smoothedPosition = Vector3.SmoothDamp(
             transform.position,
@@ -91,4 +109,17 @@ public class CameraFollow : MonoBehaviour
         if (LevelUpUI.Instance != null && LevelUpUI.Instance.IsOpen) return true;
         return false;
     }
+
+    // ================================================================
+    //  ZONE OVERRIDES — called by MerchantZone (or any trigger zone)
+    // ================================================================
+
+    /// <summary>Set the camera Z target. Camera smoothly lerps to this value.</summary>
+    public void SetTargetZ(float z) => targetZ = z;
+
+    /// <summary>Set the camera Y offset target. Camera smoothly lerps to this value.</summary>
+    public void SetTargetYOffset(float offset) => targetYOffset = offset;
+
+    /// <summary>Returns the current baseline Z (before any zone override).</summary>
+    public float DefaultZ => targetZ;
 }

@@ -76,8 +76,11 @@ public class PlayerSlash : MonoBehaviour
 
         if (stateController != null && !stateController.HasControl()) return;
 
+        bool shiftHeld = Input.GetKey(KeyCode.LeftShift);
         bool quiverEmpty = shooting != null && shooting.CurrentArrows <= 0;
-        if (!quiverEmpty || onCooldown) return;
+
+        // Slash when: quiver is empty OR Shift is held down
+        if ((!quiverEmpty && !shiftHeld) || onCooldown) return;
         if (!Input.GetMouseButtonDown(0)) return;
 
         TrySlash();

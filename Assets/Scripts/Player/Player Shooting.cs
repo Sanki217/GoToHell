@@ -118,6 +118,9 @@ public class PlayerShooting : MonoBehaviour
         // When quiver is empty, LMB is handled by PlayerSlash — do nothing here
         if (currentArrows <= 0) return;
 
+        // Shift+LMB routes to PlayerSlash as a forced slash — don't begin a charge
+        if (Input.GetMouseButtonDown(0) && Input.GetKey(KeyCode.LeftShift)) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             isCharging = true;

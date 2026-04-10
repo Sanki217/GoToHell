@@ -2347,8 +2347,9 @@ GameObject:
   - component: {fileID: 232501961}
   - component: {fileID: 232501960}
   - component: {fileID: 232501959}
+  - component: {fileID: 232501962}
   m_Layer: 7
-  m_Name: Cube (8)
+  m_Name: Merchant Zone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2363,11 +2364,11 @@ Transform:
   m_GameObject: {fileID: 232501957}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -13.8, y: -1000.5, z: 3.7}
-  m_LocalScale: {x: 13.322988, y: 16.173975, z: 3.0347655}
+  m_LocalPosition: {x: 0.09999943, y: -980.21, z: 0.29999995}
+  m_LocalScale: {x: 13.322988, y: 9.462746, z: 7.114097}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1434236165}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &232501959
 BoxCollider:
@@ -2384,7 +2385,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -2397,7 +2398,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 232501957}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -2443,6 +2444,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 232501957}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &232501962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 232501957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c7b332d4a2e3a6489cebb7ff1ed9b93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  merchantCameraZ: -6
+  merchantYOffset: 2
+  deltaZ: 0
 --- !u!1 &242550914
 GameObject:
   m_ObjectHideFlags: 0
@@ -6542,6 +6558,7 @@ MonoBehaviour:
   shakeEnabled: 1
   shakeIntensity: 1
   traumaDecayRate: 4
+  zoneTransitionSpeed: 2
 --- !u!1 &1042281337
 GameObject:
   m_ObjectHideFlags: 0
@@ -7072,7 +7089,7 @@ MonoBehaviour:
   abilityPower: 0
   luck: 0
   psyche: 0
-  health_stat: 0
+  health_stat: 475.32
   size: 0
   cooldown: 0
   baseMoveSpeed: 10
@@ -7223,10 +7240,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   xpPerLevel:
-  - 1
-  - 2
-  - 3
-  - 4
   - 10
   - 25
   - 45
@@ -10244,7 +10257,6 @@ Transform:
   m_Children:
   - {fileID: 1528953313}
   - {fileID: 163100226}
-  - {fileID: 232501958}
   - {fileID: 1139828826}
   - {fileID: 1485389223}
   m_Father: {fileID: 27474412}
@@ -16383,3 +16395,4 @@ SceneRoots:
   - {fileID: 1378056375}
   - {fileID: 177737229}
   - {fileID: 526545873}
+  - {fileID: 232501958}
