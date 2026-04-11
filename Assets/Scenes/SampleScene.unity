@@ -7311,7 +7311,7 @@ MonoBehaviour:
   damagePerKill: 0.02
   energyRegenPerKill: 0.01
   graceDuration: 1
-  flashInterval: 0.12
+  flashInterval: 0.8
   streakPanel: {fileID: 89862268}
   streakLabel: {fileID: 1307358702}
   timerSlider: {fileID: 242550916}

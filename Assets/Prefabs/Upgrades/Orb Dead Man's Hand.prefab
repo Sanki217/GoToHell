@@ -117,7 +117,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Dead Man's Hand
-  description: 
+  description: Last arrow in quiver critically strikes.
   icon: {fileID: 0}
   category: 0
   rarity: 0
