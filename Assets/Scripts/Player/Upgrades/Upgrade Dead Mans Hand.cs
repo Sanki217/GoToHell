@@ -144,13 +144,13 @@ public class UpgradeDeadMansHand : PlayerUpgrade
     //  DESCRIPTION
     // ================================================================
 
-    public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
-    {
-        var s = Simulate(stats, simulatedBonuses);
-        float critMult = s.critMultiplier * 100f;
-        return $"The last arrow in your quiver always crits ({AD(critMult, "F0")}% damage).\n" +
-               $"If it kills its target, the arrow flies back to your hand — " +
-               $"fire again immediately without reloading.\n" +
-               $"Crit multiplier scales with <color=#FF8800>Attack Damage</color>.";
-    }
+    //public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
+    //{
+   //     var s = Simulate(stats, simulatedBonuses);
+      //  float critMult = s.critMultiplier * 100f;
+     //   return $"The last arrow in your quiver always crits ({AD(critMult, "F0")}% damage).\n" +
+     //          $"If it kills its target, the arrow flies back to your hand — " +
+       //        $"fire again immediately without reloading.\n" +
+        //       $"Crit multiplier scales with <color=#FF8800>Attack Damage</color>.";
+   // }
 }

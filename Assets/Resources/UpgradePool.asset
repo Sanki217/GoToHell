@@ -13,9 +13,19 @@ MonoBehaviour:
   m_Name: UpgradePool
   m_EditorClassIdentifier: 
   upgradePrefabs:
-  - {fileID: 9218952406192997915, guid: b444c35a9c033a64cad2ca504d69865f, type: 3}
+  - {fileID: 440265961167594197, guid: 99c9facf82d26544f8465b1aae8472e5, type: 3}
+  - {fileID: 9218952406192997915, guid: 2104bd2531a0eab43b40567fe8daea88, type: 3}
+  - {fileID: 1800952367939015602, guid: c738555939f2ecf4e97b13dbabb44ff0, type: 3}
+  - {fileID: 1923199815895099225, guid: f5af3dc0d3c93f045b2e29a87bc71a5c, type: 3}
+  - {fileID: 1923199815895099225, guid: 9c1b0a6ac102f7849841e05b74100bec, type: 3}
   - {fileID: 440265961167594197, guid: f17c116186dcf3349804a20f5a768057, type: 3}
+  - {fileID: 4843489735958322590, guid: fefdb1fc1763efc448b08e1645b20106, type: 3}
+  - {fileID: 9218952406192997915, guid: 490c5fc8e207d9d4b9dda13cecc8e47b, type: 3}
   - {fileID: 1800952367939015602, guid: 04686e8dc4d70164caf7c97f22333cdf, type: 3}
+  - {fileID: 9218952406192997915, guid: b444c35a9c033a64cad2ca504d69865f, type: 3}
+  - {fileID: 4843489735958322590, guid: 72a363c5101242e4c9f2c034cb4903c1, type: 3}
+  - {fileID: 9218952406192997915, guid: eb800edb775ef8246a6480898e4b5546, type: 3}
+  - {fileID: 9218952406192997915, guid: 0e849e8148512874ba41d124c71ee53d, type: 3}
   statRanges:
   - stat: 0
     commonMin: 1
