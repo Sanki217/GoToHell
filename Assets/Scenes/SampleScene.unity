@@ -7128,10 +7128,10 @@ MonoBehaviour:
   baseChargeDrain: 10
   chargeDrainPerPsyche: -0.3
   minChargeDrain: 0.5
-  baseLootRange: 3
+  baseLootRange: 2.5
   lootRangePerLuck: 0.05
   maxLootRange: 8
-  baseLuckRoll: 1.4
+  baseLuckRoll: 1
   luckRollPerLuck: 0.1
   baseBurnStrength: 1
   burnPerAbilityPower: 0.005

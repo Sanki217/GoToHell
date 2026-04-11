@@ -197,8 +197,15 @@ public class PlayerStats : MonoBehaviour
     [HideInInspector] public float bloodArrowMultiplier = 1f;
 
     // One-shot multiplier consumed by the next arrow spawned (read + reset in Arrow.Initialize)
-    // Used by First Strike. Other upgrades may also write to this.
+    // Used by New Sharp Set. Other upgrades may also write to this.
     [HideInInspector] public float nextArrowDamageMultiplier = 1f;
+
+    // One-shot force-crit flag consumed by Arrow.Initialize (used by Dead Man's Hand).
+    // Causes the next non-chain arrow to guaranteed crit regardless of critChance.
+    [HideInInspector] public bool nextArrowForceCrit = false;
+
+    // Reference to the last non-chain arrow spawned — used by Dead Man's Hand for fly-back.
+    [HideInInspector] public Arrow lastFiredArrow;
 
     // Pierce — set by upgrade
     [HideInInspector] public int arrowPierceCount = 0;

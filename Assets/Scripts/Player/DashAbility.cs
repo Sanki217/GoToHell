@@ -28,6 +28,17 @@ public class DashAbility : MonoBehaviour
     private PlayerEnergy playerEnergy;
 
     public bool isDashing = false;
+
+    // ── Phantom Step teleport mode (activated by UpgradePhantomStep) ──
+    /// <summary>When true, dash instantly teleports to cursor instead of physics-sliding.</summary>
+    [HideInInspector] public bool isTeleportDash = false;
+
+    /// <summary>
+    /// Fired at the landing position when a teleport dash completes.
+    /// Phantom Step subscribes here to apply its AoE explosion.
+    /// </summary>
+    public event System.Action<Vector3> OnTeleportLanded;
+
     private float dashTimer;
     private Vector3 dashDirection;
     private Vector3 dashVelocity;
@@ -99,6 +110,26 @@ public class DashAbility : MonoBehaviour
 
             playerStats?.RecordEnergySpent(cost, EnergySpentSource.Dash);
 
+            // ── PHANTOM STEP: instant teleport instead of physics dash ──
+            if (isTeleportDash)
+            {
+                Vector3 tpTarget = origin + direction * intendedDistance;
+                tpTarget.z = 0f;
+                float tpDist = Vector3.Distance(origin, tpTarget);
+
+                float invincTP = dashDuration +
+                    (playerStats != null ? playerStats.dashInvincibilityWindow : 0f);
+                playerHealth?.StartDashInvincibility(invincTP);
+
+                upgradeManager?.DashStart();
+                transform.position = tpTarget;
+                OnTeleportLanded?.Invoke(tpTarget);
+                playerStats?.RecordDash(tpDist);
+                upgradeManager?.DashEnd();
+                return;
+            }
+            // ───────────────────────────────────────────────────────────
+
             dashDirection = (dashTarget - origin).normalized;
             dashVelocity = dashDirection * (Vector3.Distance(origin, dashTarget) / dashDuration);
             dashTimer = dashDuration;
@@ -141,7 +172,8 @@ public class DashAbility : MonoBehaviour
         float intendedDistance = Mathf.Min(Vector3.Distance(origin, cursorWorld), CurrentDashRange);
 
         Ray ray = new Ray(origin, direction);
-        Vector3 endPoint = Physics.Raycast(ray, out RaycastHit hit, intendedDistance, dashCollisionLayers)
+        // In teleport mode the player passes through walls — show full-range preview.
+        Vector3 endPoint = (!isTeleportDash && Physics.Raycast(ray, out RaycastHit hit, intendedDistance, dashCollisionLayers))
             ? hit.point
             : origin + direction * intendedDistance;
 

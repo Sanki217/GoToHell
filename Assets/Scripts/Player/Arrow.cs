@@ -25,6 +25,12 @@ public class Arrow : MonoBehaviour
     /// <summary>When true this arrow is a Soul Arrow chain copy and will not trigger further chains.</summary>
     [HideInInspector] public bool isChainCopy = false;
 
+    /// <summary>When true this arrow will force a critical hit on its next impact (Dead Man's Hand).</summary>
+    [HideInInspector] public bool isForcedCrit = false;
+
+    /// <summary>True once this arrow has stuck to a surface and stopped moving.</summary>
+    public bool HasLanded => hasLanded;
+
     private Vector3 direction;
     private bool hasLanded = false;
     private float currentVelocity;
@@ -49,12 +55,23 @@ public class Arrow : MonoBehaviour
             killStreak = player.GetComponent<KillStreak>();
         }
 
-        // Consume any one-shot damage multiplier primed by upgrades (e.g. First Strike).
+        // Consume any one-shot damage multiplier primed by upgrades (e.g. New Sharp Set).
         // Chain-copy arrows skip this so the bonus only applies to player-fired shots.
         if (!isChainCopy && playerStats != null && playerStats.nextArrowDamageMultiplier != 1f)
         {
             damageMultiplier *= playerStats.nextArrowDamageMultiplier;
             playerStats.nextArrowDamageMultiplier = 1f;
+        }
+
+        // Track last player-fired arrow reference (Dead Man's Hand fly-back).
+        if (!isChainCopy && playerStats != null)
+            playerStats.lastFiredArrow = this;
+
+        // Consume forced-crit flag (Dead Man's Hand — last arrow in quiver always crits).
+        if (!isChainCopy && playerStats != null && playerStats.nextArrowForceCrit)
+        {
+            isForcedCrit = true;
+            playerStats.nextArrowForceCrit = false;
         }
     }
 
@@ -118,7 +135,8 @@ public class Arrow : MonoBehaviour
         direction = Vector3.zero;
         currentVelocity = 0f;
         transform.position = new Vector3(point.x, point.y, 0f);
-        GetComponent<ArrowPickup>()?.OnArrowLanded();
+        // Chain-copy arrows (Mirror Arrow, Soul Arrow) are never pickable — skip OnArrowLanded.
+        if (!isChainCopy) GetComponent<ArrowPickup>()?.OnArrowLanded();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -139,9 +157,20 @@ public class Arrow : MonoBehaviour
         float finalDamage;
         bool isCrit;
 
+        // Dead Man's Hand: temporarily guarantee a crit for the last-quiver arrow.
+        float savedCritChance = 0f;
+        if (isForcedCrit && playerStats != null)
+        {
+            savedCritChance = playerStats.critChance;
+            playerStats.critChance = 2f; // > 1 guarantees Random.value < critChance
+        }
+
         if (playerStats != null)
             (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, enemy.gameObject);
         else { finalDamage = baseDamage; isCrit = false; }
+
+        if (isForcedCrit && playerStats != null)
+            playerStats.critChance = savedCritChance; // restore original crit chance
 
         float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
         Vector3 rawDir = other.transform.position - transform.position;

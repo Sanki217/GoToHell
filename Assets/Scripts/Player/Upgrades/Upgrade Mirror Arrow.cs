@@ -22,6 +22,11 @@ public class UpgradeMirrorArrow : PlayerUpgrade
              "e.g. 0.02 = +2% per AP, reaching 1.0× at AP 12.5.")]
     public float damagePerAP = 0.02f;
 
+    [Header("Mirror Arrow — Prefab")]
+    [Tooltip("Optional separate prefab for mirror arrows (different visuals, same mechanics). " +
+             "If left empty, the same prefab as the fired arrow is used.")]
+    public GameObject mirrorArrowPrefab;
+
     // ================================================================
 
     private PlayerUpgradeManager upgradeManager;
@@ -86,7 +91,9 @@ public class UpgradeMirrorArrow : PlayerUpgrade
         if (mirrorDir.sqrMagnitude < 0.001f) mirrorDir = Vector3.right;
         mirrorDir = mirrorDir.normalized;
 
-        GameObject arrowGO = Instantiate(prefab, shooting.shootPoint.position, Quaternion.identity);
+        // Use the dedicated mirror prefab if assigned, otherwise fall back to the original.
+        GameObject spawnPrefab = mirrorArrowPrefab != null ? mirrorArrowPrefab : prefab;
+        GameObject arrowGO = Instantiate(spawnPrefab, shooting.shootPoint.position, Quaternion.identity);
         Arrow arrow = arrowGO.GetComponent<Arrow>();
         if (arrow == null) { Destroy(arrowGO); return; }
 
@@ -102,6 +109,11 @@ public class UpgradeMirrorArrow : PlayerUpgrade
         // Apply mirror damage fraction
         float ap = playerStats != null ? playerStats.abilityPower : 0f;
         arrow.damageMultiplier = baseDamage + damagePerAP * ap;
+
+        // Mirror arrows self-destruct after 3 seconds — they are never pickable
+        // (isChainCopy = true means ArrowPickup.OnArrowLanded is never called, so
+        //  canPickUp stays false. The Destroy ensures they don't linger indefinitely.)
+        Destroy(arrowGO, 3f);
 
         upgradeManager?.FireExtraArrow(mirrorDir, speedMult);
     }
