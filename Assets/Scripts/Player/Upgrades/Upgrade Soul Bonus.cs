@@ -49,7 +49,7 @@ public class UpgradeSoulBonus : PlayerUpgrade
 
         int bonus = Mathf.Max(1, Mathf.RoundToInt(amount * GetBonus()));
         granting = true;
-        inventory.currentSouls += bonus;
+        inventory.AddBonusSouls(bonus);  // updates UI + stats tab without re-firing upgrade events
         levelSystem?.AddXPDirect(bonus);
         granting = false;
     }

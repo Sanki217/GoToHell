@@ -25,6 +25,18 @@ public class PlayerInventory : MonoBehaviour
         upgradeManager?.SoulCollected(amount);
     }
 
+    /// <summary>
+    /// Add souls that are already a computed bonus (e.g. from UpgradeSoulBonus).
+    /// Updates the UI and stats tab but does NOT fire OnSoulCollected upgrade events
+    /// (which would cause infinite loops in bonus upgrades).
+    /// </summary>
+    public void AddBonusSouls(int amount)
+    {
+        currentSouls += amount;
+        OnSoulsChanged?.Invoke(currentSouls);
+        playerStats?.RecordSoulCollected(amount); // now reflected in the stats tab
+    }
+
     public bool SpendSouls(int amount)
     {
         if (currentSouls >= amount)

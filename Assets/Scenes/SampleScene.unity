@@ -7085,14 +7085,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentLevel: 1
-  agility: 0
-  attackDamage: 0
-  abilityPower: 0
-  luck: 0
-  psyche: 0
-  health_stat: 475.32
-  size: 0
-  cooldown: 0
+  agility: 1
+  attackDamage: 1
+  abilityPower: 1
+  luck: 1
+  psyche: 1
+  health_stat: 1
+  size: 1
+  cooldown: 1
   baseMoveSpeed: 10
   moveSpeedPerAgility: 0.1
   baseAcceleration: 30
@@ -7113,7 +7113,7 @@ MonoBehaviour:
   baseCritMultiplier: 1.5
   critMultPerAttack: 0.005
   baseKnockback: 1
-  knockbackPerAttack: 0.1
+  knockbackPerAttack: 1
   maxKnockback: 10
   baseMaxEnergy: 100
   energyPerAbilityPower: 0.1
@@ -8583,7 +8583,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
-  spawnCount: 35
+  spawnCount: 7
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
@@ -15372,7 +15372,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
-  spawnCount: 35
+  spawnCount: 7
   minSeparationDistance: 10
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
