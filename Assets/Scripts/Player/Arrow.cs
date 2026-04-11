@@ -48,6 +48,14 @@ public class Arrow : MonoBehaviour
             playerStats = player.GetComponent<PlayerStats>();
             killStreak = player.GetComponent<KillStreak>();
         }
+
+        // Consume any one-shot damage multiplier primed by upgrades (e.g. First Strike).
+        // Chain-copy arrows skip this so the bonus only applies to player-fired shots.
+        if (!isChainCopy && playerStats != null && playerStats.nextArrowDamageMultiplier != 1f)
+        {
+            damageMultiplier *= playerStats.nextArrowDamageMultiplier;
+            playerStats.nextArrowDamageMultiplier = 1f;
+        }
     }
 
     private void Update()

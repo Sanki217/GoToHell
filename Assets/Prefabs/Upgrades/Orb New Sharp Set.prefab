@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 5287003650615626564}
   - component: {fileID: 5405659500104885838}
   - component: {fileID: 8662123902411740898}
-  - component: {fileID: 9151304223517976909}
+  - component: {fileID: 1833121204124145354}
   m_Layer: 0
-  m_Name: Orb Soul Arrow
+  m_Name: Orb New Sharp Set
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -104,7 +104,7 @@ MonoBehaviour:
   rolledStatBonuses: []
   rolledRarity: 0
   statBonusesAlreadyApplied: 0
---- !u!114 &9151304223517976909
+--- !u!114 &1833121204124145354
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -113,10 +113,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 9218952406192997915}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9573ae046000b840a13d6f6625cb655, type: 3}
+  m_Script: {fileID: 11500000, guid: 69489cf550215884c8800e456a797cfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayName: Soul Arrow
+  displayName: New Sharp Set
   description: 
   icon: {fileID: 0}
   category: 0
@@ -125,6 +125,5 @@ MonoBehaviour:
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 3
-  chainRange: 8
-  chainDamageMultiplier: 0.5
-  chainAPScaling: 0.1
+  baseMultiplier: 3
+  multiplierPerAP: 0.05

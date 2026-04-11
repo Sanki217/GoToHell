@@ -196,6 +196,10 @@ public class PlayerStats : MonoBehaviour
     // Blood Arrow — damage multiplier when below HP threshold (set by UpgradeBloodArrow)
     [HideInInspector] public float bloodArrowMultiplier = 1f;
 
+    // One-shot multiplier consumed by the next arrow spawned (read + reset in Arrow.Initialize)
+    // Used by First Strike. Other upgrades may also write to this.
+    [HideInInspector] public float nextArrowDamageMultiplier = 1f;
+
     // Pierce — set by upgrade
     [HideInInspector] public int arrowPierceCount = 0;
     [HideInInspector] public float pierceDamageBase = 5f;   // flat bonus per pierce
