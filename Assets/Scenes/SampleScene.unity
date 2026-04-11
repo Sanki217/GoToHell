@@ -7112,9 +7112,9 @@ MonoBehaviour:
   maxCritChance: 1
   baseCritMultiplier: 1.5
   critMultPerAttack: 0.005
-  baseKnockback: 1
-  knockbackPerAttack: 1
-  maxKnockback: 10
+  baseKnockback: 0.5
+  knockbackPerAttack: 0.1
+  maxKnockback: 5
   baseMaxEnergy: 100
   energyPerAbilityPower: 0.1
   baseDashCost: 15
@@ -7168,6 +7168,7 @@ MonoBehaviour:
   maxHP: 100
   lifeSteal: 0
   bloodArrowMultiplier: 1
+  nextArrowDamageMultiplier: 1
   arrowPierceCount: 0
   pierceDamageBase: 5
   pierceDmgAPScaling: 0

@@ -4,34 +4,37 @@ using System.Collections.Generic;
 /// <summary>
 /// Gravity Arrow upgrade.
 ///
-/// When an arrow sticks to a wall or surface, it spawns a pull zone at
-/// that position for 3 seconds. Enemies within pullRadius units are slowly
-/// dragged toward the arrow. Pull speed scales with Psyche.
+/// When an arrow sticks to a surface, spawns a GravityArrowZone prefab
+/// at that position. Enemies within the zone are slowly pulled toward the arrow.
+/// Pull speed scales with the player's Psyche stat.
 ///
-/// COMBO: place arrows around an enemy to trap it — the competing pulls
-/// cancel each other out and pin the enemy in place.
+/// SETUP:
+///   1. Create a GravityArrowZone prefab (any visual — sphere, particles, etc.)
+///      and add the GravityArrowZone script to it.
+///   2. Assign it to the Gravity Zone Prefab field on this upgrade's orb prefab.
 ///
-/// Requires GravityArrowZone.cs (auto-created at runtime, no prefab needed).
+/// COMBO: place arrows around an enemy to trap it — competing pulls cancel
+/// each other out and pin it in place.
 /// </summary>
 public class UpgradeGravityArrow : PlayerUpgrade
 {
-    [Header("Gravity Arrow — Tuning")]
-    [Tooltip("Radius of the pull field around each stuck arrow.")]
-    public float pullRadius = 4f;
+    [Header("Gravity Arrow — Prefab")]
+    [Tooltip("Prefab with GravityArrowZone component. Spawned at each arrow's stuck position. " +
+             "Add your own visuals (particles, glow, etc.) to this prefab.")]
+    public GameObject gravityZonePrefab;
 
-    [Tooltip("Base pull speed in units per second at the zone centre (falloff to edges).")]
-    public float basePullSpeed = 1.5f;
-
-    [Tooltip("Additional pull speed per 1 point of Psyche.")]
+    [Header("Gravity Arrow — Psyche Scaling")]
+    [Tooltip("Additional pull speed per 1 point of Psyche, added on top of the prefab's base pullSpeed.")]
     public float pullSpeedPerPsyche = 0.12f;
-
-    [Tooltip("How many seconds the pull zone lasts after the arrow sticks.")]
-    public float zoneDuration = 3f;
 
     // ================================================================
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
+
+    // ================================================================
+    //  SETUP
+    // ================================================================
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
@@ -52,17 +55,27 @@ public class UpgradeGravityArrow : PlayerUpgrade
 
     private void OnArrowHitWall(Vector3 position)
     {
+        if (gravityZonePrefab == null)
+        {
+            Debug.LogWarning("[UpgradeGravityArrow] Gravity Zone Prefab is not assigned!", this);
+            return;
+        }
+
+        GameObject zoneGO = Instantiate(
+            gravityZonePrefab,
+            new Vector3(position.x, position.y, 0f),
+            Quaternion.identity);
+
+        GravityArrowZone zone = zoneGO.GetComponent<GravityArrowZone>();
+        if (zone == null)
+        {
+            Debug.LogWarning("[UpgradeGravityArrow] Gravity Zone Prefab is missing GravityArrowZone component!", zoneGO);
+            return;
+        }
+
+        // Add Psyche scaling on top of whatever the prefab has as its base pullSpeed
         float ps = playerStats != null ? playerStats.psyche : 0f;
-        float speed = basePullSpeed + pullSpeedPerPsyche * ps;
-
-        // Spawn zone as a new GameObject at the arrow's stuck position
-        GameObject zoneGO = new GameObject("[GravityArrowZone]");
-        zoneGO.transform.position = new Vector3(position.x, position.y, 0f);
-
-        GravityArrowZone zone = zoneGO.AddComponent<GravityArrowZone>();
-        zone.pullRadius = pullRadius;
-        zone.pullSpeed  = speed;
-        zone.duration   = zoneDuration;
+        zone.pullSpeed += pullSpeedPerPsyche * ps;
     }
 
     // ================================================================
@@ -72,9 +85,20 @@ public class UpgradeGravityArrow : PlayerUpgrade
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
         var s = Simulate(stats, simulatedBonuses);
-        float speed = basePullSpeed + pullSpeedPerPsyche * s.psyche;
-        return $"Arrows stuck in surfaces create a pull zone ({pullRadius:F0}m, {zoneDuration:F0}s).\n" +
-               $"Enemies are dragged toward the arrow at {PSY(speed, "F1")} u/s.\n" +
+
+        float basePull = 0f;
+        if (gravityZonePrefab != null)
+        {
+            var z = gravityZonePrefab.GetComponent<GravityArrowZone>();
+            if (z != null) { basePull = z.pullSpeed; }
+        }
+
+        float totalPull  = basePull + pullSpeedPerPsyche * s.psyche;
+        float radius     = gravityZonePrefab?.GetComponent<GravityArrowZone>()?.pullRadius ?? 4f;
+        float dur        = gravityZonePrefab?.GetComponent<GravityArrowZone>()?.duration   ?? 3f;
+
+        return $"Arrows stuck in surfaces create a pull zone ({radius:F0}m, {dur:F0}s).\n" +
+               $"Enemies dragged toward the arrow at {PSY(totalPull, "F1")} u/s.\n" +
                $"Surround an enemy with arrows to trap it. Scales with <color=#FF66CC>Psyche</color>.";
     }
 }

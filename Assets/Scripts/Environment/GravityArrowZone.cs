@@ -1,22 +1,40 @@
 using UnityEngine;
 
 /// <summary>
-/// Spawned by UpgradeGravityArrow when an arrow sticks to a surface.
+/// Gravity Arrow pull zone — attach this to a prefab.
 ///
-/// Each FixedUpdate (runs AFTER enemy movement scripts via execution order 500)
-/// this zone nudges every enemy within pullRadius toward its centre.
-/// Because it runs last, the pull is applied on top of the enemy's own movement,
-/// creating a real drag — the enemy drifts toward the arrow even while patrolling.
+/// When an arrow sticks to a surface, UpgradeGravityArrow spawns this prefab
+/// at the arrow's position. The zone drags nearby enemies toward its centre
+/// for a limited time, then destroys itself.
 ///
-/// Multiple zones (arrows placed around an enemy) create competing pulls.
-/// If the pulls cancel each other out, the enemy is effectively trapped.
+/// All values are Inspector-editable on the prefab. UpgradeGravityArrow
+/// may override pullSpeed at runtime to incorporate the player's Psyche stat.
+///
+/// EXECUTION ORDER 500: runs its FixedUpdate AFTER enemy movement scripts
+/// so the pull is applied on top of the enemy's own movement each frame.
+///
+/// SETUP:
+///   1. Create a prefab (empty GameObject or with a visual — particle system,
+///      glowing sphere, etc.).
+///   2. Add this script.
+///   3. Tune the values in the Inspector.
+///   4. Assign the prefab to UpgradeGravityArrow → Gravity Zone Prefab.
 /// </summary>
-[DefaultExecutionOrder(500)]   // runs after enemy patrol/movement scripts in FixedUpdate
+[DefaultExecutionOrder(500)]
 public class GravityArrowZone : MonoBehaviour
 {
-    [HideInInspector] public float pullRadius  = 4f;
-    [HideInInspector] public float pullSpeed   = 2f;   // units per second at zone centre
-    [HideInInspector] public float duration    = 3f;
+    [Header("Pull Zone Settings")]
+    [Tooltip("Radius within which enemies are pulled toward this zone.")]
+    public float pullRadius = 4f;
+
+    [Tooltip("Base pull speed in units per second at the centre (falls off linearly to zero at the edge). " +
+             "UpgradeGravityArrow overrides this at runtime to add Psyche scaling.")]
+    public float pullSpeed = 2f;
+
+    [Tooltip("How many seconds the zone stays active before destroying itself.")]
+    public float duration = 3f;
+
+    // ================================================================
 
     private float timer;
 
@@ -28,12 +46,16 @@ public class GravityArrowZone : MonoBehaviour
     private void FixedUpdate()
     {
         timer -= Time.fixedDeltaTime;
-        if (timer <= 0f) { Destroy(gameObject); return; }
+        if (timer <= 0f)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-        // Find all colliders within pull radius — check for Enemy component
         Collider[] hits = Physics.OverlapSphere(transform.position, pullRadius);
         foreach (Collider col in hits)
         {
+            // Walk up to root in case the enemy collider is on a child object
             Enemy enemy = col.GetComponent<Enemy>()
                           ?? col.transform.root.GetComponent<Enemy>();
             if (enemy == null) continue;
@@ -43,9 +65,9 @@ public class GravityArrowZone : MonoBehaviour
             float dist = toZone.magnitude;
             if (dist < 0.01f) continue;
 
-            // Pull strength falls off linearly with distance
+            // Linear falloff: full pull at centre, zero pull at edge
             float strength = Mathf.Clamp01(1f - dist / pullRadius);
-            Vector3 pull = toZone.normalized * pullSpeed * strength * Time.fixedDeltaTime;
+            Vector3 pull   = toZone.normalized * pullSpeed * strength * Time.fixedDeltaTime;
 
             enemy.transform.position = new Vector3(
                 enemy.transform.position.x + pull.x,
@@ -55,12 +77,13 @@ public class GravityArrowZone : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    private void OnDrawGizmos()
+    private void OnDrawGizmosSelected()
     {
-        float t = timer / Mathf.Max(duration, 0.001f);
-        Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.15f + 0.25f * t);
+        // Fade the gizmo as the zone expires
+        float alpha = Application.isPlaying ? Mathf.Clamp01(timer / Mathf.Max(duration, 0.001f)) : 1f;
+        Gizmos.color = new Color(0.3f, 0.75f, 1f, 0.12f + 0.25f * alpha);
         Gizmos.DrawSphere(transform.position, pullRadius);
-        Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.7f);
+        Gizmos.color = new Color(0.3f, 0.75f, 1f, 0.8f * alpha + 0.2f);
         Gizmos.DrawWireSphere(transform.position, pullRadius);
     }
 #endif

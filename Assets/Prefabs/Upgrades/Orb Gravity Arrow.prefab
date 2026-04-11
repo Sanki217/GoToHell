@@ -125,7 +125,5 @@ MonoBehaviour:
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 3
-  pullRadius: 4
-  basePullSpeed: 1.5
+  gravityZonePrefab: {fileID: 2979164052024903141, guid: f54442ef4a20f1b4bbc42013ab0f6f0f, type: 3}
   pullSpeedPerPsyche: 0.12
-  zoneDuration: 3

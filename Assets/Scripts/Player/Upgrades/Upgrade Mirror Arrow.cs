@@ -1,52 +1,29 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
 /// Mirror Arrow upgrade.
 ///
-/// Every Nth arrow fired (default 4) triggers a free phantom copy of the
-/// PREVIOUS arrow — same direction, same charge level — fired from the
-/// player's shoot point after a short delay that scales with Cooldown.
+/// Every arrow you fire simultaneously spawns a free mirror copy in the
+/// X-reflected direction. If you shoot bottom-left, the mirror flies bottom-right.
+/// Only the X component is flipped — Y is preserved, so angled shots stay angled.
 ///
-/// The phantom arrow costs no ammo, does not trigger Mirror Arrow again
-/// (isChainCopy = true prevents it from counting toward the N-counter),
-/// and fires from the current shoot-point position (not the original position).
+/// Mirror deals 75% of arrow damage (base), scaling upward with Ability Power.
+/// It is a chain copy (no ammo cost, does not trigger further mirror effects,
+/// does not consume nextArrowDamageMultiplier — e.g. First Strike only applies once).
 /// </summary>
 public class UpgradeMirrorArrow : PlayerUpgrade
 {
     [Header("Mirror Arrow — Tuning")]
-    [Tooltip("Fire a phantom copy every N arrows.")]
-    public int mirrorEveryN = 4;
+    [Tooltip("Base damage fraction the mirror arrow deals. 0.75 = 75% of the original.")]
+    public float baseDamage = 0.75f;
 
-    [Tooltip("Base delay in seconds before the phantom copy fires.")]
-    public float baseDelay = 0.4f;
-
-    [Tooltip("Reduction applied to delay per 1 point of Cooldown stat. " +
-             "e.g. 0.05 = −5% per point.")]
-    public float cooldownDelayReductionPerPoint = 0.05f;
-
-    [Tooltip("Minimum delay regardless of Cooldown.")]
-    public float minDelay = 0.05f;
+    [Tooltip("Additional damage fraction per 1 point of Ability Power. " +
+             "e.g. 0.02 = +2% per AP, reaching 1.0× at AP 12.5.")]
+    public float damagePerAP = 0.02f;
 
     // ================================================================
-    //  STATE
-    // ================================================================
 
-    private int arrowsFired = 0;
-
-    // Data for the most recently fired arrow (becomes the mirror template on trigger)
-    private struct ArrowSnapshot
-    {
-        public Vector3 dir;
-        public float   chargeNormalized;  // used for damage calculation
-        public float   speedMultiplier;   // used for projectile speed
-        public ArrowFireType fireType;
-    }
-    private ArrowSnapshot previous;
-    private bool hasPrevious = false;
-
-    // References
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
     private PlayerShooting shooting;
@@ -79,72 +56,54 @@ public class UpgradeMirrorArrow : PlayerUpgrade
     // ================================================================
 
     private void OnWeak(Vector3 dir, float speedMult)
-        => HandleFire(dir, chargeNorm: 0.1f, speedMult, ArrowFireType.Weak);
+        => SpawnMirror(dir, speedMult, chargeNorm: 0f, ArrowFireType.Weak,
+                       shooting?.lightArrowPrefab ?? shooting?.mainArrowPrefab);
 
     private void OnMedium(Vector3 dir, float chargeNorm)
-        => HandleFire(dir, chargeNorm, speedMult: chargeNorm, ArrowFireType.Medium);
+    {
+        float speedMult = shooting != null
+            ? Mathf.Lerp(1f, shooting.maxChargeMultiplier, chargeNorm)
+            : chargeNorm;
+        SpawnMirror(dir, speedMult, chargeNorm, ArrowFireType.Medium,
+                    shooting?.mediumArrowPrefab ?? shooting?.mainArrowPrefab);
+    }
 
     private void OnCharged(Vector3 dir, float speedMult)
-        => HandleFire(dir, chargeNorm: 1f, speedMult, ArrowFireType.Charged);
-
-    private void HandleFire(Vector3 dir, float chargeNorm, float speedMult, ArrowFireType type)
-    {
-        arrowsFired++;
-
-        // On every Nth arrow: spawn mirror of the PREVIOUS arrow
-        if (arrowsFired % mirrorEveryN == 0 && hasPrevious)
-            StartCoroutine(SpawnMirror(previous, GetDelay()));
-
-        // Store THIS arrow as the new "previous" for the next trigger
-        previous = new ArrowSnapshot
-        {
-            dir             = dir,
-            chargeNormalized = chargeNorm,
-            speedMultiplier = speedMult,
-            fireType        = type,
-        };
-        hasPrevious = true;
-    }
+        => SpawnMirror(dir, speedMult, chargeNorm: 1f, ArrowFireType.Charged,
+                       shooting?.strongArrowPrefab ?? shooting?.mainArrowPrefab);
 
     // ================================================================
     //  MIRROR SPAWN
     // ================================================================
 
-    private float GetDelay()
+    private void SpawnMirror(Vector3 dir, float speedMult, float chargeNorm,
+                              ArrowFireType fireType, GameObject prefab)
     {
-        if (playerStats == null) return baseDelay;
-        float reduction = playerStats.cooldown * cooldownDelayReductionPerPoint;
-        return Mathf.Max(minDelay, baseDelay * (1f - reduction));
-    }
+        if (shooting == null || prefab == null) return;
 
-    private IEnumerator SpawnMirror(ArrowSnapshot snap, float delay)
-    {
-        yield return new WaitForSeconds(delay);
+        // Reflect X, preserve Y — mirror is purely horizontal
+        Vector3 mirrorDir = new Vector3(-dir.x, dir.y, 0f);
+        if (mirrorDir.sqrMagnitude < 0.001f) mirrorDir = Vector3.right;
+        mirrorDir = mirrorDir.normalized;
 
-        if (shooting == null) yield break;
-
-        GameObject prefab = snap.fireType switch
-        {
-            ArrowFireType.Weak    => shooting.lightArrowPrefab  ?? shooting.mainArrowPrefab,
-            ArrowFireType.Medium  => shooting.mediumArrowPrefab ?? shooting.mainArrowPrefab,
-            ArrowFireType.Charged => shooting.strongArrowPrefab ?? shooting.mainArrowPrefab,
-            _                    => shooting.mainArrowPrefab,
-        };
-        if (prefab == null) yield break;
-
-        // Spawn from current shoot-point (player may have moved — feels dynamic)
         GameObject arrowGO = Instantiate(prefab, shooting.shootPoint.position, Quaternion.identity);
         Arrow arrow = arrowGO.GetComponent<Arrow>();
-        if (arrow == null) { Destroy(arrowGO); yield break; }
+        if (arrow == null) { Destroy(arrowGO); return; }
 
-        arrow.isChainCopy = true;              // don't count toward the mirror counter
-        arrow.Initialize(snap.dir, shooting.stickableLayers);
-        arrow.speed        = shooting.baseArrowSpeed * snap.speedMultiplier;
-        arrow.fireType     = snap.fireType;
-        arrow.chargeAmount = snap.chargeNormalized;
+        // Mark as chain copy so it doesn't consume nextArrowDamageMultiplier
+        // (First Strike bonus stays on the original arrow only)
+        arrow.isChainCopy = true;
+        arrow.Initialize(mirrorDir, shooting.stickableLayers);
+        arrow.speed        = shooting.baseArrowSpeed * speedMult;
+        arrow.fireType     = fireType;
+        arrow.chargeAmount = chargeNorm;
         arrow.chargeDamageMultiplierPerPercent = shooting.chargeDamageMultiplierPerPercent;
 
-        upgradeManager?.FireExtraArrow(snap.dir, snap.speedMultiplier);
+        // Apply mirror damage fraction
+        float ap = playerStats != null ? playerStats.abilityPower : 0f;
+        arrow.damageMultiplier = baseDamage + damagePerAP * ap;
+
+        upgradeManager?.FireExtraArrow(mirrorDir, speedMult);
     }
 
     // ================================================================
@@ -154,10 +113,9 @@ public class UpgradeMirrorArrow : PlayerUpgrade
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
         var s = Simulate(stats, simulatedBonuses);
-        float reduction = s.cooldown * cooldownDelayReductionPerPoint;
-        float delay = Mathf.Max(minDelay, baseDelay * (1f - reduction));
-        return $"Every {mirrorEveryN}th arrow fired spawns a free copy of the " +
-               $"PREVIOUS arrow after {CD(delay, "F2")}s.\n" +
-               $"Same direction and charge level. Scales with <color=#AAAAFF>Cooldown</color>.";
+        float dmgPct = (baseDamage + damagePerAP * s.abilityPower) * 100f;
+        return $"Every arrow fires a free mirror copy in the X-reflected direction simultaneously.\n" +
+               $"Mirror deals {AP(dmgPct, "F0")}% of the original arrow's damage.\n" +
+               $"Scales with <color=#4488FF>Ability Power</color>.";
     }
 }

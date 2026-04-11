@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5287003650615626564}
   - component: {fileID: 5405659500104885838}
   - component: {fileID: 8662123902411740898}
-  - component: {fileID: 1833121204124145354}
+  - component: {fileID: 6309108611684783203}
   m_Layer: 0
   m_Name: Orb New Sharp Set
   m_TagString: Untagged
@@ -104,7 +104,7 @@ MonoBehaviour:
   rolledStatBonuses: []
   rolledRarity: 0
   statBonusesAlreadyApplied: 0
---- !u!114 &1833121204124145354
+--- !u!114 &6309108611684783203
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -113,7 +113,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 9218952406192997915}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69489cf550215884c8800e456a797cfb, type: 3}
+  m_Script: {fileID: 11500000, guid: b036d64ca94d4b246a02de57a0bf58a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: New Sharp Set
