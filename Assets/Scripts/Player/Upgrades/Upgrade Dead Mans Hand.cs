@@ -4,37 +4,32 @@ using System.Collections.Generic;
 /// <summary>
 /// Dead Man's Hand upgrade.
 ///
-/// The LAST arrow in your quiver always crits (guaranteed crit roll, uses
-/// normal crit multiplier from AttackDamage). If that last arrow kills its
-/// target, it flies back to your hand — you can fire again immediately
-/// without picking up a new arrow.
+/// While you have exactly 1 arrow in your quiver, that arrow always crits
+/// (uses normal crit multiplier from AttackDamage). If it kills its target,
+/// the arrow flies back to your hand — you can fire again immediately
+/// without reloading.
 ///
-/// RHYTHM: fire all but one → last arrow gets forced crit → kill → arrow
-///         flies back → repeat without reloading.
+/// RHYTHM: fire until 1 arrow remains → it crits → kill → arrow flies back → repeat.
 ///
 /// Implementation:
-///   When CurrentArrows == 1 after any shot (meaning the NEXT fire will be
-///   the last arrow), playerStats.nextArrowForceCrit is set to true.
-///   Arrow.Initialize() consumes it into arrow.isForcedCrit and clears the flag.
-///   On the hit, isForcedCrit temporarily boosts critChance to 2f so
+///   Update() monitors CurrentArrows. When == 1, playerStats.nextArrowForceCrit
+///   is set to true (and a local isPrimed flag mirrors this).
+///   Arrow.Initialize() consumes nextArrowForceCrit into arrow.isForcedCrit.
+///   On hit, isForcedCrit temporarily boosts critChance to 2f so
 ///   RollDamage() guarantees a crit.
 ///
-///   On kill (OnArrowKill), if the last-arrow flag was set, the arrow
-///   (retrieved via playerStats.lastFiredArrow) is sucked back with
-///   ArrowPickup.StartSuck(), which restores the quiver on arrival.
+///   When the primed arrow is fired (OnAnyArrowFired with isPrimed == true),
+///   waitingForKill is set. On kill (OnArrowKill), the arrow is sucked back
+///   via ArrowPickup.StartSuck(), which restores the quiver on arrival.
 /// </summary>
 public class UpgradeDeadMansHand : PlayerUpgrade
 {
-    [Header("Dead Man's Hand — Tuning")]
-    [Tooltip("How many arrows must be remaining after a shot before the next shot gets the crit prime. " +
-             "Default 1: fire when quiver has 2 → 1 remains → next (last) shot crits.")]
-    public int critPrimeAtArrows = 1;
-
     // ================================================================
     //  STATE
     // ================================================================
 
-    private bool waitingForKill = false;  // last arrow was fired with forced crit, awaiting kill
+    private bool isPrimed      = false;   // Update() has primed the forced crit
+    private bool waitingForKill = false;  // primed arrow was fired, awaiting kill
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
@@ -69,37 +64,36 @@ public class UpgradeDeadMansHand : PlayerUpgrade
         upgradeManager.OnArrowKill         -= OnArrowKill;
 
         // Clean up any primed flags if upgrade is removed mid-action
-        if (playerStats != null && waitingForKill)
+        if (playerStats != null && (isPrimed || waitingForKill))
             playerStats.nextArrowForceCrit = false;
+    }
+
+    // ================================================================
+    //  UPDATE — monitors arrow count
+    // ================================================================
+
+    private void Update()
+    {
+        if (playerShooting == null || playerStats == null) return;
+        if (waitingForKill) return; // already fired the primed arrow, don't interfere
+
+        bool shouldPrime = (playerShooting.CurrentArrows == 1);
+        isPrimed = shouldPrime;
+        playerStats.nextArrowForceCrit = shouldPrime;
     }
 
     // ================================================================
     //  EVENT HANDLERS
     // ================================================================
 
-    // Called AFTER Arrow.Initialize has consumed nextArrowForceCrit;
-    // CurrentArrows is already decremented at this point.
+    // Called AFTER Arrow.Initialize has consumed nextArrowForceCrit.
+    // If isPrimed was true, this was the forced-crit arrow — start waiting for kill.
     private void OnAnyArrowFired(Vector3 dir, float _)
     {
-        if (playerShooting == null) return;
-
-        int arrowsLeft = playerShooting.CurrentArrows;
-
-        if (arrowsLeft == critPrimeAtArrows)
-        {
-            // The NEXT shot will be the last arrow — prime the forced crit
-            if (playerStats != null)
-                playerStats.nextArrowForceCrit = true;
-            waitingForKill = true;
-        }
-        else if (arrowsLeft > critPrimeAtArrows)
-        {
-            // Player fired early — cancel any pending prime (e.g. quiver was refilled mid-prime)
-            waitingForKill = false;
-            if (playerStats != null)
-                playerStats.nextArrowForceCrit = false;
-        }
-        // arrowsLeft == 0: last arrow was just fired; priming already happened, waitingForKill is true
+        if (!isPrimed) return;
+        waitingForKill = true;
+        isPrimed = false;
+        // nextArrowForceCrit was already consumed by Arrow.Initialize()
     }
 
     // Called after the player picks up an arrow (quiver incremented).
@@ -110,8 +104,7 @@ public class UpgradeDeadMansHand : PlayerUpgrade
         if (waitingForKill)
         {
             waitingForKill = false;
-            if (playerStats != null)
-                playerStats.nextArrowForceCrit = false;
+            // isPrimed will be re-evaluated by Update() next frame
         }
     }
 
@@ -148,7 +141,7 @@ public class UpgradeDeadMansHand : PlayerUpgrade
     {
         if (stats == null) return description;
         float critMult = stats.critMultiplier * 100f;
-        return $"The last arrow in your quiver always crits ({AD(critMult, "F0")}% damage).\n" +
+        return $"While you have exactly 1 arrow, it always crits ({AD(critMult, "F0")}% damage).\n" +
                $"If it kills its target, the arrow flies back to your hand — " +
                $"fire again immediately without reloading.\n" +
                $"Crit multiplier scales with <color=#FF4444>Attack Damage</color>.";

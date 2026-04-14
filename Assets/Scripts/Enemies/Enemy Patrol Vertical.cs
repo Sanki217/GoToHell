@@ -27,6 +27,11 @@ public class EnemyPatrolVertical : MonoBehaviour
     [Range(0f, 1f)]
     public float speedMultiplier = 1f;
 
+    [Header("Movement Smoothing")]
+    [Tooltip("Time in seconds to reach full speed after starting or reversing direction. " +
+             "0 = instant (original behaviour). ~0.12 gives natural ease-in/out on turns.")]
+    public float accelerationTime = 0.12f;
+
     // ================================================================
     //  STATE
     // ================================================================
@@ -38,6 +43,10 @@ public class EnemyPatrolVertical : MonoBehaviour
     private bool suspended = false;
     private bool returningX = false;
     private float returnVelX = 0f;
+
+    // Smoothed velocity — ramps up/down via SmoothDamp when direction changes
+    private float smoothedVelY  = 0f;
+    private float smoothDampVel = 0f;
 
     private Collider[] selfColliders;
 
@@ -99,9 +108,7 @@ public class EnemyPatrolVertical : MonoBehaviour
             }
         }
 
-        // ── Y: constant-speed patrol ──────────────────────────────────
-        float move = dirY * speed * speedMultiplier * dt;
-
+        // ── Y: smoothly accelerating patrol ───────────────────────────
         turnCooldownTimer -= dt;
         if (turnCooldownTimer <= 0f && ObstacleAhead())
         {
@@ -109,7 +116,15 @@ public class EnemyPatrolVertical : MonoBehaviour
             turnCooldownTimer = turnCooldown;
         }
 
-        float nextY = y + move;
+        // SmoothDamp eases the velocity toward the target speed,
+        // producing natural acceleration, deceleration, and smooth direction reversals.
+        float targetVelY = dirY * speed * speedMultiplier;
+        float smoothTime = accelerationTime > 0f ? accelerationTime : 0.001f;
+        smoothedVelY = Mathf.SmoothDamp(smoothedVelY, targetVelY,
+                                         ref smoothDampVel, smoothTime,
+                                         float.MaxValue, dt);
+
+        float nextY = y + smoothedVelY * dt;
 
         if (nextY <= pathMinY) { nextY = pathMinY; dirY = 1f; turnCooldownTimer = turnCooldown; }
         if (nextY >= pathMaxY) { nextY = pathMaxY; dirY = -1f; turnCooldownTimer = turnCooldown; }
@@ -158,6 +173,8 @@ public class EnemyPatrolVertical : MonoBehaviour
         suspended = false;
         returningX = false;
         returnVelX = 0f;
+        smoothedVelY = 0f;
+        smoothDampVel = 0f;
 
         Vector3 velocity = impulse / Mathf.Max(duration, 0.01f);
         velocity.z = 0f;

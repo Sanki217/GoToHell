@@ -77,6 +77,11 @@ public class EnemyWallJumper : MonoBehaviour
     [Range(0f, 1f)]
     public float speedMultiplier = 1f;
 
+    [Header("Movement Smoothing")]
+    [Tooltip("Time in seconds to reach full climb speed after starting or reversing direction. " +
+             "~0.12 gives natural ease-in/out. 0 = instant.")]
+    public float climbAccelerationTime = 0.12f;
+
     // ================================================================
     //  STATE
     // ================================================================
@@ -88,6 +93,10 @@ public class EnemyWallJumper : MonoBehaviour
     private float dirY = 1f;
     private float reverseCooldownTimer = 0f;
     private float pathX;                     // X position locked while on wall
+
+    // Smoothed climb velocity
+    private float smoothedClimbVelY = 0f;
+    private float climbSmoothDampVel = 0f;
 
     // Jump direction away from current wall
     private float awayFromWallDir = 1f;
@@ -169,7 +178,13 @@ public class EnemyWallJumper : MonoBehaviour
             reverseCooldownTimer = climbReverseCooldown;
         }
 
-        float nextY = transform.position.y + dirY * climbSpeed * speedMultiplier * dt;
+        // Smooth climb: ease in/out on direction reversals
+        float targetClimbVel = dirY * climbSpeed * speedMultiplier;
+        float smoothTime = climbAccelerationTime > 0f ? climbAccelerationTime : 0.001f;
+        smoothedClimbVelY = Mathf.SmoothDamp(smoothedClimbVelY, targetClimbVel,
+                                              ref climbSmoothDampVel, smoothTime,
+                                              float.MaxValue, dt);
+        float nextY = transform.position.y + smoothedClimbVelY * dt;
         transform.position = new Vector3(pathX, nextY, 0f);
 
         // ── Jump trigger check ────────────────────────────────────────
@@ -353,6 +368,8 @@ public class EnemyWallJumper : MonoBehaviour
         // rather than falling straight down. JumpTick applies gravity and detects landing.
         vel   = new Vector3(kbHorizDir * jumpHorizontalForce, 0f, 0f);
         state = State.Jumping;
+        smoothedClimbVelY = 0f;
+        climbSmoothDampVel = 0f;
         suspended = false;
     }
 
