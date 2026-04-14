@@ -106,9 +106,9 @@ public class UpgradeMirrorArrow : PlayerUpgrade
         arrow.chargeAmount = chargeNorm;
         arrow.chargeDamageMultiplierPerPercent = shooting.chargeDamageMultiplierPerPercent;
 
-        // Apply mirror damage fraction
-        float ap = playerStats != null ? playerStats.abilityPower : 0f;
-        arrow.damageMultiplier = baseDamage + damagePerAP * ap;
+        // Apply mirror damage fraction (scales with Psyche)
+        float ps = playerStats != null ? playerStats.psyche : 0f;
+        arrow.damageMultiplier = baseDamage + damagePerAP * ps;
 
         // Mirror arrows self-destruct after 3 seconds — they are never pickable
         // (isChainCopy = true means ArrowPickup.OnArrowLanded is never called, so
@@ -124,10 +124,10 @@ public class UpgradeMirrorArrow : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
-        float dmgPct = (baseDamage + damagePerAP * s.abilityPower) * 100f;
+        if (stats == null) return description;
+        float dmgPct = (baseDamage + damagePerAP * stats.psyche) * 100f;
         return $"Every arrow fires a free mirror copy in the X-reflected direction simultaneously.\n" +
-               $"Mirror deals {AP(dmgPct, "F0")}% of the original arrow's damage.\n" +
-               $"Scales with <color=#4488FF>Ability Power</color>.";
+               $"Mirror deals {PSY(dmgPct, "F0")}% of the original arrow's damage.\n" +
+               $"Scales with <color=#FF66CC>Psyche</color>.";
     }
 }

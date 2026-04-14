@@ -78,15 +78,14 @@ public class UpgradePredator : PlayerUpgrade
     // ================================================================
     //  DESCRIPTION
     // ================================================================
-//
-//    public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
- //   {
- //       var s = Simulate(stats, simulatedBonuses);
-//        float cost = s.dashCost;
 
- //       return $"Killing an enemy while dashing through them refunds {PSY(cost, "F0")} energy " +
- //              $"(your full dash cost).\n" +
- ////              $"Chain dashes through enemies at no net cost.\n" +
- //              $"Dash cost scales with <color=#FF66CC>Psyche</color>.";
-  //  }
+    public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
+    {
+        if (stats == null) return description;
+        float cost = stats.dashCost;
+        return $"Killing an enemy while dashing through them refunds {PSY(cost, "F0")} energy " +
+               $"(your full dash cost).\n" +
+               $"Chain dashes through enemies at no net cost.\n" +
+               $"Dash cost scales with <color=#FF66CC>Psyche</color>.";
+    }
 }

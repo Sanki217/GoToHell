@@ -125,5 +125,5 @@ MonoBehaviour:
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 3
-  baseLifesteal: 0.05
+  baseLifesteal: 0.025
   lifestealPerPsyche: 0.0005

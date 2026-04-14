@@ -27,10 +27,21 @@ public class UpgradeGravityArrow : PlayerUpgrade
     [Tooltip("Additional pull speed per 1 point of Psyche, added on top of the prefab's base pullSpeed.")]
     public float pullSpeedPerPsyche = 0.12f;
 
+    [Header("Gravity Arrow — Cooldown")]
+    [Tooltip("Minimum seconds between zone spawns regardless of how many arrows stick.")]
+    public float baseCooldown = 5f;
+
+    [Tooltip("Seconds of cooldown removed per 1 point of Cooldown stat.")]
+    public float cooldownReducPerCooldown = 0.3f;
+
+    [Tooltip("Minimum possible cooldown floor in seconds.")]
+    public float minCooldown = 1f;
+
     // ================================================================
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
+    private float lastZoneTime = -999f;
 
     // ================================================================
     //  SETUP
@@ -53,8 +64,18 @@ public class UpgradeGravityArrow : PlayerUpgrade
     //  WALL-STICK EVENT
     // ================================================================
 
+    private float GetCooldown()
+    {
+        float cd = playerStats != null ? playerStats.cooldown : 0f;
+        return Mathf.Max(minCooldown, baseCooldown - cooldownReducPerCooldown * cd);
+    }
+
     private void OnArrowHitWall(Vector3 position)
     {
+        // Cooldown gate — one zone per X seconds
+        if (Time.time - lastZoneTime < GetCooldown()) return;
+        lastZoneTime = Time.time;
+
         if (gravityZonePrefab == null)
         {
             Debug.LogWarning("[UpgradeGravityArrow] Gravity Zone Prefab is not assigned!", this);
@@ -84,21 +105,19 @@ public class UpgradeGravityArrow : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
+        if (stats == null) return description;
 
         float basePull = 0f;
-        if (gravityZonePrefab != null)
-        {
-            var z = gravityZonePrefab.GetComponent<GravityArrowZone>();
-            if (z != null) { basePull = z.pullSpeed; }
-        }
+        var zone = gravityZonePrefab?.GetComponent<GravityArrowZone>();
+        if (zone != null) basePull = zone.pullSpeed;
 
-        float totalPull  = basePull + pullSpeedPerPsyche * s.psyche;
-        float radius     = gravityZonePrefab?.GetComponent<GravityArrowZone>()?.pullRadius ?? 4f;
-        float dur        = gravityZonePrefab?.GetComponent<GravityArrowZone>()?.duration   ?? 3f;
+        float totalPull  = basePull + pullSpeedPerPsyche * stats.psyche;
+        float radius     = zone?.pullRadius ?? 4f;
+        float dur        = zone?.duration   ?? 3f;
+        float cd         = Mathf.Max(minCooldown, baseCooldown - cooldownReducPerCooldown * stats.cooldown);
 
         return $"Arrows stuck in surfaces create a pull zone ({radius:F0}m, {dur:F0}s).\n" +
                $"Enemies dragged toward the arrow at {PSY(totalPull, "F1")} u/s.\n" +
-               $"Surround an enemy with arrows to trap it. Scales with <color=#FF66CC>Psyche</color>.";
+               $"Cooldown: {CD(cd)}s. Scales with <color=#FF66CC>Psyche</color> and <color=#44FFEE>Cooldown</color>.";
     }
 }

@@ -32,10 +32,10 @@ public class UpgradeArrowPierce : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
-        float pierceDmg = pierceDamage + pierceDmgAPScaling * s.abilityPower;
+        if (stats == null) return description;
+        float pierceDmg = pierceDamage + pierceDmgAPScaling * stats.psyche;
         return $"Arrows pierce through {pierceCount} enem{(pierceCount == 1 ? "y" : "ies")}, " +
-               $"dealing {AP(pierceDmg)} bonus damage on each pass.\n" +
-               $"Scales with <color=#4488FF>Ability Power</color>.";
+               $"dealing {PSY(pierceDmg)} bonus damage on each pass.\n" +
+               $"Scales with <color=#FF66CC>Psyche</color>.";
     }
 }

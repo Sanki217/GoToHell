@@ -201,7 +201,7 @@ public class Arrow : MonoBehaviour
                 if (playerStats != null && playerStats.pierceDmgAPScaling > 0f)
                 {
                     float pierceDmg = playerStats.pierceDamageBase
-                                      + playerStats.pierceDmgAPScaling * playerStats.abilityPower;
+                                      + playerStats.pierceDmgAPScaling * playerStats.psyche;
                     pierceDmg *= streakMult;
                     int pierceRound = Mathf.Max(1, Mathf.RoundToInt(pierceDmg));
                     enemy.TakeDamage(pierceRound, transform.position, kbDir, 0f, false,

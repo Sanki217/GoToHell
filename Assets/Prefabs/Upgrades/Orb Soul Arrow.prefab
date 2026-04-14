@@ -125,6 +125,6 @@ MonoBehaviour:
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 3
-  chainRange: 8
+  chainRange: 7.8
   chainDamageMultiplier: 0.5
   chainAPScaling: 0.1

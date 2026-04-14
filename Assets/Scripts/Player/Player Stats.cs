@@ -4,7 +4,7 @@
 /// Unified player stat system — two-tier architecture.
 ///
 /// PRIMARY STATS (player upgrades these 8):
-///   Agility, AttackDamage, AbilityPower, Luck, Psyche, Health, Size, Cooldown
+///   Agility, AttackDamage, Luck, Psyche, Health, Size, Cooldown
 ///
 /// DERIVED STATS (calculated from primaries — read-only at runtime):
 ///   All specific gameplay values: moveSpeed, arrowDamage, critChance, etc.
@@ -55,13 +55,11 @@ public class PlayerStats : MonoBehaviour
     [Tooltip("Affects: arrow damage, dash damage, crit multiplier, knockback, slash damage")]
     public float attackDamage = 0f;
 
-    [Tooltip("Affects: burn/freeze/holy/shock strength, max energy, ability-power-scaling upgrades")]
-    public float abilityPower = 0f;
-
     [Tooltip("Affects: crit chance, dash invincibility, loot range, luck (rarity rolls)")]
     public float luck = 0f;
 
-    [Tooltip("Affects: hover drain, dash cost, charge drain, XP multiplier")]
+    [Tooltip("Affects: hover drain, dash cost, charge drain, XP multiplier, " +
+             "max energy, burn/freeze/holy/shock strength, all upgrade ability-power scaling")]
     public float psyche = 0f;
 
     [Tooltip("Affects: max HP")]
@@ -115,7 +113,7 @@ public class PlayerStats : MonoBehaviour
 
     [Header("=== DERIVED FORMULAS — Economy ===")]
     public float baseMaxEnergy = 100f;
-    public float energyPerAbilityPower = 0.10f;
+    public float energyPerPsyche = 0.10f;
 
     public float baseDashCost = 15f;
     public float dashCostPerPsyche = -0.20f;  // negative = cheaper
@@ -146,16 +144,16 @@ public class PlayerStats : MonoBehaviour
     [Header("=== DERIVED FORMULAS — Status Effects ===")]
     [Tooltip("Base burn strength (1.0 = 100% = 5 dmg/s)")]
     public float baseBurnStrength = 1.00f;
-    public float burnPerAbilityPower = 0.0050f;
+    public float burnPerPsyche = 0.0050f;
 
     public float baseFreezeStrength = 1.00f;
-    public float freezePerAbilityPower = 0.0050f;
+    public float freezePerPsyche = 0.0050f;
 
     public float baseHolyStrength = 1.00f;
-    public float holyPerAbilityPower = 0.0100f;  // double rate
+    public float holyPerPsyche = 0.0100f;
 
     public float baseShockStrength = 1.00f;
-    public float shockPerAbilityPower = 0.0050f;
+    public float shockPerPsyche = 0.0050f;
 
     [Header("=== DERIVED FORMULAS — Health ===")]
     public float baseMaxHP = 100f;
@@ -210,7 +208,7 @@ public class PlayerStats : MonoBehaviour
     // Pierce — set by upgrade
     [HideInInspector] public int arrowPierceCount = 0;
     [HideInInspector] public float pierceDamageBase = 5f;   // flat bonus per pierce
-    [HideInInspector] public float pierceDmgAPScaling = 0f;   // fraction of abilityPower added
+    [HideInInspector] public float pierceDmgAPScaling = 0f;   // fraction of Psyche added
 
     // Fixed values (not upgradeable via primaries)
     [Header("=== FIXED VALUES ===")]
@@ -242,7 +240,7 @@ public class PlayerStats : MonoBehaviour
         knockbackForce = Mathf.Min(maxKnockback, baseKnockback + knockbackPerAttack * attackDamage);
 
         // Economy
-        maxEnergy = baseMaxEnergy + energyPerAbilityPower * abilityPower;
+        maxEnergy = baseMaxEnergy + energyPerPsyche * psyche;
         dashCost = Mathf.Max(minDashCost, baseDashCost + dashCostPerPsyche * psyche);
         dashInvincibilityWindow = baseDashInvinc + dashInvincPerLuck * luck;
         hoverDrainRate = Mathf.Max(minHoverDrain, baseHoverDrain + hoverDrainPerPsyche * psyche);
@@ -251,10 +249,10 @@ public class PlayerStats : MonoBehaviour
         luckRoll = baseLuckRoll + luckRollPerLuck * luck;
 
         // Status effects
-        burnStrength = baseBurnStrength + burnPerAbilityPower * abilityPower;
-        freezeStrength = baseFreezeStrength + freezePerAbilityPower * abilityPower;
-        holyStrength = baseHolyStrength + holyPerAbilityPower * abilityPower;
-        shockStrength = baseShockStrength + shockPerAbilityPower * abilityPower;
+        burnStrength = baseBurnStrength + burnPerPsyche * psyche;
+        freezeStrength = baseFreezeStrength + freezePerPsyche * psyche;
+        holyStrength = baseHolyStrength + holyPerPsyche * psyche;
+        shockStrength = baseShockStrength + shockPerPsyche * psyche;
 
         // Health
         maxHP = Mathf.RoundToInt(baseMaxHP + hpPerHealth * health_stat);
@@ -270,7 +268,6 @@ public class PlayerStats : MonoBehaviour
         {
             case PrimaryStat.Agility: agility += amount; break;
             case PrimaryStat.AttackDamage: attackDamage += amount; break;
-            case PrimaryStat.AbilityPower: abilityPower += amount; break;
             case PrimaryStat.Luck: luck += amount; break;
             case PrimaryStat.Psyche: psyche += amount; break;
             case PrimaryStat.Health: health_stat += amount; break;
@@ -287,7 +284,6 @@ public class PlayerStats : MonoBehaviour
     {
         PrimaryStat.Agility => agility,
         PrimaryStat.AttackDamage => attackDamage,
-        PrimaryStat.AbilityPower => abilityPower,
         PrimaryStat.Luck => luck,
         PrimaryStat.Psyche => psyche,
         PrimaryStat.Health => health_stat,
@@ -552,7 +548,7 @@ public class PlayerStats : MonoBehaviour
 
 public enum PrimaryStat
 {
-    Agility, AttackDamage, AbilityPower, Luck, Psyche, Health, Size, Cooldown
+    Agility, AttackDamage, Luck, Psyche, Health, Size, Cooldown
 }
 
 public enum DamageSource { Arrow, Dash, Status, Explosion, Slash }

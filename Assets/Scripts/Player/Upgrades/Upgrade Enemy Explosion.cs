@@ -29,15 +29,15 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
-        float dmg = damage + damageAP * s.abilityPower;
-        float rad = radius + radiusSize * s.size;
-        return $"Enemies explode on death dealing {AP(dmg)} damage in {SZ(rad)} radius.\n" +
-               $"Scales with <color=#4488FF>Ability Power</color> and <color=#AAAAAA>Size</color>.";
+        if (stats == null) return description;
+        float dmg = damage + damageAP * stats.psyche;
+        float rad = radius + radiusSize * stats.size;
+        return $"Enemies explode on death dealing {PSY(dmg)} damage in {SZ(rad)} radius.\n" +
+               $"Scales with <color=#FF66CC>Psyche</color> and <color=#AAAAAA>Size</color>.";
     }
 
     private float GetDamage() =>
-        damage + damageAP * (playerStats != null ? playerStats.abilityPower : 0f);
+        damage + damageAP * (playerStats != null ? playerStats.psyche : 0f);
 
     private float GetRadius() =>
         radius + radiusSize * (playerStats != null ? playerStats.size : 0f);

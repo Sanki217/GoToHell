@@ -125,5 +125,5 @@ MonoBehaviour:
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 3
-  bonusPercent: 0.5
+  bonusPercent: 0.25
   bonusPerLuck: 0

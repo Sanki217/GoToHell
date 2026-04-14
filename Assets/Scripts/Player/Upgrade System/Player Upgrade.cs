@@ -66,8 +66,8 @@ public abstract class PlayerUpgrade : MonoBehaviour
     //  SHARED COLOUR HELPERS — use these in every subclass override
     // ================================================================
 
-    protected static string AP(float value, string fmt = "F0")   // Ability Power → blue
-        => $"<color=#4488FF>{value.ToString(fmt)}</color>";
+    protected static string AP(float value, string fmt = "F0")   // Psyche (Ability Power merged into Psyche) → pink
+        => $"<color=#FF66CC>{value.ToString(fmt)}</color>";
 
     protected static string AD(float value, string fmt = "F0")   // Attack Damage → red
         => $"<color=#FF4444>{value.ToString(fmt)}</color>";
@@ -105,7 +105,6 @@ public abstract class PlayerUpgrade : MonoBehaviour
             {
                 switch (b.stat)
                 {
-                    case PrimaryStat.AbilityPower: s.abilityPower += b.value; break;
                     case PrimaryStat.AttackDamage: s.attackDamage += b.value; break;
                     case PrimaryStat.Size: s.size += b.value; break;
                     case PrimaryStat.Cooldown: s.cooldown += b.value; break;
@@ -126,7 +125,6 @@ public abstract class PlayerUpgrade : MonoBehaviour
 
 public class SimulatedStats
 {
-    public float abilityPower;
     public float attackDamage;
     public float size;
     public float cooldown;
@@ -145,7 +143,6 @@ public class SimulatedStats
     public SimulatedStats(PlayerStats real)
     {
         if (real == null) return;
-        abilityPower = real.abilityPower;
         attackDamage = real.attackDamage;
         size = real.size;
         cooldown = real.cooldown;

@@ -105,7 +105,7 @@ public class UpgradeSoulArrow : PlayerUpgrade
         arrow.chargeAmount = 0f;       // no charge bonus on chain copies
         arrow.damageMultiplier = chainDamageMultiplier;
         arrow.flatDamageBonus = playerStats != null
-            ? playerStats.abilityPower * chainAPScaling
+            ? playerStats.psyche * chainAPScaling
             : 0f;
         arrow.isChainCopy = true;      // prevents further chaining
 
@@ -146,14 +146,14 @@ public class UpgradeSoulArrow : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
-        int chains = 1 + Mathf.FloorToInt(s.psyche / 10f);
+        if (stats == null) return description;
+        int chains = 1 + Mathf.FloorToInt(stats.psyche / 10f);
         int dmgPct = Mathf.RoundToInt(chainDamageMultiplier * 100f);
-        float apFlat = s.abilityPower * chainAPScaling;
+        float psFlat = stats.psyche * chainAPScaling;
 
-        return $"Arrows that kill fire {AD(chains, "F0")} chain shot{(chains != 1 ? "s" : "")} " +
+        return $"Arrows that kill fire {PSY(chains, "F0")} chain shot{(chains != 1 ? "s" : "")} " +
                $"at the closest enem{(chains != 1 ? "ies" : "y")} within {chainRange:F0}m.\n" +
-               $"Deals {AD(dmgPct, "F0")}% arrow dmg + {AP(apFlat, "F1")} AP flat. No further chains.\n" +
+               $"Deals {AD(dmgPct, "F0")}% arrow dmg + {PSY(psFlat, "F1")} flat. No further chains.\n" +
                $"+1 chain per 10 <color=#FF66CC>Psyche</color>.";
     }
 }

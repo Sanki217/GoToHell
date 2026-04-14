@@ -27,7 +27,6 @@ public class PlayerUpgradePool : ScriptableObject
     [Header("Stat Weights (relative chance each stat appears on a card)")]
     public float weightAgility = 1f;
     public float weightAttackDamage = 1f;
-    public float weightAbilityPower = 1f;
     public float weightLuck = 1f;
     public float weightPsyche = 1f;
     public float weightHealth = 1f;
@@ -48,9 +47,6 @@ public class PlayerUpgradePool : ScriptableObject
                 commonMin=0.3f, commonMax=1.0f, rareMin=0.8f, rareMax=2.0f,
                 epicMin=1.5f, epicMax=3.0f, legendaryMin=2.5f, legendaryMax=5.0f },
             new StatBonusRange { stat = PrimaryStat.AttackDamage,
-                commonMin=0.3f, commonMax=1.0f, rareMin=0.8f, rareMax=2.0f,
-                epicMin=1.5f, epicMax=3.0f, legendaryMin=2.5f, legendaryMax=5.0f },
-            new StatBonusRange { stat = PrimaryStat.AbilityPower,
                 commonMin=0.3f, commonMax=1.0f, rareMin=0.8f, rareMax=2.0f,
                 epicMin=1.5f, epicMax=3.0f, legendaryMin=2.5f, legendaryMax=5.0f },
             new StatBonusRange { stat = PrimaryStat.Luck,
@@ -230,7 +226,6 @@ public class PlayerUpgradePool : ScriptableObject
         {
             (PrimaryStat.Agility,      weightAgility),
             (PrimaryStat.AttackDamage, weightAttackDamage),
-            (PrimaryStat.AbilityPower, weightAbilityPower),
             (PrimaryStat.Luck,         weightLuck),
             (PrimaryStat.Psyche,       weightPsyche),
             (PrimaryStat.Health,       weightHealth),

@@ -6260,6 +6260,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1048261596}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &856732434
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 856732436}
+  - component: {fileID: 856732435}
+  m_Layer: 0
+  m_Name: Cursor Range Display
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &856732435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856732434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a53bf8759f933541877af6ee0b51515, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  originTransform: {fileID: 1439424210}
+  mainCamera: {fileID: 963194227}
+  cursorOffset: {x: 18, y: 12}
+  fontSize: 14
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  showBackground: 1
+--- !u!4 &856732436
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856732434}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &861487266
 GameObject:
   m_ObjectHideFlags: 0
@@ -7088,7 +7138,6 @@ MonoBehaviour:
   currentLevel: 1
   agility: 1
   attackDamage: 1
-  abilityPower: 1
   luck: 1
   psyche: 1
   health_stat: 1
@@ -7117,7 +7166,7 @@ MonoBehaviour:
   knockbackPerAttack: 0.1
   maxKnockback: 5
   baseMaxEnergy: 100
-  energyPerAbilityPower: 0.1
+  energyPerPsyche: 0.1
   baseDashCost: 15
   dashCostPerPsyche: -0.2
   minDashCost: 5
@@ -7135,13 +7184,13 @@ MonoBehaviour:
   baseLuckRoll: 1
   luckRollPerLuck: 0.1
   baseBurnStrength: 1
-  burnPerAbilityPower: 0.005
+  burnPerPsyche: 0.005
   baseFreezeStrength: 1
-  freezePerAbilityPower: 0.005
+  freezePerPsyche: 0.005
   baseHolyStrength: 1
-  holyPerAbilityPower: 0.01
+  holyPerPsyche: 0.01
   baseShockStrength: 1
-  shockPerAbilityPower: 0.005
+  shockPerPsyche: 0.005
   baseMaxHP: 100
   hpPerHealth: 1
   moveSpeed: 10
@@ -7283,7 +7332,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slashColliderObject: {fileID: 1637232971}
-  baseDamage: 5
+  baseDamage: 10
   baseLength: 2
   baseWidth: 0.8
   baseCooldown: 0.3
@@ -16589,3 +16638,4 @@ SceneRoots:
   - {fileID: 177737229}
   - {fileID: 526545873}
   - {fileID: 232501958}
+  - {fileID: 856732436}

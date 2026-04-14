@@ -41,7 +41,6 @@ public class UpgradeStatBonus
     {
         PrimaryStat.Agility => "Agility",
         PrimaryStat.AttackDamage => "Attack Damage",
-        PrimaryStat.AbilityPower => "Ability Power",
         PrimaryStat.Luck => "Luck",
         PrimaryStat.Psyche => "Psyche",
         PrimaryStat.Health => "Health",

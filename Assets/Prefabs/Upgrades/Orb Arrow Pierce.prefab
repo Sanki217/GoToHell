@@ -125,6 +125,6 @@ MonoBehaviour:
   statCountRare: 2
   statCountEpic: 3
   statCountLegendary: 3
-  pierceCount: 5
+  pierceCount: 10
   pierceDamage: 5
   pierceDmgAPScaling: 0.4

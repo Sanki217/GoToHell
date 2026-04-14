@@ -9,7 +9,7 @@ using System.Collections.Generic;
 /// </summary>
 public class UpgradeBurningArrow : PlayerUpgrade
 {
-    [Header("Burning Arrow — Tuning")]
+    [Header("Burning Arrow ï¿½ Tuning")]
     [Tooltip("Flat amount added to baseBurnStrength on pickup.")]
     public float burnBonus = 0.25f;
 
@@ -32,11 +32,10 @@ public class UpgradeBurningArrow : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
-        float burn = (stats != null ? stats.baseBurnStrength : 0f) + burnBonus
-                     + (stats != null ? stats.burnPerAbilityPower : 0f) * s.abilityPower;
-        return $"Arrows set enemies on fire dealing {AP(burn)} burn damage per second.\n" +
-               $"Scales with <color=#4488FF>Ability Power</color>.";
+        if (stats == null) return description;
+        float burn = stats.baseBurnStrength + burnBonus + stats.burnPerPsyche * stats.psyche;
+        return $"Arrows set enemies on fire dealing {PSY(burn, "F2")} burn strength.\n" +
+               $"Scales with <color=#FF66CC>Psyche</color>.";
     }
 
     private void OnArrowHit(GameObject enemy, float chargeLevel, bool wasCrit)

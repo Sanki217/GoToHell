@@ -128,5 +128,5 @@ MonoBehaviour:
   damage: 15
   damageAP: 1
   radius: 3
-  radiusSize: 0.1
+  radiusSize: 0.03
   debugVisualDuration: 0.25

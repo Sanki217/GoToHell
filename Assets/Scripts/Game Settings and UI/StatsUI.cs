@@ -168,7 +168,6 @@ public class StatsUI : MonoBehaviour
         string left = "<b><color=#FF88FF>══ PRIMARY STATS ══</color></b>\n";
         left += Stat("Agility", s.agility, 0f);
         left += Stat("Atk Damage", s.attackDamage, 0f);
-        left += Stat("Ability Power", s.abilityPower, 0f);
         left += Stat("Luck", s.luck, 0f);
         left += Stat("Psyche", s.psyche, 0f);
         left += Stat("Health", s.health_stat, 0f);

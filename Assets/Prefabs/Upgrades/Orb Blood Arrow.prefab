@@ -127,6 +127,6 @@ MonoBehaviour:
   statCountLegendary: 5
   minCurseLevels: 3
   maxCurseLevels: 3
-  hpCostPerShot: 3
+  hpCostPerShot: 2
   baseDamageBonus: 0.2
   damagePerAttackDamage: 0.05

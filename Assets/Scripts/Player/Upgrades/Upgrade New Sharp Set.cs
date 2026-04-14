@@ -103,8 +103,8 @@ public class UpgradeNewSharpSet : PlayerUpgrade
 
     private float GetMultiplier()
     {
-        float ap = playerStats != null ? playerStats.abilityPower : 0f;
-        return baseMultiplier + multiplierPerAP * ap;
+        float ps = playerStats != null ? playerStats.psyche : 0f;
+        return baseMultiplier + multiplierPerAP * ps;
     }
 
     // ================================================================
@@ -113,10 +113,10 @@ public class UpgradeNewSharpSet : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
-        float mult = baseMultiplier + multiplierPerAP * s.abilityPower;
-        return $"The first arrow after refilling an empty quiver deals {AP(mult, "F1")}× damage.\n" +
+        if (stats == null) return description;
+        float mult = baseMultiplier + multiplierPerAP * stats.psyche;
+        return $"The first arrow after refilling an empty quiver deals {PSY(mult, "F1")}× damage.\n" +
                $"Subsequent arrows deal normal damage.\n" +
-               $"Rhythm: fire all → collect → one big shot. Scales with <color=#4488FF>Ability Power</color>.";
+               $"Rhythm: fire all → collect → one big shot. Scales with <color=#FF66CC>Psyche</color>.";
     }
 }

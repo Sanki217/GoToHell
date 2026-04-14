@@ -134,8 +134,8 @@ public class UpgradePhantomStep : PlayerUpgrade
 
     private float GetDamage()
     {
-        float ap = playerStats != null ? playerStats.abilityPower : 0f;
-        return baseExplosionDamage + damagePerAP * ap;
+        float ps = playerStats != null ? playerStats.psyche : 0f;
+        return baseExplosionDamage + damagePerAP * ps;
     }
 
     // ================================================================
@@ -144,15 +144,15 @@ public class UpgradePhantomStep : PlayerUpgrade
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
-        var s = Simulate(stats, simulatedBonuses);
-        float radius = baseRadius + radiusPerSize * s.size;
-        float damage = baseExplosionDamage + damagePerAP * s.abilityPower;
+        if (stats == null) return description;
+        float radius = baseRadius + radiusPerSize * stats.size;
+        float damage = baseExplosionDamage + damagePerAP * stats.psyche;
 
         return $"Dash teleports you instantly to your cursor (max range applies).\n" +
                $"Pass through enemies and thin walls.\n" +
-               $"Explode on landing — {AP(damage, "F0")} damage in a {SZ(radius, "F1")}m radius.\n" +
-               $"Scales with <color=#4488FF>Ability Power</color> (damage) " +
-               $"and <color=#44FF88>Size</color> (radius).";
+               $"Explode on landing — {PSY(damage, "F0")} damage in a {SZ(radius, "F1")}m radius.\n" +
+               $"Scales with <color=#FF66CC>Psyche</color> (damage) " +
+               $"and <color=#AAAAAA>Size</color> (radius).";
     }
 
 #if UNITY_EDITOR
