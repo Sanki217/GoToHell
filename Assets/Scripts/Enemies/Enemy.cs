@@ -21,11 +21,19 @@ public class Enemy : MonoBehaviour
     public float knockbackDuration = 0.15f;
 
     // ================================================================
+    //  EVENTS
+    // ================================================================
+
+    /// <summary>Fired right before the enemy is destroyed. The Enemy reference is still valid inside the handler.</summary>
+    public event System.Action<Enemy> OnDied;
+
+    // ================================================================
     //  PRIVATE STATE
     // ================================================================
 
     private int currentHealth;
     private EnemyHealthBar healthBar;
+    private IKnockbackReceiver[] knockbackReceivers;
 
     // ================================================================
     //  INIT
@@ -39,6 +47,9 @@ public class Enemy : MonoBehaviour
 
         healthBar = GetComponent<EnemyHealthBar>();
         healthBar?.Initialize(maxHealth, currentHealth);
+
+        // Cache all knockback receivers on this enemy (patrol scripts, shooters, wall jumpers, etc.)
+        knockbackReceivers = GetComponents<IKnockbackReceiver>();
     }
 
     // ================================================================
@@ -78,11 +89,9 @@ public class Enemy : MonoBehaviour
         if (enemyRenderer != null)
             StartCoroutine(HitFlash());
 
-        GameObject player = GameObject.FindWithTag("Player");
-        player?.GetComponent<KillStreak>()?.RegisterDamageDealt();
+        PlayerRefs.I?.Killstreak?.RegisterDamageDealt();
 
-        if (currentHealth <= 0)
-            Die();
+        if (currentHealth <= 0) Die();
     }
 
     // ================================================================
@@ -114,30 +123,33 @@ public class Enemy : MonoBehaviour
 
     private IEnumerator ApplyKnockback(Vector3 impulse)
     {
-        var hPatrol    = GetComponent<EnemyPatrolHorizontal>();
-        var vPatrol    = GetComponent<EnemyPatrolVertical>();
-        var shooter    = GetComponent<EnemyShooter>();
-        var wallJumper = GetComponent<EnemyWallJumper>();
-
-        if (hPatrol    != null) hPatrol.ReceiveKnockback(impulse, knockbackDuration);
-        if (vPatrol    != null) vPatrol.ReceiveKnockback(impulse, knockbackDuration);
-        if (shooter    != null) shooter.ReceiveKnockback(impulse, knockbackDuration);
-        if (wallJumper != null) wallJumper.ReceiveKnockback(impulse, knockbackDuration);
-
-        if (hPatrol == null && vPatrol == null && shooter == null && wallJumper == null)
+        // Dispatch to every IKnockbackReceiver component on this enemy.
+        // Patrol scripts, shooters, wall-jumpers, and future enemy types all implement the interface.
+        bool handled = false;
+        if (knockbackReceivers != null)
         {
-            float elapsed = 0f;
-            while (elapsed < knockbackDuration)
+            foreach (var r in knockbackReceivers)
             {
-                elapsed += Time.deltaTime;
-                float t = elapsed / knockbackDuration;
-                Vector3 newPos = transform.position + impulse * (1f - t) * Time.deltaTime;
-                newPos.z = 0f;
-                transform.position = newPos;
-                yield return null;
+                if (r == null) continue;
+                r.ReceiveKnockback(impulse, knockbackDuration);
+                handled = true;
             }
         }
-        else yield break;
+
+        if (handled) yield break;
+
+        // Fallback for enemies with no movement scripts (e.g. training dummy):
+        // ease-out the impulse directly on transform.
+        float elapsed = 0f;
+        while (elapsed < knockbackDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / knockbackDuration;
+            Vector3 newPos = transform.position + impulse * (1f - t) * Time.deltaTime;
+            newPos.z = 0f;
+            transform.position = newPos;
+            yield return null;
+        }
     }
 
     private void Die()
@@ -158,14 +170,17 @@ public class Enemy : MonoBehaviour
 
         Camera.main?.GetComponent<CameraFollow>()?.Shake(0.08f, 0.08f);
 
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
+        var refs = PlayerRefs.I;
+        if (refs != null)
         {
-            player.GetComponent<PlayerEnergy>()?.RestoreEnergy(energyRestoredOnDeath);
-            player.GetComponent<PlayerUpgradeManager>()?.EnemyKilled(gameObject);
-            player.GetComponent<PlayerStats>()?.RecordEnemyKilled();
-            player.GetComponent<KillStreak>()?.RegisterKill();
+            refs.Energy?.RestoreEnergy(energyRestoredOnDeath);
+            refs.Upgrades?.EnemyKilled(gameObject);
+            refs.Stats?.RecordEnemyKilled();
+            refs.Killstreak?.RegisterKill();
         }
+
+        // Fire event BEFORE destroying — handlers may still want to read this enemy's transform.
+        OnDied?.Invoke(this);
 
         Destroy(gameObject);
     }

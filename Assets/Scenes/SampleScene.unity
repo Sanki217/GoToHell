@@ -6673,6 +6673,7 @@ GameObject:
   - component: {fileID: 1048261607}
   - component: {fileID: 1048261608}
   - component: {fileID: 1048261609}
+  - component: {fileID: 1048261610}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -6912,6 +6913,7 @@ MonoBehaviour:
   - {fileID: 588770445}
   - {fileID: 1819164548}
   - {fileID: 1384792587}
+  deadMansHandDotColor: {r: 1, g: 0.15, b: 0.15, a: 1}
   baseArrowSpeed: 30
   stickableLayers:
     serializedVersion: 2
@@ -6951,6 +6953,13 @@ MonoBehaviour:
   hitFlashColor: {r: 1, g: 0, b: 0, a: 1}
   hitFlashDuration: 0.1
   dashInvincColor: {r: 1, g: 0.9, b: 0.1, a: 1}
+  shakeMagnitudeBase: 0.12
+  shakeMagnitudePer10Dmg: 0.08
+  shakeDurationOnHit: 0.15
+  shakeMagnitudeOnDeath: 0.45
+  shakeDurationOnDeath: 0.4
+  hitStopOnDamage: 0.01
+  hitStopOnDeath: 0.02
 --- !u!120 &1048261601
 LineRenderer:
   serializedVersion: 2
@@ -7365,6 +7374,29 @@ MonoBehaviour:
   streakLabel: {fileID: 1307358702}
   timerSlider: {fileID: 242550916}
   soulPrefab: {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
+--- !u!114 &1048261610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1048261590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 784a8ab7c48faf6459263c939afa0cdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  T: {fileID: 0}
+  Stats: {fileID: 0}
+  Health: {fileID: 0}
+  Energy: {fileID: 0}
+  Shooting: {fileID: 0}
+  Upgrades: {fileID: 0}
+  Killstreak: {fileID: 0}
+  Dash: {fileID: 0}
+  Inventory: {fileID: 0}
+  LevelSystem: {fileID: 0}
+  StateCtrl: {fileID: 0}
 --- !u!1 &1062878737
 GameObject:
   m_ObjectHideFlags: 0

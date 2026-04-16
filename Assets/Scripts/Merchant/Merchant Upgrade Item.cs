@@ -9,7 +9,7 @@ using System.Collections.Generic;
 /// Setup per item:
 ///   1. Place a GameObject in the merchant zone with a mesh + SphereCollider (trigger, radius ~3)
 ///   2. Add this script
-///   3. Assign upgradePrefab — a prefab with UpgradeOrb + a PlayerUpgrade subclass on it
+///   3. Assign upgradePrefab ï¿½ a prefab with UpgradeOrb + a PlayerUpgrade subclass on it
 ///   4. Assign upgradePool so stat bonuses can be rolled on Start
 ///   5. Set soulCost and rarity (or call RollOffer() from level setup code)
 ///   6. Wire all UI text/panel references
@@ -20,16 +20,16 @@ using System.Collections.Generic;
 public class MerchantUpgradeItem : MonoBehaviour
 {
     [Header("Upgrade")]
-    [Tooltip("Orb prefab — must have UpgradeOrb + a PlayerUpgrade subclass on it.")]
+    [Tooltip("Orb prefab ï¿½ must have UpgradeOrb + a PlayerUpgrade subclass on it.")]
     public GameObject upgradePrefab;
     public PlayerUpgradePool upgradePool;
     public UpgradeRarity rarity = UpgradeRarity.Common;
     public int soulCost = 50;
 
-    [Header("World UI — always visible")]
+    [Header("World UI ï¿½ always visible")]
     public TMP_Text priceLabel;
 
-    [Header("Proximity UI — shown on approach")]
+    [Header("Proximity UI ï¿½ shown on approach")]
     public GameObject proximityPanel;
     public TMP_Text descriptionLabel;
     public TMP_Text nameLabel;
@@ -71,13 +71,13 @@ public class MerchantUpgradeItem : MonoBehaviour
 
     private void Start()
     {
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
+        var refs = PlayerRefs.I;
+        if (refs != null)
         {
-            playerTransform = player.transform;
-            inventory = player.GetComponent<PlayerInventory>();
-            upgradeManager = player.GetComponent<PlayerUpgradeManager>();
-            playerStats = player.GetComponent<PlayerStats>();
+            playerTransform = refs.T;
+            inventory = refs.Inventory;
+            upgradeManager = refs.Upgrades;
+            playerStats = refs.Stats;
         }
 
         if (upgradePrefab != null && upgradePool != null)
@@ -168,7 +168,7 @@ public class MerchantUpgradeItem : MonoBehaviour
         orb.rolledStatBonuses = rolledOffer?.statBonuses?.ToArray();
         orb.rolledRarity = rarity;
 
-        // Pop upward — Looter will pick it up and attract it
+        // Pop upward ï¿½ Looter will pick it up and attract it
         orb.Initialize(Vector3.up, spawnEjectForce);
     }
 
@@ -220,7 +220,7 @@ public class MerchantUpgradeItem : MonoBehaviour
         }
 
         if (buyPromptLabel != null)
-            buyPromptLabel.text = $"[E] Buy — {soulCost} Souls";
+            buyPromptLabel.text = $"[E] Buy ï¿½ {soulCost} Souls";
     }
 
     private IEnumerator FlashNotEnoughSouls()

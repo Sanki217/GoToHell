@@ -6,14 +6,14 @@ using TMPro;
 /// Drives the XP bar in the HUD.
 ///
 /// Setup:
-///   1. Create a UI Slider in your Canvas — Min=0, Max=1, Whole Numbers=off
+///   1. Create a UI Slider in your Canvas ï¿½ Min=0, Max=1, Whole Numbers=off
 ///   2. Optionally add TMP_Text elements for level and XP numbers
 ///   3. Add this script to any GameObject, wire references in Inspector
 /// </summary>
 public class XpBarUI : MonoBehaviour
 {
     [Header("References")]
-    public Slider xpSlider;    // fill bar — value goes 0-1
+    public Slider xpSlider;    // fill bar ï¿½ value goes 0-1
     public TMP_Text levelText;   // shows "Lv 5"
     public TMP_Text xpText;      // shows "240 / 353 XP"
 
@@ -21,9 +21,7 @@ public class XpBarUI : MonoBehaviour
 
     private void Start()
     {
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
-            levelSystem = player.GetComponent<PlayerLevelSystem>();
+        levelSystem = PlayerRefs.I?.LevelSystem;
 
         if (xpSlider != null)
         {

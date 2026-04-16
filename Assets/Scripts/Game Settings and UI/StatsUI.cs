@@ -47,15 +47,16 @@ public class StatsUI : MonoBehaviour
 
     private void Start()
     {
-        if (player == null) player = GameObject.FindWithTag("Player");
+        var refs = PlayerRefs.I;
+        if (player == null && refs != null) player = refs.gameObject;
 
-        if (player != null)
+        if (refs != null)
         {
-            playerStats = player.GetComponent<PlayerStats>();
-            playerHealth = player.GetComponent<PlayerHealth>();
-            playerEnergy = player.GetComponent<PlayerEnergy>();
-            levelSystem = player.GetComponent<PlayerLevelSystem>();
-            upgradeManager = player.GetComponent<PlayerUpgradeManager>();
+            playerStats = refs.Stats;
+            playerHealth = refs.Health;
+            playerEnergy = refs.Energy;
+            levelSystem = refs.LevelSystem;
+            upgradeManager = refs.Upgrades;
         }
 
         if (statsPanel != null) statsPanel.SetActive(false);

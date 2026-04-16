@@ -2,7 +2,7 @@
 using System.Collections;
 
 [RequireComponent(typeof(Enemy))]
-public class EnemyPatrolHorizontal : MonoBehaviour
+public class EnemyPatrolHorizontal : MonoBehaviour, IKnockbackReceiver
 {
     [Header("Movement")]
     public float speed = 3f;
@@ -50,6 +50,9 @@ public class EnemyPatrolHorizontal : MonoBehaviour
     private float smoothDampVel = 0f;
 
     private Collider[] selfColliders;
+
+    // Reusable hit buffer — shared across all patrol instances, avoids per-frame allocation
+    private static readonly Collider[] hitBuffer = new Collider[8];
 
     // ================================================================
     //  INIT
@@ -143,12 +146,12 @@ public class EnemyPatrolHorizontal : MonoBehaviour
     {
         Vector3 dir = new Vector3(dirX, 0f, 0f);
         Vector3 center = transform.position + dir * turnLookAhead;
-        Collider[] hits = Physics.OverlapBox(center, turnBoxHalfExtents,
+        int count = Physics.OverlapBoxNonAlloc(center, turnBoxHalfExtents, hitBuffer,
                                                 Quaternion.identity, solidLayers,
                                                 QueryTriggerInteraction.Ignore);
-        foreach (var hit in hits)
+        for (int i = 0; i < count; i++)
         {
-            if (IsSelf(hit)) continue;
+            if (IsSelf(hitBuffer[i])) continue;
             return true;
         }
         return false;
@@ -192,7 +195,9 @@ public class EnemyPatrolHorizontal : MonoBehaviour
             float scale = 1f - t * t;
             Vector3 step = velocity * scale * dt;
 
-            step = StepWithWallBounce(step);
+            step = KnockbackBouncer.StepWithWallBounce(
+                step, transform.position, knockbackCastHalf,
+                bounceDamping, solidLayers, selfColliders);
 
             transform.position = new Vector3(
                 transform.position.x + step.x,
@@ -204,37 +209,6 @@ public class EnemyPatrolHorizontal : MonoBehaviour
 
         returningY = true;
         returnVelY = 0f;
-    }
-
-    private Vector3 StepWithWallBounce(Vector3 step)
-    {
-        if (step.sqrMagnitude < 0.00001f) return step;
-
-        float dist = step.magnitude;
-        Vector3 dir = step / dist;
-
-        bool found = Physics.BoxCast(
-            transform.position, knockbackCastHalf, dir,
-            out RaycastHit hit, Quaternion.identity, dist,
-            solidLayers, QueryTriggerInteraction.Ignore);
-
-        if (!found) return step;
-
-        foreach (var sc in selfColliders)
-            if (sc == hit.collider) return step;
-
-        float safe = Mathf.Max(0f, hit.distance - 0.05f);
-        Vector3 safeStep = dir * safe;
-        Vector3 remaining = step - safeStep;
-        Vector3 normal = hit.normal; normal.z = 0f;
-
-        if (normal.sqrMagnitude > 0.001f)
-        {
-            Vector3 reflected = Vector3.Reflect(remaining, normal.normalized) * bounceDamping;
-            reflected.z = 0f;
-            return safeStep + reflected;
-        }
-        return safeStep;
     }
 
     // ================================================================

@@ -17,6 +17,9 @@ public class Looter : MonoBehaviour
 
     private int arrowsInFlight = 0;
 
+    // Reusable hit buffer — avoids per-frame allocation in the scan loop.
+    private static readonly Collider[] hitBuffer = new Collider[64];
+
     void Start()
     {
         player = GetComponentInParent<PlayerShooting>();
@@ -44,13 +47,13 @@ public class Looter : MonoBehaviour
         int effectiveCapacity = player.maxArrows - player.CurrentArrows - arrowsInFlight;
         if (effectiveCapacity <= 0) return;
 
-        Collider[] nearby = Physics.OverlapSphere(playerTransform.position, range);
+        int count = Physics.OverlapSphereNonAlloc(playerTransform.position, range, hitBuffer);
 
-        foreach (Collider col in nearby)
+        for (int i = 0; i < count; i++)
         {
             if (effectiveCapacity <= 0) break;
 
-            ArrowPickup pickup = col.GetComponent<ArrowPickup>();
+            ArrowPickup pickup = hitBuffer[i].GetComponent<ArrowPickup>();
             if (pickup == null || !pickup.canPickUp || pickup.isBeingSucked) continue;
 
             arrowsInFlight++;

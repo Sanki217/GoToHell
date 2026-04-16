@@ -61,8 +61,7 @@ public class Vase : MonoBehaviour
         if (vaseRenderer == null)
             vaseRenderer = GetComponentInChildren<Renderer>();
 
-        var player = GameObject.FindWithTag("Player");
-        if (player != null) playerStats = player.GetComponent<PlayerStats>();
+        playerStats = PlayerRefs.I?.Stats;
     }
 
     // ================================================================

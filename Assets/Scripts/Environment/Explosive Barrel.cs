@@ -56,8 +56,7 @@ public class ExplosiveBarrel : MonoBehaviour
         if (barrelRenderer == null)
             barrelRenderer = GetComponentInChildren<Renderer>();
 
-        var player = GameObject.FindWithTag("Player");
-        if (player != null) playerStats = player.GetComponent<PlayerStats>();
+        playerStats = PlayerRefs.I?.Stats;
     }
 
     // ================================================================

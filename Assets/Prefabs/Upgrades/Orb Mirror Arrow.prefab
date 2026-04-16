@@ -127,3 +127,4 @@ MonoBehaviour:
   statCountLegendary: 3
   baseDamage: 0.75
   damagePerAP: 0.02
+  mirrorArrowPrefab: {fileID: 4370108358079008024, guid: 8782bd7369fcaf94289170d09fc7942e, type: 3}

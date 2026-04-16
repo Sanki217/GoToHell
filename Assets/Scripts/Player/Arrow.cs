@@ -47,12 +47,12 @@ public class Arrow : MonoBehaviour
         stickableLayers = stickLayers;
         transform.rotation = Quaternion.LookRotation(Vector3.forward, direction);
 
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
+        var refs = PlayerRefs.I;
+        if (refs != null)
         {
-            upgradeManager = player.GetComponent<PlayerUpgradeManager>();
-            playerStats = player.GetComponent<PlayerStats>();
-            killStreak = player.GetComponent<KillStreak>();
+            upgradeManager = refs.Upgrades;
+            playerStats = refs.Stats;
+            killStreak = refs.Killstreak;
         }
 
         // Consume any one-shot damage multiplier primed by upgrades (e.g. New Sharp Set).

@@ -66,6 +66,7 @@ public class UpgradeDeadMansHand : PlayerUpgrade
         // Clean up any primed flags if upgrade is removed mid-action
         if (playerStats != null && (isPrimed || waitingForKill))
             playerStats.nextArrowForceCrit = false;
+        playerShooting?.SetDeadMansHandPrimed(false);
     }
 
     // ================================================================
@@ -75,11 +76,17 @@ public class UpgradeDeadMansHand : PlayerUpgrade
     private void Update()
     {
         if (playerShooting == null || playerStats == null) return;
-        if (waitingForKill) return; // already fired the primed arrow, don't interfere
+        if (waitingForKill)
+        {
+            // Primed arrow already fired — hide the visual tint until we re-prime next frame.
+            playerShooting.SetDeadMansHandPrimed(false);
+            return;
+        }
 
         bool shouldPrime = (playerShooting.CurrentArrows == 1);
         isPrimed = shouldPrime;
         playerStats.nextArrowForceCrit = shouldPrime;
+        playerShooting.SetDeadMansHandPrimed(shouldPrime);
     }
 
     // ================================================================

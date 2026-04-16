@@ -39,11 +39,11 @@ public class Chest : MonoBehaviour
 
     private void Start()
     {
-        var player = GameObject.FindWithTag("Player");
-        if (player != null)
+        var refs = PlayerRefs.I;
+        if (refs != null)
         {
-            playerTransform = player.transform;
-            playerStats = player.GetComponent<PlayerStats>();
+            playerTransform = refs.T;
+            playerStats = refs.Stats;
         }
 
         if (interactPromptText != null)

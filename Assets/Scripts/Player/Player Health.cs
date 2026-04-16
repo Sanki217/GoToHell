@@ -8,7 +8,7 @@ public class PlayerHealth : MonoBehaviour
     [Header("HP Settings")]
     public int maxHP = 100;
 
-    [Header("UI — assign in Inspector")]
+    [Header("UI ï¿½ assign in Inspector")]
     public Slider hpSlider;
     public TMP_Text hpText;
 
@@ -23,6 +23,17 @@ public class PlayerHealth : MonoBehaviour
     [Header("Invincibility Flash Color")]
     public Color dashInvincColor = new Color(1f, 0.9f, 0.1f); // yellow-gold
 
+    [Header("Camera Shake on Damage")]
+    [Tooltip("Base shake magnitude when taking damage.")]
+    public float shakeMagnitudeBase = 0.12f;
+    [Tooltip("Extra shake per 10 damage taken.")]
+    public float shakeMagnitudePer10Dmg = 0.08f;
+    [Tooltip("Shake duration on hit.")]
+    public float shakeDurationOnHit = 0.15f;
+    [Tooltip("Shake magnitude on death.")]
+    public float shakeMagnitudeOnDeath = 0.45f;
+    [Tooltip("Shake duration on death.")]
+    public float shakeDurationOnDeath = 0.4f;
     // ================================================================
     //  PRIVATE STATE
     // ================================================================
@@ -77,8 +88,16 @@ public class PlayerHealth : MonoBehaviour
         playerStats?.RecordDamageTaken(amount);
         upgradeManager?.DamageTaken(amount);
 
+        CameraFollow cam = Camera.main?.GetComponent<CameraFollow>();
         if (currentHP > 0)
-            Camera.main?.GetComponent<CameraFollow>()?.Shake(0.15f, 0.15f);
+        {
+            float mag = shakeMagnitudeBase + shakeMagnitudePer10Dmg * (amount / 10f);
+            cam?.Shake(mag, shakeDurationOnHit);
+        }
+        else
+        {
+            cam?.Shake(shakeMagnitudeOnDeath, shakeDurationOnDeath);
+        }
 
         UpdateHealthUI();
         StartCoroutine(InvincibilityTimer());

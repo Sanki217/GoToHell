@@ -25,7 +25,7 @@ using System.Collections;
 ///   detection puts it back into Climbing or Landed.
 /// </summary>
 [RequireComponent(typeof(Enemy))]
-public class EnemyWallJumper : MonoBehaviour
+public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
 {
     // ================================================================
     //  INSPECTOR
@@ -118,6 +118,9 @@ public class EnemyWallJumper : MonoBehaviour
     private Transform player;
     private Collider[] selfColliders;
 
+    // Reusable hit buffer — shared across all wall jumpers, avoids per-frame allocation
+    private static readonly Collider[] hitBuffer = new Collider[8];
+
     // ================================================================
     //  INIT
     // ================================================================
@@ -126,7 +129,7 @@ public class EnemyWallJumper : MonoBehaviour
     {
         selfColliders = GetComponentsInChildren<Collider>(true);
         pathX = transform.position.x;
-        player = GameObject.FindWithTag("Player")?.transform;
+        player = PlayerRefs.I?.T;
         DetectInitialWallSide();
     }
 
@@ -204,11 +207,11 @@ public class EnemyWallJumper : MonoBehaviour
     {
         Vector3 dir    = new Vector3(0f, dirY, 0f);
         Vector3 center = transform.position + dir * climbLookAhead;
-        Collider[] hits = Physics.OverlapBox(center, climbCheckBox,
+        int count = Physics.OverlapBoxNonAlloc(center, climbCheckBox, hitBuffer,
                                              Quaternion.identity, solidLayers,
                                              QueryTriggerInteraction.Ignore);
-        foreach (var h in hits)
-            if (!IsSelf(h)) return true;
+        for (int i = 0; i < count; i++)
+            if (!IsSelf(hitBuffer[i])) return true;
         return false;
     }
 
@@ -356,7 +359,9 @@ public class EnemyWallJumper : MonoBehaviour
             scale *= scale; // ease out
 
             Vector3 step = kbVel * scale * dt;
-            step = BounceStep(step);
+            step = KnockbackBouncer.StepWithWallBounce(
+                step, transform.position, knockbackCastHalf,
+                bounceDamping, solidLayers, selfColliders);
             transform.position = new Vector3(
                 transform.position.x + step.x,
                 transform.position.y + step.y,
@@ -371,31 +376,6 @@ public class EnemyWallJumper : MonoBehaviour
         smoothedClimbVelY = 0f;
         climbSmoothDampVel = 0f;
         suspended = false;
-    }
-
-    private Vector3 BounceStep(Vector3 step)
-    {
-        if (step.sqrMagnitude < 0.00001f) return step;
-        float   dist = step.magnitude;
-        Vector3 dir  = step / dist;
-
-        if (!Physics.BoxCast(transform.position, knockbackCastHalf, dir,
-                             out RaycastHit hit, Quaternion.identity, dist,
-                             solidLayers, QueryTriggerInteraction.Ignore))
-            return step;
-        if (IsSelf(hit.collider)) return step;
-
-        float   safe      = Mathf.Max(0f, hit.distance - 0.05f);
-        Vector3 remaining = step - dir * safe;
-        Vector3 normal    = hit.normal; normal.z = 0f;
-
-        if (normal.sqrMagnitude > 0.001f)
-        {
-            Vector3 reflected = Vector3.Reflect(remaining, normal.normalized) * bounceDamping;
-            reflected.z = 0f;
-            return dir * safe + reflected;
-        }
-        return dir * safe;
     }
 
     // ================================================================

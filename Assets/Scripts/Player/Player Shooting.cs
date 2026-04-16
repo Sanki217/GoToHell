@@ -20,6 +20,14 @@ public class PlayerShooting : MonoBehaviour
 
     public GameObject[] arrowDots;
 
+    [Header("Arrow Dot Tinting")]
+    [Tooltip("Color used to tint the last remaining dot while Dead Man's Hand is primed.")]
+    public Color deadMansHandDotColor = new Color(1f, 0.15f, 0.15f);
+
+    // Cached original colors for each dot (Image or SpriteRenderer), filled on Start.
+    private Color[] arrowDotOriginalColors;
+    private bool deadMansHandPrimed = false;
+
     [Header("Arrow Speed")]
     public float baseArrowSpeed = 15f;
 
@@ -96,6 +104,7 @@ public class PlayerShooting : MonoBehaviour
         originalCamZ = cam.transform.position.z;
 
         currentArrows = maxArrows;
+        CacheArrowDotColors();
         UpdateArrowUI();
 
         if (!lineRenderer) lineRenderer = GetComponent<LineRenderer>();
@@ -320,7 +329,52 @@ public class PlayerShooting : MonoBehaviour
     void UpdateArrowUI()
     {
         for (int i = 0; i < arrowDots.Length; i++)
+        {
+            if (arrowDots[i] == null) continue;
             arrowDots[i].SetActive(i < currentArrows);
+        }
+        ApplyDotTints();
+    }
+
+    private void CacheArrowDotColors()
+    {
+        if (arrowDots == null) return;
+        arrowDotOriginalColors = new Color[arrowDots.Length];
+        for (int i = 0; i < arrowDots.Length; i++)
+        {
+            if (arrowDots[i] == null) { arrowDotOriginalColors[i] = Color.white; continue; }
+            var img = arrowDots[i].GetComponent<Image>();
+            if (img != null) { arrowDotOriginalColors[i] = img.color; continue; }
+            var sr = arrowDots[i].GetComponent<SpriteRenderer>();
+            if (sr != null) { arrowDotOriginalColors[i] = sr.color; continue; }
+            arrowDotOriginalColors[i] = Color.white;
+        }
+    }
+
+    private void ApplyDotTints()
+    {
+        if (arrowDots == null || arrowDotOriginalColors == null) return;
+        int lastActiveIdx = currentArrows - 1;
+        for (int i = 0; i < arrowDots.Length; i++)
+        {
+            if (arrowDots[i] == null) continue;
+            Color target = (deadMansHandPrimed && i == lastActiveIdx)
+                ? deadMansHandDotColor
+                : arrowDotOriginalColors[i];
+
+            var img = arrowDots[i].GetComponent<Image>();
+            if (img != null) { img.color = target; continue; }
+            var sr = arrowDots[i].GetComponent<SpriteRenderer>();
+            if (sr != null) sr.color = target;
+        }
+    }
+
+    /// <summary>Toggle Dead Man's Hand visual priming — tints the last remaining arrow dot red.</summary>
+    public void SetDeadMansHandPrimed(bool primed)
+    {
+        if (deadMansHandPrimed == primed) return;
+        deadMansHandPrimed = primed;
+        ApplyDotTints();
     }
 
     public void RestoreArrow()

@@ -81,13 +81,13 @@ public class ChestRewardUI : MonoBehaviour
     {
         if (playerStats == null)
         {
-            var player = GameObject.FindWithTag("Player");
-            if (player != null)
+            var refs = PlayerRefs.I;
+            if (refs != null)
             {
-                playerStats = player.GetComponent<PlayerStats>();
-                upgradeManager = player.GetComponent<PlayerUpgradeManager>();
-                playerState = player.GetComponent<PlayerStateController>();
-                playerInventory = player.GetComponent<PlayerInventory>();
+                playerStats = refs.Stats;
+                upgradeManager = refs.Upgrades;
+                playerState = refs.StateCtrl;
+                playerInventory = refs.Inventory;
             }
         }
 
@@ -227,8 +227,7 @@ public class ChestRewardUI : MonoBehaviour
         var inv = playerInventory;
         if (inv == null)
         {
-            var p = GameObject.FindWithTag("Player");
-            if (p != null) inv = p.GetComponent<PlayerInventory>();
+            inv = PlayerRefs.I?.Inventory;
         }
         inv?.AddSouls(pendingSouls);
 
@@ -241,7 +240,7 @@ public class ChestRewardUI : MonoBehaviour
     {
         Transform playerTransform = upgradeManager != null
             ? upgradeManager.transform
-            : GameObject.FindWithTag("Player")?.transform;
+            : PlayerRefs.I?.T;
 
         if (playerTransform == null) return;
 

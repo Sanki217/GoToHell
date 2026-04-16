@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 
 [RequireComponent(typeof(Enemy))]
-public class EnemyShooter : MonoBehaviour
+public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
 {
     [Header("Detection")]
     public float attackRange = 15f;
@@ -48,8 +48,7 @@ public class EnemyShooter : MonoBehaviour
         homePosition = transform.position;
         selfColliders = GetComponentsInChildren<Collider>(true);
 
-        var playerGO = GameObject.FindWithTag("Player");
-        if (playerGO != null) player = playerGO.transform;
+        if (PlayerRefs.I != null) player = PlayerRefs.I.T;
 
         cooldownTimer = Random.Range(0f, attackCooldown);
     }
@@ -132,7 +131,10 @@ public class EnemyShooter : MonoBehaviour
             float scale = 1f - t * t;
             Vector3 step = velocity * scale * dt;
 
-            step = StepWithWallBounce(step);
+            LayerMask mask = LayerMask.GetMask("Wall", "Ground");
+            step = KnockbackBouncer.StepWithWallBounce(
+                step, transform.position, knockbackCastHalf,
+                bounceDamping, mask, selfColliders);
 
             transform.position = new Vector3(
                 transform.position.x + step.x,
@@ -144,48 +146,6 @@ public class EnemyShooter : MonoBehaviour
 
         knockedBack = false;
         returning = true;
-    }
-
-    private Vector3 StepWithWallBounce(Vector3 step)
-    {
-        if (step.sqrMagnitude < 0.00001f) return step;
-
-        float dist = step.magnitude;
-        Vector3 dir = step / dist;
-
-        // Use solidLayers from whichever patrol script is present, fallback to wall layer
-        LayerMask mask = LayerMask.GetMask("Wall", "Ground");
-
-        bool found = Physics.BoxCast(
-            transform.position,
-            knockbackCastHalf,
-            dir,
-            out RaycastHit hit,
-            Quaternion.identity,
-            dist,
-            mask,
-            QueryTriggerInteraction.Ignore);
-
-        if (!found) return step;
-
-        bool isSelf = false;
-        foreach (var sc in selfColliders)
-            if (sc == hit.collider) { isSelf = true; break; }
-        if (isSelf) return step;
-
-        float safe = Mathf.Max(0f, hit.distance - 0.05f);
-        Vector3 safeStep = dir * safe;
-        Vector3 remaining = step - safeStep;
-        Vector3 normal = hit.normal; normal.z = 0f;
-
-        if (normal.sqrMagnitude > 0.001f)
-        {
-            Vector3 reflected = Vector3.Reflect(remaining, normal.normalized) * bounceDamping;
-            reflected.z = 0f;
-            return safeStep + reflected;
-        }
-
-        return safeStep;
     }
 
     // ================================================================

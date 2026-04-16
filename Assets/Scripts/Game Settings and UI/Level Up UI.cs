@@ -74,12 +74,12 @@ public class LevelUpUI : MonoBehaviour
     {
         if (playerStats == null)
         {
-            var player = GameObject.FindWithTag("Player");
-            if (player != null)
+            var refs = PlayerRefs.I;
+            if (refs != null)
             {
-                playerStats = player.GetComponent<PlayerStats>();
-                upgradeManager = player.GetComponent<PlayerUpgradeManager>();
-                playerState = player.GetComponent<PlayerStateController>();
+                playerStats = refs.Stats;
+                upgradeManager = refs.Upgrades;
+                playerState = refs.StateCtrl;
             }
         }
     }
@@ -216,7 +216,7 @@ public class LevelUpUI : MonoBehaviour
     {
         Transform playerTransform = upgradeManager != null
             ? upgradeManager.transform
-            : GameObject.FindWithTag("Player")?.transform;
+            : PlayerRefs.I?.T;
 
         if (playerTransform == null) return;
 

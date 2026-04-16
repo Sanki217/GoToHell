@@ -66,10 +66,7 @@ public class SceneOptimizer : MonoBehaviour
         mainCamera = Camera.main;
 
         if (playerTransform == null)
-        {
-            var player = GameObject.FindWithTag("Player");
-            if (player != null) playerTransform = player.transform;
-        }
+            playerTransform = PlayerRefs.I?.T;
 
         StartCoroutine(OptimizeLoop());
     }

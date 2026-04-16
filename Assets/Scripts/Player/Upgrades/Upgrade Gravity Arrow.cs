@@ -27,6 +27,13 @@ public class UpgradeGravityArrow : PlayerUpgrade
     [Tooltip("Additional pull speed per 1 point of Psyche, added on top of the prefab's base pullSpeed.")]
     public float pullSpeedPerPsyche = 0.12f;
 
+    [Header("Gravity Arrow — Damage")]
+    [Tooltip("Base damage per second dealt to enemies inside the zone.")]
+    public float baseDamagePerSecond = 3f;
+
+    [Tooltip("Additional damage per second per 1 point of Psyche.")]
+    public float damagePerSecondPerPsyche = 0.15f;
+
     [Header("Gravity Arrow — Cooldown")]
     [Tooltip("Minimum seconds between zone spawns regardless of how many arrows stick.")]
     public float baseCooldown = 5f;
@@ -97,6 +104,9 @@ public class UpgradeGravityArrow : PlayerUpgrade
         // Add Psyche scaling on top of whatever the prefab has as its base pullSpeed
         float ps = playerStats != null ? playerStats.psyche : 0f;
         zone.pullSpeed += pullSpeedPerPsyche * ps;
+
+        // Override damage-per-second with our computed value (overrides prefab default)
+        zone.damagePerSecond = baseDamagePerSecond + damagePerSecondPerPsyche * ps;
     }
 
     // ================================================================
@@ -112,12 +122,14 @@ public class UpgradeGravityArrow : PlayerUpgrade
         if (zone != null) basePull = zone.pullSpeed;
 
         float totalPull  = basePull + pullSpeedPerPsyche * stats.psyche;
+        float totalDPS   = baseDamagePerSecond + damagePerSecondPerPsyche * stats.psyche;
         float radius     = zone?.pullRadius ?? 4f;
         float dur        = zone?.duration   ?? 3f;
         float cd         = Mathf.Max(minCooldown, baseCooldown - cooldownReducPerCooldown * stats.cooldown);
 
         return $"Arrows stuck in surfaces create a pull zone ({radius:F0}m, {dur:F0}s).\n" +
-               $"Enemies dragged toward the arrow at {PSY(totalPull, "F1")} u/s.\n" +
+               $"Enemies dragged toward the arrow at {PSY(totalPull, "F1")} u/s " +
+               $"and take {PSY(totalDPS, "F1")} damage per second.\n" +
                $"Cooldown: {CD(cd)}s. Scales with <color=#FF66CC>Psyche</color> and <color=#44FFEE>Cooldown</color>.";
     }
 }
