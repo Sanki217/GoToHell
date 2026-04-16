@@ -127,6 +127,24 @@ public class PlayerUpgradeManager : MonoBehaviour
 
     private Dictionary<string, PlayerUpgrade> activeUpgrades = new();
 
+    /// <summary>
+    /// Stored info for each applied upgrade — used by StatsUI hover tooltip.
+    /// Populated when ApplyUpgrade is called.
+    /// </summary>
+    private Dictionary<string, AppliedUpgradeInfo> appliedUpgradeInfo = new();
+
+    public AppliedUpgradeInfo GetUpgradeInfo(string id)
+    {
+        appliedUpgradeInfo.TryGetValue(id, out var info);
+        return info;
+    }
+
+    public PlayerUpgrade GetUpgrade(string id)
+    {
+        activeUpgrades.TryGetValue(id, out var upgrade);
+        return upgrade;
+    }
+
     // ============================================================
     //  EVENT TRIGGERS — Shooting
     // ============================================================
@@ -219,7 +237,8 @@ public class PlayerUpgradeManager : MonoBehaviour
     //  APPLY UPGRADE
     // ============================================================
 
-    public void ApplyUpgrade(PlayerUpgrade upgrade)
+    public void ApplyUpgrade(PlayerUpgrade upgrade, UpgradeRarity rarity = UpgradeRarity.Common,
+                             System.Collections.Generic.List<UpgradeStatBonus> statBonuses = null)
     {
         string id = upgrade.UpgradeId;
 
@@ -230,6 +249,17 @@ public class PlayerUpgradeManager : MonoBehaviour
         }
 
         activeUpgrades.Add(id, upgrade);
+
+        // Store display info for the TAB hover tooltip
+        appliedUpgradeInfo[id] = new AppliedUpgradeInfo
+        {
+            displayName = upgrade.displayName,
+            icon = upgrade.icon,
+            rarity = rarity,
+            statBonuses = statBonuses,
+            category = upgrade.category
+        };
+
         upgrade.OnAdded(this);
 
         Debug.Log($"[Upgrade] {id} applied.");
@@ -243,3 +273,13 @@ public class PlayerUpgradeManager : MonoBehaviour
 public enum StatusType { Burn, Freeze, Holy, Shock }
 public enum EnergySource { Kill, Falling, Lava, WallSlide }
 public enum ChestRarity { Common, Rare, Epic, Legendary }
+
+/// <summary>Snapshot of an upgrade's display info at the time it was applied.</summary>
+public class AppliedUpgradeInfo
+{
+    public string displayName;
+    public Sprite icon;
+    public UpgradeRarity rarity;
+    public System.Collections.Generic.List<UpgradeStatBonus> statBonuses;
+    public UpgradeCategory category;
+}

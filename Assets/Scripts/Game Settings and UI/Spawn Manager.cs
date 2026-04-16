@@ -3,6 +3,25 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Sequential spawn queue manager.
+///
+/// FLOW:
+///   1. On scene load, collects all SpawnArea instances.
+///   2. Sorts them by SpawnArea.spawnOrder (lower first, scene order as tiebreaker).
+///   3. Processes them one-by-one in a coroutine — each spawner gets the full
+///      global list of already-placed positions, so nothing overlaps.
+///   4. Waits one fixed-update frame between spawners to let physics settle.
+///
+/// All spawners now share collision validation (SpawnArea base class).
+/// EnemySpawnArea no longer needs its own special path — it uses the same
+/// SpawnObjects(globalPositions) method as everything else.
+///
+/// SETUP:
+///   - Set SpawnArea.spawnOrder in Inspector (lower = earlier).
+///   - Set SpawnArea.wallCheckRadius + wallLayers to avoid spawning inside walls.
+///   - Set SpawnArea.minSeparationDistance to control spacing.
+/// </summary>
 public class SpawnManager : MonoBehaviour
 {
     private readonly List<SpawnArea> areas = new List<SpawnArea>();
@@ -53,7 +72,6 @@ public class SpawnManager : MonoBehaviour
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         StopAllCoroutines();
-
         areas.Clear();
 
         foreach (var area in FindObjectsByType<SpawnArea>(FindObjectsSortMode.None))
@@ -62,38 +80,28 @@ public class SpawnManager : MonoBehaviour
         StartCoroutine(SpawnAllCoroutine());
     }
 
-    // ---------- Spawning ----------
+    // ---------- Sequential spawning ----------
     private IEnumerator SpawnAllCoroutine()
     {
-        var snapshot = new List<SpawnArea>(areas);
+        // Sort by spawnOrder (stable — preserves scene order as tiebreaker)
+        var sorted = new List<SpawnArea>(areas);
+        sorted.Sort((a, b) => a.spawnOrder.CompareTo(b.spawnOrder));
 
-        Debug.Log($"[SpawnManager] Phase 1: Spawning non-enemies ({snapshot.Count} areas)");
+        // Global position registry — every spawner contributes to and reads from this
+        var globalPositions = new List<Vector3>();
 
-        foreach (var area in snapshot)
+        Debug.Log($"[SpawnManager] Starting sequential spawn queue ({sorted.Count} areas)");
+
+        foreach (var area in sorted)
         {
             if (area == null) continue;
-            if (area.spawnType != SpawnArea.SpawnType.Enemies)
-                area.SpawnObjects();
+
+            area.SpawnObjects(globalPositions);
+
+            // Let physics settle between spawners
+            yield return new WaitForFixedUpdate();
         }
 
-        yield return new WaitForFixedUpdate();
-
-        snapshot = new List<SpawnArea>(areas);
-
-        Debug.Log("[SpawnManager] Phase 2: Spawning enemies");
-
-        foreach (var area in snapshot)
-        {
-            if (area == null) continue;
-            if (area.spawnType == SpawnArea.SpawnType.Enemies)
-            {
-                if (area is EnemySpawnArea enemyArea)
-                    enemyArea.SpawnEnemiesAvoidingCollisions();
-                else
-                    area.SpawnObjects();
-            }
-        }
-
-        Debug.Log("[SpawnManager] SpawnAll completed.");
+        Debug.Log($"[SpawnManager] SpawnAll completed. {globalPositions.Count} total objects placed.");
     }
 }

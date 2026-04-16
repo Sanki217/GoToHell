@@ -34,6 +34,10 @@ public class GravityArrowZone : MonoBehaviour
     [Tooltip("How many seconds the zone stays active before destroying itself.")]
     public float duration = 3f;
 
+    [Header("Wall Safety")]
+    [Tooltip("Layer mask for walls. Pull displacement is blocked if it would push an enemy into a wall.")]
+    public LayerMask wallLayers;
+
     [Header("Damage Over Time")]
     [Tooltip("Damage dealt per second to every enemy inside the zone. " +
              "UpgradeGravityArrow overrides this at runtime to add Psyche scaling.")]
@@ -88,12 +92,21 @@ public class GravityArrowZone : MonoBehaviour
             toZone.z = 0f;
             float dist = toZone.magnitude;
 
-            // ── Pull ──────────────────────────────────────────────────
+            // ── Pull (wall-safe) ─────────────────────────────────────
             if (dist >= 0.01f)
             {
-                // Linear falloff: full pull at centre, zero pull at edge
                 float strength = Mathf.Clamp01(1f - dist / pullRadius);
                 Vector3 pull   = toZone.normalized * pullSpeed * strength * Time.fixedDeltaTime;
+
+                // Block pull if it would push the enemy into a wall
+                if (wallLayers != 0 && pull.sqrMagnitude > 0.00001f)
+                {
+                    float pullDist = pull.magnitude;
+                    Vector3 pullDir = pull / pullDist;
+                    if (Physics.Raycast(enemy.transform.position, pullDir, pullDist + 0.1f,
+                                        wallLayers, QueryTriggerInteraction.Ignore))
+                        pull = Vector3.zero; // wall in the way — skip pull this frame
+                }
 
                 enemy.transform.position = new Vector3(
                     enemy.transform.position.x + pull.x,

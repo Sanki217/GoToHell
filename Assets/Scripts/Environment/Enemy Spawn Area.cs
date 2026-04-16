@@ -1,69 +1,45 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// EnemySpawnArea — extends SpawnArea but defers spawning to SpawnManager's
+/// sequential queue. Wall/collision checking is inherited from SpawnArea
+/// (wallCheckRadius + wallLayers). Set those in Inspector.
+///
+/// The old collisionMask/collisionCheckRadius fields are kept for backward
+/// compatibility but now feed into the base class wallLayers/wallCheckRadius
+/// if those haven't been set.
+/// </summary>
 public class EnemySpawnArea : SpawnArea
 {
-    [Header("Enemy Collision Settings")]
+    [Header("Enemy Collision (legacy — prefer wallLayers on base)")]
     public float collisionCheckRadius = 0.5f;
     public LayerMask collisionMask;
-    // Assign environment, walls, floors, destructibles, other enemies, etc.
 
-    public override void SpawnObjects()
+    private void Start()
     {
-        // Prevent enemies from spawning in phase 1
-        // They will be spawned manually by SpawnManager Phase 2
+        // Migrate legacy fields if base class fields aren't set
+        if (wallLayers == 0 && collisionMask != 0) wallLayers = collisionMask;
+        if (wallCheckRadius <= 0f && collisionCheckRadius > 0f) wallCheckRadius = collisionCheckRadius;
     }
 
-    public void SpawnEnemiesAvoidingCollisions()
+    /// <summary>Block the no-arg legacy overload — SpawnManager calls SpawnObjects(globalPositions).</summary>
+    public override void SpawnObjects() { }
+
+    /// <summary>Enemies use the same validated spawn as everything else now.</summary>
+    public override void SpawnObjects(List<Vector3> globalPositions)
     {
         if (prefabs.Count == 0) return;
 
-        Debug.Log($"Spawning {spawnCount} ENEMIES (collision-safe) in: {name}");
-
-        List<Vector3> spawnedPositions = new List<Vector3>();
+        Debug.Log($"[SpawnManager] Spawning {spawnCount} ENEMIES (collision-safe) in: {name} (order {spawnOrder})");
 
         for (int i = 0; i < spawnCount; i++)
         {
-            Vector3 point = GetValidEnemyPoint(spawnedPositions);
-
+            Vector3 point = GetValidPoint(globalPositions);
             Quaternion rotation = GetRandomRotation();
             GameObject prefab = prefabs[Random.Range(0, prefabs.Count)];
-
-            GameObject e = Instantiate(prefab, point, rotation);
-
-            spawnedPositions.Add(point);
+            Instantiate(prefab, point, rotation);
+            globalPositions.Add(point);
         }
-    }
-
-    private Vector3 GetValidEnemyPoint(List<Vector3> existing)
-    {
-        const int MAX_ATTEMPTS = 40;
-
-        for (int i = 0; i < MAX_ATTEMPTS; i++)
-        {
-            Vector3 point = GetRandomPointInside();
-
-            // distance check (reuse your logic)
-            bool tooClose = false;
-            foreach (var p in existing)
-            {
-                if (Vector3.Distance(point, p) < minSeparationDistance)
-                {
-                    tooClose = true;
-                    break;
-                }
-            }
-            if (tooClose) continue;
-
-            // PHYSICS collision check
-            Collider[] hits = Physics.OverlapSphere(point, collisionCheckRadius, collisionMask);
-            if (hits.Length > 0)
-                continue; // something already occupies space
-
-            return point;
-        }
-
-        // fallback
-        return GetRandomPointInside();
     }
 }

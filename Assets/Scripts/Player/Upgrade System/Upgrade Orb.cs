@@ -207,7 +207,11 @@ public class UpgradeOrb : MonoBehaviour
                 // Destroy this UpgradeOrb controller — no longer needed
                 Destroy(this);
 
-                upgradeManager.ApplyUpgrade(upgrade);
+                // Pass rarity + stat bonuses so the manager can store them for the TAB tooltip
+                var bonusList = rolledStatBonuses != null
+                    ? new System.Collections.Generic.List<UpgradeStatBonus>(rolledStatBonuses)
+                    : null;
+                upgradeManager.ApplyUpgrade(upgrade, rolledRarity, bonusList);
             }
         }
         else
