@@ -62,10 +62,20 @@ public class HealthOrb : MonoBehaviour
     {
         float t = 0f;
         Vector3 startVelocity = rb.linearVelocity;
+        WallBounce wallBounce = GetComponent<WallBounce>();
+
         while (t < initialDampDuration)
         {
             if (rb.isKinematic) yield break;
             t += Time.deltaTime;
+
+            // If WallBounce reflected us, adopt the new direction
+            if (wallBounce != null && wallBounce.bounceOccurred)
+            {
+                startVelocity = wallBounce.postBounceVelocity;
+                wallBounce.bounceOccurred = false;
+            }
+
             float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / initialDampDuration), 2f);
             rb.linearVelocity = Vector3.Lerp(startVelocity, Vector3.zero, ease);
             yield return null;

@@ -83,6 +83,7 @@ GameObject:
   - component: {fileID: -8232553747361180095}
   - component: {fileID: 9052951736665903648}
   - component: {fileID: 6029398872816002744}
+  - component: {fileID: 8012410562182092854}
   m_Layer: 0
   m_Name: Training Dummy
   m_TagString: Enemy
@@ -249,3 +250,23 @@ MonoBehaviour:
   colorLow: {r: 0.9, g: 0.15, b: 0.1, a: 1}
   midThreshold: 0.5
   lowThreshold: 0.25
+--- !u!114 &8012410562182092854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5456285349514001431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46b366ddc5d18614294afd1cdf2f4dc0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  bounceRadius: 0.15
+  bounciness: 0.6
+  minBounceSpeed: 0.3
+  bounceOccurred: 0
+  postBounceVelocity: {x: 0, y: 0, z: 0}

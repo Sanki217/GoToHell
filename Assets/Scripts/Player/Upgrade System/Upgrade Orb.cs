@@ -136,10 +136,20 @@ public class UpgradeOrb : MonoBehaviour
     {
         float t = 0f;
         Vector3 startVel = rb.linearVelocity;
+        WallBounce wallBounce = GetComponent<WallBounce>();
+
         while (t < initialDampDuration)
         {
             if (rb.isKinematic) yield break;
             t += Time.deltaTime;
+
+            // If WallBounce reflected us, adopt the new direction
+            if (wallBounce != null && wallBounce.bounceOccurred)
+            {
+                startVel = wallBounce.postBounceVelocity;
+                wallBounce.bounceOccurred = false;
+            }
+
             float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / initialDampDuration), 2f);
             rb.linearVelocity = Vector3.Lerp(startVel, Vector3.zero, ease);
             yield return null;
