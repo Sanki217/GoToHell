@@ -20,6 +20,20 @@ public class Enemy : MonoBehaviour
     [Header("Knockback")]
     public float knockbackDuration = 0.15f;
 
+    [Header("Wall Safety")]
+    [Tooltip("Layers considered solid walls. Used by the fallback knockback path " +
+             "(enemies with no IKnockbackReceiver, e.g. training dummy) and the " +
+             "per-frame depenetration check.")]
+    public LayerMask wallLayers;
+
+    [Tooltip("Half-extents for the BoxCast / OverlapBox wall checks. " +
+             "Should roughly match the enemy's visual half-size.")]
+    public Vector3 wallCheckHalfExtents = new Vector3(0.4f, 0.4f, 0.1f);
+
+    [Tooltip("Bounce damping for the fallback knockback path (0 = dead stop, 1 = perfect bounce).")]
+    [Range(0f, 1f)]
+    public float knockbackBounceDamping = 0.4f;
+
     // ================================================================
     //  EVENTS
     // ================================================================
@@ -34,6 +48,7 @@ public class Enemy : MonoBehaviour
     private int currentHealth;
     private EnemyHealthBar healthBar;
     private IKnockbackReceiver[] knockbackReceivers;
+    private Collider[] selfColliders;
 
     // ================================================================
     //  INIT
@@ -50,6 +65,78 @@ public class Enemy : MonoBehaviour
 
         // Cache all knockback receivers on this enemy (patrol scripts, shooters, wall jumpers, etc.)
         knockbackReceivers = GetComponents<IKnockbackReceiver>();
+        selfColliders = GetComponentsInChildren<Collider>();
+
+        // Auto-default wallLayers to the "Wall" layer if the Inspector left it empty.
+        // Everything in this project is on the Wall layer, so this makes wall-bounce
+        // and depenetration "just work" without per-prefab setup.
+        if (wallLayers == 0)
+        {
+            int wallLayer = LayerMask.NameToLayer("Wall");
+            if (wallLayer >= 0)
+                wallLayers = 1 << wallLayer;
+        }
+    }
+
+    // ================================================================
+    //  WALL DEPENETRATION — runs every physics frame
+    // ================================================================
+
+    private static readonly Collider[] depenBuffer = new Collider[8];
+
+    private void FixedUpdate()
+    {
+        if (wallLayers == 0) return;
+
+        // Check if we overlap any wall right now and push out
+        int count = Physics.OverlapBoxNonAlloc(
+            transform.position, wallCheckHalfExtents, depenBuffer,
+            Quaternion.identity, wallLayers, QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider wallCol = depenBuffer[i];
+            // Skip our own colliders
+            bool isSelf = false;
+            if (selfColliders != null)
+                foreach (var sc in selfColliders)
+                    if (sc == wallCol) { isSelf = true; break; }
+            if (isSelf) continue;
+
+            // Compute penetration and push out
+            // Use a small BoxCollider stand-in via ComputePenetration isn't available
+            // without a collider pair — use a simpler approach: cast back toward
+            // the wall from our position and snap to the surface.
+            Vector3 toWall = wallCol.ClosestPoint(transform.position) - transform.position;
+            toWall.z = 0f;
+            if (toWall.sqrMagnitude < 0.001f)
+            {
+                // We're deep inside — pick a direction via bounds center
+                toWall = transform.position - wallCol.bounds.center;
+                toWall.z = 0f;
+                if (toWall.sqrMagnitude < 0.001f) toWall = Vector3.up;
+            }
+
+            // If ClosestPoint is AT our position, we're inside the wall
+            Vector3 closestOnWall = wallCol.ClosestPoint(transform.position);
+            closestOnWall.z = 0f;
+            Vector3 meFlat = new Vector3(transform.position.x, transform.position.y, 0f);
+            float overlap = (closestOnWall - meFlat).magnitude;
+
+            // Only push if closest point is very near (means we're overlapping)
+            if (overlap < wallCheckHalfExtents.x * 1.1f)
+            {
+                Vector3 pushDir = (meFlat - closestOnWall).normalized;
+                if (pushDir.sqrMagnitude < 0.001f) pushDir = Vector3.up;
+                float pushAmount = wallCheckHalfExtents.x - overlap + 0.05f;
+                if (pushAmount > 0f)
+                {
+                    Vector3 newPos = transform.position + pushDir * pushAmount;
+                    newPos.z = 0f;
+                    transform.position = newPos;
+                }
+            }
+        }
     }
 
     // ================================================================
@@ -139,13 +226,23 @@ public class Enemy : MonoBehaviour
         if (handled) yield break;
 
         // Fallback for enemies with no movement scripts (e.g. training dummy):
-        // ease-out the impulse directly on transform.
+        // ease-out the impulse directly on transform, with wall bounce.
         float elapsed = 0f;
         while (elapsed < knockbackDuration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / knockbackDuration;
-            Vector3 newPos = transform.position + impulse * (1f - t) * Time.deltaTime;
+            Vector3 step = impulse * (1f - t) * Time.deltaTime;
+            step.z = 0f;
+
+            if (wallLayers != 0)
+            {
+                step = KnockbackBouncer.StepWithWallBounce(
+                    step, transform.position, wallCheckHalfExtents,
+                    knockbackBounceDamping, wallLayers, selfColliders);
+            }
+
+            Vector3 newPos = transform.position + step;
             newPos.z = 0f;
             transform.position = newPos;
             yield return null;

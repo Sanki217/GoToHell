@@ -78,6 +78,12 @@ public class TrainingDummySpawner : MonoBehaviour
             new Vector3(transform.position.x, transform.position.y, 0f),
             Quaternion.identity);
 
+        // Training dummies should not deal contact damage.
+        // IMPORTANT: disabling the component does NOT stop OnTriggerEnter
+        // in Unity — we must actually destroy the component.
+        foreach (var dmg in currentDummy.GetComponentsInChildren<EnemyDamage>(true))
+            Destroy(dmg);
+
         respawnTimer = -1f;
     }
 

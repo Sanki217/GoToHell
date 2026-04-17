@@ -290,6 +290,90 @@ Transform:
   - {fileID: 1434236165}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &33107570
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 33107571}
+  - component: {fileID: 33107573}
+  - component: {fileID: 33107572}
+  m_Layer: 0
+  m_Name: Enemy Spawner Jumper (1)
+  m_TagString: Spawner
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &33107571
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 33107570}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 23.29, y: -379.6, z: 136.6663}
+  m_LocalScale: {x: 0.76948625, y: 950, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 177737229}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &33107572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 33107570}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96a3575a6ccdd354ab75559e18b9e600, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawnType: 2
+  prefabs:
+  - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
+  spawnCount: 7
+  minSeparationDistance: 10
+  spawnOrder: 17
+  wallCheckRadius: 1
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  minRotation: {x: 0, y: 0, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
+  minScale: {x: 1, y: 1, z: 1}
+  maxScale: {x: 1, y: 1, z: 1}
+  collisionCheckRadius: 4
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 64
+--- !u!65 &33107573
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 33107570}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &37319951
 GameObject:
   m_ObjectHideFlags: 0
@@ -853,7 +937,7 @@ GameObject:
   - component: {fileID: 103440942}
   - component: {fileID: 103440941}
   m_Layer: 0
-  m_Name: Sidewall Spawner Left
+  m_Name: Sidewall Spawner Left 1
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -874,11 +958,10 @@ MonoBehaviour:
   spawnType: 1
   prefabs:
   - {fileID: 7149176871310243740, guid: 62a8ce862889910419551965fde8a051, type: 3}
-  - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
-  spawnCount: 30
+  spawnCount: 15
   minSeparationDistance: 10
-  spawnOrder: 1
-  wallCheckRadius: 3
+  spawnOrder: 4
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -1963,7 +2046,9 @@ Transform:
   - {fileID: 419916097}
   - {fileID: 1822753681}
   - {fileID: 103440943}
+  - {fileID: 730073566}
   - {fileID: 2073126254}
+  - {fileID: 1717706370}
   - {fileID: 205231693}
   - {fileID: 658264253}
   - {fileID: 1389026483}
@@ -1973,7 +2058,7 @@ Transform:
   - {fileID: 1911711818}
   - {fileID: 1290917206}
   - {fileID: 1297981983}
-  - {fileID: 2037127167}
+  - {fileID: 33107571}
   - {fileID: 1092126016}
   - {fileID: 1744291262}
   - {fileID: 1419095552}
@@ -2245,8 +2330,8 @@ MonoBehaviour:
   - {fileID: 4442875087141929137, guid: 5be990f49d167a1459d0cf9fbbfa6607, type: 3}
   spawnCount: 12
   minSeparationDistance: 10
-  spawnOrder: 3
-  wallCheckRadius: 3
+  spawnOrder: 8
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -2474,6 +2559,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cameraAnchor: {fileID: 1238519052}
   smoothTime: 0.5
+  arrowRefillDelay: 1
 --- !u!1 &242550914
 GameObject:
   m_ObjectHideFlags: 0
@@ -2800,7 +2886,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &284074036
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3508,10 +3594,9 @@ MonoBehaviour:
   spawnType: 5
   prefabs:
   - {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
-  - {fileID: 9110402392618010128, guid: e15d50374394a3e4e875fbec5b69162b, type: 3}
   spawnCount: 0
   minSeparationDistance: 1.5
-  spawnOrder: 16
+  spawnOrder: 21
   wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
@@ -3682,7 +3767,7 @@ MonoBehaviour:
   spawnCount: 5
   minSeparationDistance: 4
   spawnOrder: 2
-  wallCheckRadius: 7
+  wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -4764,8 +4849,8 @@ MonoBehaviour:
   - {fileID: 4442875087141929137, guid: 5be990f49d167a1459d0cf9fbbfa6607, type: 3}
   spawnCount: 12
   minSeparationDistance: 10
-  spawnOrder: 4
-  wallCheckRadius: 3
+  spawnOrder: 9
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -5541,6 +5626,86 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1 &730073565
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 730073566}
+  - component: {fileID: 730073568}
+  - component: {fileID: 730073567}
+  m_Layer: 0
+  m_Name: Sidewall Spawner Left 2
+  m_TagString: Spawner
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &730073566
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730073565}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 12.650549, y: -379.11673, z: 136.6663}
+  m_LocalScale: {x: 1.5964067, y: 950, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 177737229}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &730073567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730073565}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79a17b8abe61b142963953701adef15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawnType: 1
+  prefabs:
+  - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
+  spawnCount: 15
+  minSeparationDistance: 10
+  spawnOrder: 5
+  wallCheckRadius: 1
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  minRotation: {x: 0, y: 0, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
+  minScale: {x: 1, y: 1, z: 1}
+  maxScale: {x: 1, y: 1, z: 1}
+--- !u!65 &730073568
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730073565}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &738193104
 GameObject:
   m_ObjectHideFlags: 0
@@ -7133,6 +7298,8 @@ MonoBehaviour:
   energyPerVelocityUnit: 0.8
   wallSlideEnergyMultiplier: 0.75
   energyTMPText: {fileID: 323077759}
+  insufficientEnergyColor: {r: 1, g: 0.15, b: 0.15, a: 1}
+  insufficientFlashDuration: 0.35
 --- !u!114 &1048261599
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7411,7 +7578,7 @@ MonoBehaviour:
   maxCritChance: 1
   baseCritMultiplier: 1.5
   critMultPerAttack: 0.005
-  baseKnockback: 0.5
+  baseKnockback: 3.21
   knockbackPerAttack: 0.1
   maxKnockback: 4
   baseMaxEnergy: 100
@@ -7687,8 +7854,8 @@ MonoBehaviour:
   - {fileID: 3364696898189166244, guid: 18c777a750073534595856a953ff4652, type: 3}
   spawnCount: 4
   minSeparationDistance: 20
-  spawnOrder: 8
-  wallCheckRadius: 3
+  spawnOrder: 13
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -7846,11 +8013,11 @@ MonoBehaviour:
   - {fileID: 52367395386015003, guid: 52880c76e8c7b6f4eae9959b5b40b213, type: 3}
   spawnCount: 17
   minSeparationDistance: 10
-  spawnOrder: 13
-  wallCheckRadius: 3
+  spawnOrder: 18
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
   minScale: {x: 1, y: 1, z: 1}
@@ -7858,7 +8025,7 @@ MonoBehaviour:
   collisionCheckRadius: 4
   collisionMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 64
 --- !u!65 &1092126018
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8841,8 +9008,8 @@ MonoBehaviour:
   - {fileID: 5456285349514001431, guid: 976cc109a745e574d9395cb68470ed2a, type: 3}
   spawnCount: 35
   minSeparationDistance: 10
-  spawnOrder: 10
-  wallCheckRadius: 3
+  spawnOrder: 15
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -8853,7 +9020,7 @@ MonoBehaviour:
   collisionCheckRadius: 4
   collisionMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 64
 --- !u!65 &1290917208
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9000,8 +9167,8 @@ MonoBehaviour:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
   spawnCount: 7
   minSeparationDistance: 10
-  spawnOrder: 11
-  wallCheckRadius: 3
+  spawnOrder: 16
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -9012,7 +9179,7 @@ MonoBehaviour:
   collisionCheckRadius: 4
   collisionMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 64
 --- !u!65 &1297981985
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9749,10 +9916,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
@@ -10248,8 +10415,8 @@ MonoBehaviour:
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
   spawnCount: 8
   minSeparationDistance: 20
-  spawnOrder: 5
-  wallCheckRadius: 3
+  spawnOrder: 10
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -10722,7 +10889,7 @@ MonoBehaviour:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
   spawnCount: 35
   minSeparationDistance: 0.5
-  spawnOrder: 15
+  spawnOrder: 20
   wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
@@ -12231,8 +12398,8 @@ MonoBehaviour:
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
   spawnCount: 8
   minSeparationDistance: 20
-  spawnOrder: 6
-  wallCheckRadius: 3
+  spawnOrder: 11
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -12985,6 +13152,86 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1712927904}
   m_CullTransparentMesh: 1
+--- !u!1 &1717706369
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1717706370}
+  - component: {fileID: 1717706372}
+  - component: {fileID: 1717706371}
+  m_Layer: 0
+  m_Name: Sidewall Spawner Right 2
+  m_TagString: Spawner
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1717706370
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1717706369}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 23.59, y: -379.11673, z: 136.6663}
+  m_LocalScale: {x: 1.5964067, y: 950, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 177737229}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1717706371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1717706369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79a17b8abe61b142963953701adef15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawnType: 1
+  prefabs:
+  - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
+  spawnCount: 15
+  minSeparationDistance: 10
+  spawnOrder: 7
+  wallCheckRadius: 1
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  minRotation: {x: 0, y: 0, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
+  minScale: {x: 1, y: 1, z: 1}
+  maxScale: {x: 1, y: 1, z: 1}
+--- !u!65 &1717706372
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1717706369}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1726480019
 GameObject:
   m_ObjectHideFlags: 0
@@ -13596,7 +13843,7 @@ MonoBehaviour:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
   spawnCount: 35
   minSeparationDistance: 0.5
-  spawnOrder: 14
+  spawnOrder: 19
   wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
@@ -14109,7 +14356,7 @@ MonoBehaviour:
   spawnCount: 5
   minSeparationDistance: 4
   spawnOrder: 3
-  wallCheckRadius: 7
+  wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -14189,7 +14436,7 @@ MonoBehaviour:
   spawnCount: 5
   minSeparationDistance: 4
   spawnOrder: 1
-  wallCheckRadius: 7
+  wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -14332,7 +14579,7 @@ MonoBehaviour:
   spawnCount: 5
   minSeparationDistance: 4
   spawnOrder: 0
-  wallCheckRadius: 7
+  wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -15059,8 +15306,8 @@ MonoBehaviour:
   - {fileID: 5456285349514001431, guid: b36d309fbada9c44ba836ede8133587b, type: 3}
   spawnCount: 35
   minSeparationDistance: 10
-  spawnOrder: 9
-  wallCheckRadius: 3
+  spawnOrder: 14
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -15071,7 +15318,7 @@ MonoBehaviour:
   collisionCheckRadius: 4
   collisionMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 64
 --- !u!1 &1917071570
 GameObject:
   m_ObjectHideFlags: 0
@@ -15977,90 +16224,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2032593686}
   m_CullTransparentMesh: 1
---- !u!1 &2037127166
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2037127167}
-  - component: {fileID: 2037127169}
-  - component: {fileID: 2037127168}
-  m_Layer: 0
-  m_Name: Enemy Spawner Jumper (1)
-  m_TagString: Spawner
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2037127167
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037127166}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 23.44, y: -379.6, z: 136.6663}
-  m_LocalScale: {x: 0.76948625, y: 950, z: 0.01}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 177737229}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2037127168
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037127166}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 96a3575a6ccdd354ab75559e18b9e600, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  spawnType: 2
-  prefabs:
-  - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
-  spawnCount: 7
-  minSeparationDistance: 10
-  spawnOrder: 12
-  wallCheckRadius: 3
-  wallLayers:
-    serializedVersion: 2
-    m_Bits: 64
-  minRotation: {x: 0, y: 0, z: 0}
-  maxRotation: {x: 0, y: 0, z: 0}
-  minScale: {x: 1, y: 1, z: 1}
-  maxScale: {x: 1, y: 1, z: 1}
-  collisionCheckRadius: 4
-  collisionMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
---- !u!65 &2037127169
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037127166}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2037410340
 GameObject:
   m_ObjectHideFlags: 0
@@ -16501,7 +16664,7 @@ GameObject:
   - component: {fileID: 2073126253}
   - component: {fileID: 2073126252}
   m_Layer: 0
-  m_Name: Sidewall Spawner Right
+  m_Name: Sidewall Spawner Right 1
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16522,11 +16685,10 @@ MonoBehaviour:
   spawnType: 1
   prefabs:
   - {fileID: 7149176871310243740, guid: 62a8ce862889910419551965fde8a051, type: 3}
-  - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
-  spawnCount: 30
-  minSeparationDistance: 60
-  spawnOrder: 2
-  wallCheckRadius: 3
+  spawnCount: 15
+  minSeparationDistance: 10
+  spawnOrder: 6
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -16857,8 +17019,8 @@ MonoBehaviour:
   - {fileID: 8680811151989316482, guid: ac407df9730722f42a09e44e84b7ed42, type: 3}
   spawnCount: 15
   minSeparationDistance: 4
-  spawnOrder: 7
-  wallCheckRadius: 3
+  spawnOrder: 12
+  wallCheckRadius: 1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64

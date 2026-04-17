@@ -229,6 +229,11 @@ MonoBehaviour:
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
   hitFlashDuration: 0.08
   knockbackDuration: 0.15
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  wallCheckHalfExtents: {x: 0.4, y: 0.4, z: 0.1}
+  knockbackBounceDamping: 0.4
 --- !u!114 &6029398872816002744
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -266,16 +271,16 @@ MonoBehaviour:
   climbLookAhead: 0.3
   climbCheckBox: {x: 0.42, y: 0.32, z: 0.1}
   climbReverseCooldown: 2
-  yMatchThreshold: 1.8
+  yMatchThreshold: 1.2
   jumpTriggerRadius: 10
-  jumpCooldown: 1.2
-  aggroYMultiplier: 2.2
+  jumpCooldown: 2
+  aggroYMultiplier: 2
   aggroRadiusMultiplier: 1.6
   jumpHorizontalForce: 9
   jumpVerticalForce: 11
   jumpGravity: 25
   landWaitTime: 1
-  aggroRadius: 9
+  aggroRadius: 6
   solidLayers:
     serializedVersion: 2
     m_Bits: 192
@@ -283,3 +288,4 @@ MonoBehaviour:
   knockbackCastHalf: {x: 0.36, y: 0.28, z: 0.1}
   bounceDamping: 0.55
   speedMultiplier: 1
+  climbAccelerationTime: 0.12

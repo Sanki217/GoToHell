@@ -1,9 +1,10 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public class PlayerEnergy : MonoBehaviour
 {
-    [Header("Energy Settings — defaults, overridden by PlayerStats at runtime")]
+    [Header("Energy Settings ï¿½ defaults, overridden by PlayerStats at runtime")]
     public float maxEnergy = 100f;
     public float currentEnergy = 0f;
 
@@ -14,16 +15,24 @@ public class PlayerEnergy : MonoBehaviour
     [Header("UI Reference")]
     public TMP_Text energyTMPText;
 
+    [Header("Insufficient Energy Flash")]
+    [Tooltip("Color the energy text flashes when an action fails due to low energy.")]
+    public Color insufficientEnergyColor = new Color(1f, 0.15f, 0.15f);
+    [Tooltip("Duration of the flash in seconds.")]
+    public float insufficientFlashDuration = 0.35f;
+
     private PlayerMovement playerMovement;
     private PlayerStats playerStats;
     private LavaZone currentLavaZone;
     private Collider currentLavaCollider;
     private CapsuleCollider playerCapsule;
+    private Color energyTextOriginalColor;
+    private Coroutine insufficientFlashRoutine;
 
     // Always read max energy from PlayerStats when available
     private float MaxEnergy => playerStats != null ? playerStats.maxEnergy : maxEnergy;
 
-    // Regen multiplier from PlayerStats — applied to ALL energy gained
+    // Regen multiplier from PlayerStats ï¿½ applied to ALL energy gained
     private float RegenMultiplier => playerStats != null ? playerStats.energyRegenMultiplier : 1f;
 
     void Start()
@@ -34,6 +43,9 @@ public class PlayerEnergy : MonoBehaviour
 
         if (playerCapsule == null)
             Debug.LogWarning("PlayerEnergy: No CapsuleCollider found on player.");
+
+        if (energyTMPText != null)
+            energyTextOriginalColor = energyTMPText.color;
     }
 
     void Update()
@@ -115,6 +127,38 @@ public class PlayerEnergy : MonoBehaviour
     {
         if (energyTMPText != null)
             energyTMPText.text = "Energy: " + Mathf.FloorToInt(currentEnergy).ToString();
+    }
+
+    // ================================================================
+    //  INSUFFICIENT ENERGY FLASH
+    // ================================================================
+
+    /// <summary>
+    /// Briefly flashes the energy UI text red to indicate an action
+    /// failed due to insufficient energy.
+    /// </summary>
+    public void FlashInsufficient()
+    {
+        if (energyTMPText == null) return;
+        if (insufficientFlashRoutine != null) StopCoroutine(insufficientFlashRoutine);
+        insufficientFlashRoutine = StartCoroutine(InsufficientFlashCoroutine());
+    }
+
+    private IEnumerator InsufficientFlashCoroutine()
+    {
+        if (energyTMPText == null) yield break;
+
+        energyTMPText.color = insufficientEnergyColor;
+        float elapsed = 0f;
+        while (elapsed < insufficientFlashDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / insufficientFlashDuration);
+            energyTMPText.color = Color.Lerp(insufficientEnergyColor, energyTextOriginalColor, t);
+            yield return null;
+        }
+        energyTMPText.color = energyTextOriginalColor;
+        insufficientFlashRoutine = null;
     }
 
     // ================================================================

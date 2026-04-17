@@ -33,8 +33,15 @@ public class MerchantZone : MonoBehaviour
 
     // ================================================================
 
+    [Header("Arrow Refill")]
+    [Tooltip("When the player's quiver is empty inside the merchant zone, " +
+             "arrows are fully restored after this many seconds.")]
+    public float arrowRefillDelay = 1f;
+
     private CameraFollow cameraFollow;
     private bool playerInside = false;
+    private float arrowRefillTimer = -1f;
+    private PlayerShooting playerShooting;
 
     private void Start()
     {
@@ -45,10 +52,41 @@ public class MerchantZone : MonoBehaviour
         if (col != null) col.isTrigger = true;
     }
 
+    private void Update()
+    {
+        if (!playerInside || playerShooting == null) return;
+
+        if (playerShooting.CurrentArrows <= 0)
+        {
+            // Quiver empty — start counting
+            if (arrowRefillTimer < 0f)
+                arrowRefillTimer = arrowRefillDelay;
+
+            arrowRefillTimer -= Time.deltaTime;
+            if (arrowRefillTimer <= 0f)
+            {
+                // Refill to max
+                playerShooting.SetCurrentArrows(playerShooting.maxArrows);
+                arrowRefillTimer = -1f; // reset — will restart if still empty
+            }
+        }
+        else
+        {
+            // Player has arrows — reset timer
+            arrowRefillTimer = -1f;
+        }
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player") || playerInside) return;
         playerInside = true;
+        arrowRefillTimer = -1f;
+
+        // Cache PlayerShooting from the player
+        if (playerShooting == null)
+            playerShooting = other.GetComponent<PlayerShooting>()
+                             ?? other.transform.root.GetComponent<PlayerShooting>();
 
         if (cameraFollow == null || cameraAnchor == null)
         {
@@ -63,6 +101,7 @@ public class MerchantZone : MonoBehaviour
     {
         if (!other.CompareTag("Player") || !playerInside) return;
         playerInside = false;
+        arrowRefillTimer = -1f;
 
         cameraFollow?.Unlock();
     }

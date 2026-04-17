@@ -106,7 +106,11 @@ public class DashAbility : MonoBehaviour
             }
 
             float cost = CurrentDashCost;
-            if (!playerEnergy.SpendEnergy(cost)) return;
+            if (!playerEnergy.SpendEnergy(cost))
+            {
+                playerEnergy.FlashInsufficient();
+                return;
+            }
 
             playerStats?.RecordEnergySpent(cost, EnergySpentSource.Dash);
 
