@@ -45,7 +45,8 @@ public class HoverAbility : MonoBehaviour
 
         bool wantsHover = Input.GetKey(KeyCode.Space) && hasEnoughEnergy
                           && !wasOutOfEnergy && !movement.isGrounded
-                          && !movement.justWallJumped;  // don't hover-cap the wall jump impulse
+                          && !movement.justWallJumped   // don't cap wall jump velocity
+                          && !movement.justJumped;      // don't cap grounded jump velocity
 
         if (wantsHover && !isHovering)
         {

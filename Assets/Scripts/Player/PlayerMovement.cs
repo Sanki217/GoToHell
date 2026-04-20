@@ -75,6 +75,14 @@ public class PlayerMovement : MonoBehaviour
     private float justWallJumpedTimer = 0f;
     private const float JustWallJumpedDuration = 0.25f;
 
+    /// <summary>
+    /// True for a brief window after a grounded jump. HoverAbility reads this
+    /// to prevent hover from activating the same frame as the jump and capping velocity.
+    /// </summary>
+    public bool justJumped { get; private set; } = false;
+    private float justJumpedTimer = 0f;
+    private const float JustJumpedDuration = 0.15f;
+
     private Vector3 previousPosition;
 
     public enum WallSlidePhase { None, LerpToZero, WaitingAtZero, AcceleratingToSlide, Sliding }
@@ -113,6 +121,13 @@ public class PlayerMovement : MonoBehaviour
             justWallJumpedTimer -= Time.deltaTime;
             if (justWallJumpedTimer <= 0f)
                 justWallJumped = false;
+        }
+
+        if (justJumped)
+        {
+            justJumpedTimer -= Time.deltaTime;
+            if (justJumpedTimer <= 0f)
+                justJumped = false;
         }
 
         HandleInput();
@@ -170,6 +185,8 @@ public class PlayerMovement : MonoBehaviour
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, 0f);
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, JumpForce, 0f);
                 jumpCount = 1;
+                justJumped = true;
+                justJumpedTimer = JustJumpedDuration;
                 ResetWallSlide();
                 playerStats?.RecordJump();
                 upgradeManager?.Jump(1);
