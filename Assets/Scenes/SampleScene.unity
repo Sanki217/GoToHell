@@ -7130,7 +7130,7 @@ MonoBehaviour:
   moveSpeed: 10
   acceleration: 30
   deceleration: 30
-  jumpForce: 3
+  jumpForce: 7.43
   maxJumps: 1
   wallJumpForce: 10
   wallJumpDirection: {x: 1.32, y: 0.5}
@@ -7150,7 +7150,7 @@ MonoBehaviour:
   groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 192
   currentVelocity: {x: 0, y: 0, z: 0}
   currentYVelocity: 0
   isWallSliding: 0
@@ -7640,7 +7640,7 @@ MonoBehaviour:
   arrowPierceCount: 0
   pierceDamageBase: 5
   pierceDmgAPScaling: 0
-  jumpForce: 0
+  jumpForce: 5
   wallSlideSpeed: -3
   _maxArrows: 3
   _currentArrows: 3

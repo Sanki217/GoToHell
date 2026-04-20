@@ -167,23 +167,12 @@ public class PlayerMovement : MonoBehaviour
             }
             else if (isGrounded)
             {
-                // Zero out any downward velocity before applying jump so the force
-                // is always consistent — prevents "stuck in corner" super-jumps
-                // caused by accumulated downward velocity being suddenly overridden
-                // by a full upward impulse stacked on top
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, 0f);
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, JumpForce, 0f);
                 jumpCount = 1;
                 ResetWallSlide();
                 playerStats?.RecordJump();
                 upgradeManager?.Jump(1);
-            }
-            else if (jumpCount < MaxJumps)
-            {
-                rb.linearVelocity = new Vector3(rb.linearVelocity.x, JumpForce, 0f);
-                jumpCount++;
-                playerStats?.RecordJump();
-                upgradeManager?.Jump(jumpCount);
             }
         }
     }
@@ -212,9 +201,9 @@ public class PlayerMovement : MonoBehaviour
     {
         float input = Input.GetAxisRaw("Horizontal");
 
-        // Only block movement into a wall when NOT in post-wall-jump cooldown.
-        // During cooldown the player needs to be able to move away freely.
-        if (wallJumpCooldownTimer <= 0f)
+        // Only block movement into a wall when airborne and not in post-jump cooldown.
+        // When grounded, always allow free movement — prevents corner lock.
+        if (!isGrounded && wallJumpCooldownTimer <= 0f)
         {
             if ((input > 0 && touchingWallRight) || (input < 0 && touchingWallLeft))
                 input = 0;
@@ -261,7 +250,15 @@ public class PlayerMovement : MonoBehaviour
 
     private void CheckWallSlideState()
     {
-        if ((touchingWallRight || touchingWallLeft) && !isGrounded)
+        // Grounded — never wall slide, reset immediately if we were sliding
+        if (isGrounded)
+        {
+            if (isWallSliding) ResetWallSlide();
+            return;
+        }
+
+        // Airborne and touching a wall — start sliding
+        if (touchingWallRight || touchingWallLeft)
         {
             if (!isWallSliding)
             {
