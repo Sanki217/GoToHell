@@ -307,7 +307,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &33107571
 Transform:
   m_ObjectHideFlags: 0
@@ -339,9 +339,9 @@ MonoBehaviour:
   prefabs:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
   spawnCount: 7
-  minSeparationDistance: 10
+  minSeparationDistance: 2
   spawnOrder: 17
-  wallCheckRadius: 1
+  wallCheckRadius: 0.1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -942,7 +942,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &103440941
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -959,9 +959,9 @@ MonoBehaviour:
   prefabs:
   - {fileID: 7149176871310243740, guid: 62a8ce862889910419551965fde8a051, type: 3}
   spawnCount: 15
-  minSeparationDistance: 10
+  minSeparationDistance: 3
   spawnOrder: 4
-  wallCheckRadius: 1
+  wallCheckRadius: 0.3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -1780,7 +1780,7 @@ GameObject:
   - component: {fileID: 163100229}
   - component: {fileID: 163100228}
   - component: {fileID: 163100227}
-  m_Layer: 7
+  m_Layer: 6
   m_Name: Cube (7)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2297,7 +2297,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &205231693
 Transform:
   m_ObjectHideFlags: 0
@@ -2329,9 +2329,9 @@ MonoBehaviour:
   prefabs:
   - {fileID: 4442875087141929137, guid: 5be990f49d167a1459d0cf9fbbfa6607, type: 3}
   spawnCount: 12
-  minSeparationDistance: 10
+  minSeparationDistance: 2
   spawnOrder: 8
-  wallCheckRadius: 1
+  wallCheckRadius: 0
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -3578,7 +3578,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &373047249
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3765,15 +3765,15 @@ MonoBehaviour:
   prefabs:
   - {fileID: 8964720333734385143, guid: c2f27e99f18ca1243843c80a816ff606, type: 3}
   spawnCount: 5
-  minSeparationDistance: 4
+  minSeparationDistance: 3
   spawnOrder: 2
-  wallCheckRadius: 3
+  wallCheckRadius: 4
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
-  minScale: {x: 0.5, y: 0.5, z: 0.5}
+  minScale: {x: 1, y: 1, z: 1}
   maxScale: {x: 1, y: 1, z: 1}
 --- !u!65 &419916099
 BoxCollider:
@@ -4816,7 +4816,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &658264253
 Transform:
   m_ObjectHideFlags: 0
@@ -4848,9 +4848,9 @@ MonoBehaviour:
   prefabs:
   - {fileID: 4442875087141929137, guid: 5be990f49d167a1459d0cf9fbbfa6607, type: 3}
   spawnCount: 12
-  minSeparationDistance: 10
+  minSeparationDistance: 2
   spawnOrder: 9
-  wallCheckRadius: 1
+  wallCheckRadius: 0
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -5341,7 +5341,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &697591142
 Transform:
   m_ObjectHideFlags: 0
@@ -5643,7 +5643,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &730073566
 Transform:
   m_ObjectHideFlags: 0
@@ -5674,10 +5674,10 @@ MonoBehaviour:
   spawnType: 1
   prefabs:
   - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
-  spawnCount: 15
-  minSeparationDistance: 10
+  spawnCount: 10
+  minSeparationDistance: 3
   spawnOrder: 5
-  wallCheckRadius: 1
+  wallCheckRadius: 0.3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -7578,7 +7578,7 @@ MonoBehaviour:
   maxCritChance: 1
   baseCritMultiplier: 1.5
   critMultPerAttack: 0.005
-  baseKnockback: 3.21
+  baseKnockback: 0.9
   knockbackPerAttack: 0.1
   maxKnockback: 4
   baseMaxEnergy: 100
@@ -7640,7 +7640,7 @@ MonoBehaviour:
   arrowPierceCount: 0
   pierceDamageBase: 5
   pierceDmgAPScaling: 0
-  jumpForce: 4
+  jumpForce: 0
   wallSlideSpeed: -3
   _maxArrows: 3
   _currentArrows: 3
@@ -7821,7 +7821,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1062878738
 Transform:
   m_ObjectHideFlags: 0
@@ -7853,9 +7853,9 @@ MonoBehaviour:
   prefabs:
   - {fileID: 3364696898189166244, guid: 18c777a750073534595856a953ff4652, type: 3}
   spawnCount: 4
-  minSeparationDistance: 20
+  minSeparationDistance: 10
   spawnOrder: 13
-  wallCheckRadius: 1
+  wallCheckRadius: 0.2
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -7980,7 +7980,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1092126016
 Transform:
   m_ObjectHideFlags: 0
@@ -7991,7 +7991,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 18.1, y: -379.6, z: 136.6663}
-  m_LocalScale: {x: 9.884594, y: 950, z: 0.01}
+  m_LocalScale: {x: 9.433165, y: 950, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 177737229}
@@ -8011,10 +8011,10 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 52367395386015003, guid: 52880c76e8c7b6f4eae9959b5b40b213, type: 3}
-  spawnCount: 17
-  minSeparationDistance: 10
+  spawnCount: 15
+  minSeparationDistance: 2
   spawnOrder: 18
-  wallCheckRadius: 1
+  wallCheckRadius: 0.1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -8975,7 +8975,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1290917206
 Transform:
   m_ObjectHideFlags: 0
@@ -9006,10 +9006,10 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: 976cc109a745e574d9395cb68470ed2a, type: 3}
-  spawnCount: 35
-  minSeparationDistance: 10
+  spawnCount: 30
+  minSeparationDistance: 2
   spawnOrder: 15
-  wallCheckRadius: 1
+  wallCheckRadius: 0.1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -9134,7 +9134,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1297981983
 Transform:
   m_ObjectHideFlags: 0
@@ -9166,9 +9166,9 @@ MonoBehaviour:
   prefabs:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
   spawnCount: 7
-  minSeparationDistance: 10
+  minSeparationDistance: 2
   spawnOrder: 16
-  wallCheckRadius: 1
+  wallCheckRadius: 0.1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -10395,7 +10395,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1389026481
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10414,9 +10414,9 @@ MonoBehaviour:
   - {fileID: 8834222470330700290, guid: 55ad62423243adf478be75bcee5adf34, type: 3}
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
   spawnCount: 8
-  minSeparationDistance: 20
+  minSeparationDistance: 6
   spawnOrder: 10
-  wallCheckRadius: 1
+  wallCheckRadius: 0
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -10871,7 +10871,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1419095550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10887,10 +10887,10 @@ MonoBehaviour:
   spawnType: 5
   prefabs:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
-  spawnCount: 35
-  minSeparationDistance: 0.5
+  spawnCount: 18
+  minSeparationDistance: 0.1
   spawnOrder: 20
-  wallCheckRadius: 3
+  wallCheckRadius: 0
   wallLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -12378,7 +12378,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1548665148
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12397,9 +12397,9 @@ MonoBehaviour:
   - {fileID: 8834222470330700290, guid: 55ad62423243adf478be75bcee5adf34, type: 3}
   - {fileID: 7509757589840120226, guid: e7974f7008c69f74585dfa0853a3d16a, type: 3}
   spawnCount: 8
-  minSeparationDistance: 20
+  minSeparationDistance: 6
   spawnOrder: 11
-  wallCheckRadius: 1
+  wallCheckRadius: 0
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -13169,7 +13169,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1717706370
 Transform:
   m_ObjectHideFlags: 0
@@ -13200,10 +13200,10 @@ MonoBehaviour:
   spawnType: 1
   prefabs:
   - {fileID: 9134646001333510923, guid: d3f6daf23001c7b49a16488ec5e79173, type: 3}
-  spawnCount: 15
-  minSeparationDistance: 10
+  spawnCount: 10
+  minSeparationDistance: 3
   spawnOrder: 7
-  wallCheckRadius: 1
+  wallCheckRadius: 0.3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -13825,7 +13825,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1744291260
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13841,10 +13841,10 @@ MonoBehaviour:
   spawnType: 5
   prefabs:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
-  spawnCount: 35
-  minSeparationDistance: 0.5
+  spawnCount: 18
+  minSeparationDistance: 0.1
   spawnOrder: 19
-  wallCheckRadius: 3
+  wallCheckRadius: 0
   wallLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -14354,15 +14354,15 @@ MonoBehaviour:
   prefabs:
   - {fileID: 7084924073605212868, guid: 1a5688df17477da46879642cf664db25, type: 3}
   spawnCount: 5
-  minSeparationDistance: 4
+  minSeparationDistance: 3
   spawnOrder: 3
-  wallCheckRadius: 3
+  wallCheckRadius: 4
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
-  minScale: {x: 0.5, y: 0.5, z: 0.5}
+  minScale: {x: 1, y: 1, z: 1}
   maxScale: {x: 1, y: 1, z: 1}
 --- !u!65 &1822753683
 BoxCollider:
@@ -14434,15 +14434,15 @@ MonoBehaviour:
   prefabs:
   - {fileID: 4036954253965461081, guid: 8abd3ca7e8461ab4094bc52b88ac05e9, type: 3}
   spawnCount: 5
-  minSeparationDistance: 4
+  minSeparationDistance: 3
   spawnOrder: 1
-  wallCheckRadius: 3
+  wallCheckRadius: 4
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
-  minScale: {x: 0.5, y: 0.5, z: 0.5}
+  minScale: {x: 1, y: 1, z: 1}
   maxScale: {x: 1, y: 1, z: 1}
 --- !u!65 &1843697891
 BoxCollider:
@@ -14577,15 +14577,15 @@ MonoBehaviour:
   prefabs:
   - {fileID: 7502872478962962940, guid: 7116744e92d87f94fa9e49f927a5e3cb, type: 3}
   spawnCount: 5
-  minSeparationDistance: 4
+  minSeparationDistance: 3
   spawnOrder: 0
-  wallCheckRadius: 3
+  wallCheckRadius: 5
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
   minRotation: {x: 0, y: 0, z: 0}
   maxRotation: {x: 0, y: 0, z: 0}
-  minScale: {x: 0.5, y: 0.5, z: 0.5}
+  minScale: {x: 1, y: 1, z: 1}
   maxScale: {x: 1, y: 1, z: 1}
 --- !u!65 &1864433215
 BoxCollider:
@@ -15252,7 +15252,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &1911711817
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -15304,10 +15304,10 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: b36d309fbada9c44ba836ede8133587b, type: 3}
-  spawnCount: 35
-  minSeparationDistance: 10
+  spawnCount: 30
+  minSeparationDistance: 2
   spawnOrder: 14
-  wallCheckRadius: 1
+  wallCheckRadius: 0.1
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -16669,7 +16669,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &2073126252
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16686,9 +16686,9 @@ MonoBehaviour:
   prefabs:
   - {fileID: 7149176871310243740, guid: 62a8ce862889910419551965fde8a051, type: 3}
   spawnCount: 15
-  minSeparationDistance: 10
+  minSeparationDistance: 3
   spawnOrder: 6
-  wallCheckRadius: 1
+  wallCheckRadius: 0.3
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -16986,7 +16986,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2107371128
 Transform:
   m_ObjectHideFlags: 0
@@ -17018,7 +17018,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 8680811151989316482, guid: ac407df9730722f42a09e44e84b7ed42, type: 3}
   spawnCount: 15
-  minSeparationDistance: 4
+  minSeparationDistance: 0.2
   spawnOrder: 12
   wallCheckRadius: 1
   wallLayers:
