@@ -7497,7 +7497,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hoverForce: 28
-  maxUpwardSpeed: 0.5
+  maxUpwardSpeed: 2.5
   minEnergyToHover: 5
   energyDrainPerSecond: 10
 --- !u!114 &1048261603
@@ -8015,7 +8015,7 @@ MonoBehaviour:
   spawnCount: 15
   minSeparationDistance: 2
   spawnOrder: 18
-  wallCheckRadius: 0.1
+  wallCheckRadius: 0.7
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -9010,7 +9010,7 @@ MonoBehaviour:
   spawnCount: 30
   minSeparationDistance: 2
   spawnOrder: 15
-  wallCheckRadius: 0.1
+  wallCheckRadius: 0.7
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -15308,7 +15308,7 @@ MonoBehaviour:
   spawnCount: 30
   minSeparationDistance: 2
   spawnOrder: 14
-  wallCheckRadius: 0.1
+  wallCheckRadius: 0.7
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
