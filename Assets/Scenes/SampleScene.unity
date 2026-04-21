@@ -302,7 +302,7 @@ GameObject:
   - component: {fileID: 33107573}
   - component: {fileID: 33107572}
   m_Layer: 0
-  m_Name: Enemy Spawner Jumper (1)
+  m_Name: Enemy Spawner Jumper Right
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3593,16 +3593,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spawnType: 5
   prefabs:
-  - {fileID: 9110402392618010128, guid: e871026d9b182d344a75aaafa10dbb11, type: 3}
-  spawnCount: 0
-  minSeparationDistance: 1.5
+  - {fileID: 1856246587953087788, guid: 3023c391dd0dd784b87970baac1ae84c, type: 3}
+  - {fileID: 7539492300395272795, guid: 32e545f9c27a9a047aba9be616b32492, type: 3}
+  spawnCount: 10
+  minSeparationDistance: 20.08
   spawnOrder: 21
   wallCheckRadius: 3
   wallLayers:
     serializedVersion: 2
     m_Bits: 0
   minRotation: {x: 0, y: 0, z: 0}
-  maxRotation: {x: 0, y: 360, z: 0}
+  maxRotation: {x: 0, y: 0, z: 0}
   minScale: {x: 1, y: 1, z: 1}
   maxScale: {x: 1, y: 1, z: 1}
 --- !u!65 &373047250
@@ -3635,8 +3636,8 @@ Transform:
   m_GameObject: {fileID: 373047248}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 18.150549, y: -229.6, z: 136.6663}
-  m_LocalScale: {x: 11.102587, y: 29.897, z: 1}
+  m_LocalPosition: {x: 18.150549, y: -384, z: 136.6663}
+  m_LocalScale: {x: 9.631173, y: 911.82117, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 177737229}
@@ -9129,7 +9130,7 @@ GameObject:
   - component: {fileID: 1297981985}
   - component: {fileID: 1297981984}
   m_Layer: 0
-  m_Name: Enemy Spawner Jumper
+  m_Name: Enemy Spawner Jumper Left
   m_TagString: Spawner
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10888,7 +10889,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
   spawnCount: 18
-  minSeparationDistance: 0.1
+  minSeparationDistance: 6
   spawnOrder: 20
   wallCheckRadius: 0
   wallLayers:
@@ -13842,7 +13843,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 4370108358079008024, guid: a019c2470656ed549a12f3ca1f7d44bd, type: 3}
   spawnCount: 18
-  minSeparationDistance: 0.1
+  minSeparationDistance: 6
   spawnOrder: 19
   wallCheckRadius: 0
   wallLayers:

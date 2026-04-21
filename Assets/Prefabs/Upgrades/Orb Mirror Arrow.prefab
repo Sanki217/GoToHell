@@ -122,9 +122,9 @@ MonoBehaviour:
   category: 0
   rarity: 0
   statCountCommon: 1
-  statCountRare: 2
-  statCountEpic: 3
-  statCountLegendary: 3
+  statCountRare: 1
+  statCountEpic: 1
+  statCountLegendary: 2
   baseDamage: 0.75
   damagePerAP: 0.02
   mirrorArrowPrefab: {fileID: 4370108358079008024, guid: 8782bd7369fcaf94289170d09fc7942e, type: 3}

@@ -23,6 +23,8 @@ public class Soul : MonoBehaviour
     [Header("Shrink on Arrival")]
     public float shrinkStartDistance = 1.5f;
 
+    public float speedEscalationPerSecond = 8f;
+
     private Rigidbody rb;
     private bool isAttracted = false;
     private bool collected = false;
@@ -47,20 +49,10 @@ public class Soul : MonoBehaviour
     {
         float t = 0f;
         Vector3 startVelocity = rb.linearVelocity;
-        WallBounce wallBounce = GetComponent<WallBounce>();
-
         while (t < initialDampDuration)
         {
             if (rb.isKinematic) yield break;
             t += Time.deltaTime;
-
-            // If WallBounce reflected us, adopt the new direction
-            if (wallBounce != null && wallBounce.bounceOccurred)
-            {
-                startVelocity = wallBounce.postBounceVelocity;
-                wallBounce.bounceOccurred = false;
-            }
-
             float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / initialDampDuration), 2f);
             rb.linearVelocity = Vector3.Lerp(startVelocity, Vector3.zero, ease);
             yield return null;
@@ -139,6 +131,12 @@ public class Soul : MonoBehaviour
 
             float t = Mathf.Clamp01(elapsed / attractAccelerationTime);
             float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, t * t);
+
+            // Escalation: speed grows linearly over time, uncapped.
+            // Near the player this barely matters. When falling away, this
+            // guarantees the soul always catches up eventually.
+            float escalation = elapsed * speedEscalationPerSecond;
+            speed += escalation;
 
             float scaleT = Mathf.Clamp01(dist / shrinkStartDistance);
             transform.localScale = originalScale * scaleT;

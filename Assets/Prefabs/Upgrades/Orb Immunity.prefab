@@ -74,9 +74,9 @@ MonoBehaviour:
   category: 2
   rarity: 0
   statCountCommon: 1
-  statCountRare: 2
-  statCountEpic: 3
-  statCountLegendary: 3
+  statCountRare: 1
+  statCountEpic: 1
+  statCountLegendary: 2
   duration: 2
   cooldown: 15
   cooldownReductionPerStat: 0.1

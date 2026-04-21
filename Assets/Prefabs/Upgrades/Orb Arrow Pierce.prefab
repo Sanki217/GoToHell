@@ -122,9 +122,9 @@ MonoBehaviour:
   category: 0
   rarity: 0
   statCountCommon: 1
-  statCountRare: 2
-  statCountEpic: 3
-  statCountLegendary: 3
+  statCountRare: 1
+  statCountEpic: 1
+  statCountLegendary: 2
   pierceCount: 10
   pierceDamage: 5
   pierceDmgAPScaling: 0.4

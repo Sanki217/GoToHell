@@ -13,6 +13,10 @@ public class ArrowPickup : MonoBehaviour
     public float minSuckSpeed = 8f;
     public float maxSuckSpeed = 25f;
     public float maxSuckDistance = 15f;   // distance at which speed is maxSuckSpeed
+    [Tooltip("Extra speed added per second of suck time. Ensures arrow catches a falling player.")]
+    public float speedEscalationPerSecond = 8f;
+
+    private float suckElapsed = 0f;
 
     private Arrow arrow;
 
@@ -58,10 +62,15 @@ public class ArrowPickup : MonoBehaviour
     {
         if (!isBeingSucked || target == null) return;
 
-        // Speed scales with distance — faster when far, but never slower than min
+        suckElapsed += Time.deltaTime;
+
+        // Base speed scaled by distance
         float dist = Vector3.Distance(transform.position, target.position);
         float t = Mathf.Clamp01(dist / maxSuckDistance);
         float suckSpeed = Mathf.Lerp(minSuckSpeed, maxSuckSpeed, t);
+
+        // Escalation: grows linearly over time so a falling player is always caught
+        suckSpeed += suckElapsed * speedEscalationPerSecond;
 
         transform.position = Vector3.MoveTowards(
             transform.position,
