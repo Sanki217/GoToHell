@@ -339,7 +339,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
   spawnCount: 7
-  minSeparationDistance: 2
+  minSeparationDistance: 4
   spawnOrder: 17
   wallCheckRadius: 0.1
   wallLayers:
@@ -8013,7 +8013,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 52367395386015003, guid: 52880c76e8c7b6f4eae9959b5b40b213, type: 3}
   spawnCount: 15
-  minSeparationDistance: 2
+  minSeparationDistance: 4
   spawnOrder: 18
   wallCheckRadius: 0.7
   wallLayers:
@@ -9008,7 +9008,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 5456285349514001431, guid: 976cc109a745e574d9395cb68470ed2a, type: 3}
   spawnCount: 30
-  minSeparationDistance: 2
+  minSeparationDistance: 4
   spawnOrder: 15
   wallCheckRadius: 0.7
   wallLayers:
@@ -9167,7 +9167,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
   spawnCount: 7
-  minSeparationDistance: 2
+  minSeparationDistance: 4
   spawnOrder: 16
   wallCheckRadius: 0.1
   wallLayers:
@@ -15306,7 +15306,7 @@ MonoBehaviour:
   prefabs:
   - {fileID: 5456285349514001431, guid: b36d309fbada9c44ba836ede8133587b, type: 3}
   spawnCount: 30
-  minSeparationDistance: 2
+  minSeparationDistance: 4
   spawnOrder: 14
   wallCheckRadius: 0.7
   wallLayers:
@@ -15966,52 +15966,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1996729333}
   m_CullTransparentMesh: 1
---- !u!1 &2001558433
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2001558434}
-  - component: {fileID: 2001558435}
-  m_Layer: 0
-  m_Name: Training Dummy Spawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2001558434
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2001558433}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.41, y: -980.8, z: -0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2001558435
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2001558433}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 653b4c488b6a8e54f9929cf909a8458d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  dummyPrefab: {fileID: 5456285349514001431, guid: 2404304aa8b336b49a3d585a49202b27, type: 3}
-  respawnDelay: 2
 --- !u!1 &2027169238
 GameObject:
   m_ObjectHideFlags: 0
@@ -17418,4 +17372,3 @@ SceneRoots:
   - {fileID: 526545873}
   - {fileID: 232501958}
   - {fileID: 856732436}
-  - {fileID: 2001558434}

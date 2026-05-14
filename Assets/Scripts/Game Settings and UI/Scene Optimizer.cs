@@ -138,10 +138,12 @@ public class SceneOptimizer : MonoBehaviour
         var hPatrol = go.GetComponent<EnemyPatrolHorizontal>();
         var vPatrol = go.GetComponent<EnemyPatrolVertical>();
         var shooter = go.GetComponent<EnemyShooter>();
+        var jumper  = go.GetComponent<EnemyWallJumper>();
 
         if (hPatrol != null) hPatrol.enabled = enabled;
         if (vPatrol != null) vPatrol.enabled = enabled;
         if (shooter != null) shooter.enabled = enabled;
+        if (jumper != null) jumper.enabled = enabled;
     }
 
     // ================================================================
