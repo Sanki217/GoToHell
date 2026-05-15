@@ -214,6 +214,7 @@ MonoBehaviour:
   timeoutSeconds: 3
   snapDistance: 1.5
   shrinkStartDistance: 1.5
+  speedEscalationPerSecond: 8
 --- !u!114 &165107891633069555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,9 +230,9 @@ MonoBehaviour:
   wallLayers:
     serializedVersion: 2
     m_Bits: 64
-  bounceRadius: 0.15
+  bounceRadius: 0.3
   bounciness: 0.6
-  minBounceSpeed: 0.5
+  minBounceSpeed: 0.01
   bounceOccurred: 0
   postBounceVelocity: {x: 0, y: 0, z: 0}
 --- !u!1001 &349205476463103754

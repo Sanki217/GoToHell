@@ -145,13 +145,13 @@ public class Enemy : MonoBehaviour
 
     public bool WillDie(int amount) => currentHealth - amount <= 0;
 
-    public void TakeDamage(int amount)
+    public virtual void TakeDamage(int amount)
     {
         TakeDamage(amount, transform.position, Vector3.zero, 0f, false,
                    FloatingTextManager.HitType.Normal);
     }
 
-    public void TakeDamage(int amount, Vector3 hitPosition,
+    public virtual void TakeDamage(int amount, Vector3 hitPosition,
                            Vector3 knockbackDir, float knockbackForce,
                            bool isCrit, FloatingTextManager.HitType hitType)
     {
