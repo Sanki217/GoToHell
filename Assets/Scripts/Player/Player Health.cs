@@ -8,7 +8,7 @@ public class PlayerHealth : MonoBehaviour
     [Header("HP Settings")]
     public int maxHP = 100;
 
-    [Header("UI � assign in Inspector")]
+    [Header("UI")]
     public Slider hpSlider;
     public TMP_Text hpText;
 
@@ -21,37 +21,46 @@ public class PlayerHealth : MonoBehaviour
     public float hitFlashDuration = 0.1f;
 
     [Header("Invincibility Flash Color")]
-    public Color dashInvincColor = new Color(1f, 0.9f, 0.1f); // yellow-gold
+    public Color dashInvincColor = new Color(1f, 0.9f, 0.1f);
 
     [Header("Camera Shake on Damage")]
-    [Tooltip("Base shake magnitude when taking damage.")]
     public float shakeMagnitudeBase = 0.12f;
-    [Tooltip("Extra shake per 10 damage taken.")]
     public float shakeMagnitudePer10Dmg = 0.08f;
-    [Tooltip("Shake duration on hit.")]
     public float shakeDurationOnHit = 0.15f;
-    [Tooltip("Shake magnitude on death.")]
     public float shakeMagnitudeOnDeath = 0.45f;
-    [Tooltip("Shake duration on death.")]
     public float shakeDurationOnDeath = 0.4f;
+
+    [Header("Shield")]
+    public GameObject shieldVFX;
+
+    [Header("Extra Life — Resurrection")]
+    public GameObject resurrectionVFX;
+    public float resurrectionSlowDuration = 1.5f;
+    public float resurrectionMinTimeScale = 0.05f;
+    public float resurrectionCameraZoom = 3f;
+    public float resurrectionZoomSpeed = 2f;
+
+    // ================================================================
+    //  STATIC STATE  (persists across scenes)
+    // ================================================================
+
+    public static bool HasExtraLife = false;
+
     // ================================================================
     //  PRIVATE STATE
     // ================================================================
 
     private int currentHP;
     private bool isInvincible;
+    private int shieldBlocks = 0;
 
-    private bool isDashInvincible = false;
+    private bool isDashInvincible;
     private Coroutine dashInvincCoroutine;
     private Coroutine dashFlashCoroutine;
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
     private Color originalColor;
-
-    // ================================================================
-    //  PUBLIC READ
-    // ================================================================
 
     public int CurrentHP => currentHP;
 
@@ -65,12 +74,12 @@ public class PlayerHealth : MonoBehaviour
         playerStats = GetComponent<PlayerStats>();
 
         if (playerStats != null) maxHP = playerStats.maxHP;
-
         currentHP = maxHP;
 
         if (playerRenderer != null)
             originalColor = playerRenderer.material.color;
 
+        RefreshShieldVFX();
         UpdateHealthUI();
     }
 
@@ -81,6 +90,15 @@ public class PlayerHealth : MonoBehaviour
     public void TakeDamage(int amount)
     {
         if (isInvincible || isDashInvincible) return;
+
+        // Shield absorbs a hit
+        if (shieldBlocks > 0)
+        {
+            shieldBlocks--;
+            RefreshShieldVFX();
+            StartCoroutine(InvincibilityTimer());
+            return;
+        }
 
         currentHP -= amount;
         currentHP = Mathf.Max(currentHP, 0);
@@ -109,16 +127,16 @@ public class PlayerHealth : MonoBehaviour
             Die();
     }
 
-    /// <summary>
-    /// Grants invincibility for the specified duration.
-    /// Player turns yellow while immune.
-    /// Used by DashAbility and Immunity upgrade.
-    /// </summary>
+    public void AddShield(int blocks)
+    {
+        shieldBlocks += blocks;
+        RefreshShieldVFX();
+    }
+
     public void StartDashInvincibility(float duration)
     {
         if (dashInvincCoroutine != null) StopCoroutine(dashInvincCoroutine);
         if (dashFlashCoroutine != null) StopCoroutine(dashFlashCoroutine);
-
         dashInvincCoroutine = StartCoroutine(DashInvincibilityTimer(duration));
         dashFlashCoroutine = StartCoroutine(DashInvincibilityFlash(duration));
     }
@@ -136,10 +154,6 @@ public class PlayerHealth : MonoBehaviour
         UpdateHealthUI();
     }
 
-    /// <summary>
-    /// Increase max HP. Always heals the player by the same amount.
-    /// Also syncs PlayerStats.maxHP so the Inspector shows the correct value.
-    /// </summary>
     public void IncreaseMaxHP(int amount)
     {
         maxHP += amount;
@@ -149,14 +163,105 @@ public class PlayerHealth : MonoBehaviour
     }
 
     // ================================================================
-    //  PRIVATE
+    //  DEATH / EXTRA LIFE
     // ================================================================
 
     private void Die()
     {
-        Debug.Log("PLAYER DEAD!");
+        if (HasExtraLife)
+        {
+            HasExtraLife = false;
+            StartCoroutine(ResurrectionSequence());
+            return;
+        }
+
         upgradeManager?.PlayerDied();
         Object.FindFirstObjectByType<GameStartSequence>()?.PlayerDied();
+    }
+
+    private IEnumerator ResurrectionSequence()
+    {
+        // Disable player control during sequence
+        GetComponent<PlayerStateController>()?.DisableControl();
+
+        Camera mainCam = Camera.main;
+        CameraFollow cam = mainCam?.GetComponent<CameraFollow>();
+        float originalZ = mainCam != null ? mainCam.transform.position.z : 0f;
+
+        // Ease time to near-zero
+        float elapsed = 0f;
+        while (elapsed < resurrectionSlowDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / resurrectionSlowDuration);
+            float curve = 1f - Mathf.Pow(1f - t, 3f);
+            Time.timeScale = Mathf.Lerp(1f, resurrectionMinTimeScale, curve);
+            Time.fixedDeltaTime = 0.02f * Time.timeScale;
+
+            // Ease camera Z in (zoom)
+            if (mainCam != null)
+            {
+                float targetZ = originalZ + resurrectionCameraZoom;
+                Vector3 pos = mainCam.transform.position;
+                pos.z = Mathf.MoveTowards(pos.z, targetZ, resurrectionZoomSpeed * Time.unscaledDeltaTime);
+                mainCam.transform.position = pos;
+            }
+
+            yield return null;
+        }
+
+        // Restore player HP
+        currentHP = maxHP;
+        UpdateHealthUI();
+
+        // Play resurrection VFX
+        if (resurrectionVFX != null)
+            Instantiate(resurrectionVFX, transform.position, Quaternion.identity);
+
+        // Brief hold at slow-mo
+        yield return new WaitForSecondsRealtime(0.3f);
+
+        // Ease time and zoom back to normal
+        elapsed = 0f;
+        while (elapsed < resurrectionSlowDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / resurrectionSlowDuration);
+            Time.timeScale = Mathf.Lerp(resurrectionMinTimeScale, 1f, t);
+            Time.fixedDeltaTime = 0.02f * Time.timeScale;
+
+            if (mainCam != null)
+            {
+                Vector3 pos = mainCam.transform.position;
+                pos.z = Mathf.MoveTowards(pos.z, originalZ, resurrectionZoomSpeed * Time.unscaledDeltaTime);
+                mainCam.transform.position = pos;
+            }
+
+            yield return null;
+        }
+
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = 0.02f;
+
+        if (mainCam != null)
+        {
+            Vector3 pos = mainCam.transform.position;
+            pos.z = originalZ;
+            mainCam.transform.position = pos;
+        }
+
+        GetComponent<PlayerStateController>()?.EnableControl();
+        StartCoroutine(InvincibilityTimer());
+    }
+
+    // ================================================================
+    //  HELPERS
+    // ================================================================
+
+    private void RefreshShieldVFX()
+    {
+        if (shieldVFX != null)
+            shieldVFX.SetActive(shieldBlocks > 0);
     }
 
     private void UpdateHealthUI()
@@ -192,7 +297,6 @@ public class PlayerHealth : MonoBehaviour
         float elapsed = 0f;
         while (elapsed < duration)
         {
-            // Pulse between yellow and white
             float t = Mathf.PingPong(elapsed * 6f, 1f);
             playerRenderer.material.color = Color.Lerp(dashInvincColor, Color.white, t);
             elapsed += Time.deltaTime;
