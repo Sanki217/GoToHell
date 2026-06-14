@@ -4115,13 +4115,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 403773755}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.12760986, y: 0.99182445, z: -0, w: 0}
-  m_LocalPosition: {x: 17.02, y: -864.4, z: 0}
+  m_LocalRotation: {x: -0.077632576, y: 0.9969821, z: -0, w: 0}
+  m_LocalPosition: {x: 15.03, y: -865.74, z: 0}
   m_LocalScale: {x: 2.7979567, y: 13.673894, z: 7.436129}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1219739766}
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: -14.663}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: -8.905}
 --- !u!65 &403773757
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4939,13 +4939,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 591379707}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.12761009, w: 0.9918245}
-  m_LocalPosition: {x: -2.13, y: -863.97, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.077634886, w: 0.9969819}
+  m_LocalPosition: {x: -1.04, y: -865.83, z: 0}
   m_LocalScale: {x: 2.7979567, y: 13.673894, z: 7.436129}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1219739766}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -14.663}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -8.905}
 --- !u!65 &591379709
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9629,7 +9629,7 @@ Transform:
   m_GameObject: {fileID: 1238519051}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.07, z: -1}
+  m_LocalPosition: {x: 0, y: -0.04, z: -1.24}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12772,7 +12772,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "Thank you for playing and congratulations for beating Level 1! \nIn final
-    version here u will find shop with items, and a portal to a next level."
+    version here u will a portal to a next level."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
