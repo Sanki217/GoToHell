@@ -339,7 +339,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: c346f42ad0be40940ad75ba633852d9b, type: 3}
-  spawnCount: 7
+  spawnCount: 6
   minSeparationDistance: 4
   spawnOrder: 17
   wallCheckRadius: 0.1
@@ -2041,7 +2041,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &177737229
 Transform:
   m_ObjectHideFlags: 0
@@ -10143,7 +10143,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: 976cc109a745e574d9395cb68470ed2a, type: 3}
-  spawnCount: 30
+  spawnCount: 25
   minSeparationDistance: 4
   spawnOrder: 15
   wallCheckRadius: 0.7
@@ -17025,7 +17025,7 @@ MonoBehaviour:
   spawnType: 2
   prefabs:
   - {fileID: 5456285349514001431, guid: b36d309fbada9c44ba836ede8133587b, type: 3}
-  spawnCount: 30
+  spawnCount: 25
   minSeparationDistance: 4
   spawnOrder: 14
   wallCheckRadius: 0.7
