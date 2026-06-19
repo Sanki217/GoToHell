@@ -7903,6 +7903,7 @@ GameObject:
   - component: {fileID: 1048261594}
   - component: {fileID: 1048261593}
   - component: {fileID: 1048261591}
+  - component: {fileID: 1048261601}
   - component: {fileID: 1048261606}
   - component: {fileID: 1048261592}
   - component: {fileID: 1048261598}
@@ -7910,7 +7911,6 @@ GameObject:
   - component: {fileID: 1048261599}
   - component: {fileID: 1048261600}
   - component: {fileID: 1048261602}
-  - component: {fileID: 1048261601}
   - component: {fileID: 1048261603}
   - component: {fileID: 1048261604}
   - component: {fileID: 1048261605}
@@ -7918,6 +7918,7 @@ GameObject:
   - component: {fileID: 1048261608}
   - component: {fileID: 1048261609}
   - component: {fileID: 1048261610}
+  - component: {fileID: 1048261611}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -8655,6 +8656,18 @@ MonoBehaviour:
   Inventory: {fileID: 0}
   LevelSystem: {fileID: 0}
   StateCtrl: {fileID: 0}
+--- !u!114 &1048261611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1048261590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c77ce489c0e1d346afc18363f058c9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunConfigApplier
 --- !u!1 &1062878737
 GameObject:
   m_ObjectHideFlags: 0
