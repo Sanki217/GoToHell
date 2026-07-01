@@ -102,7 +102,6 @@ MonoBehaviour:
   luckBonusPerPoint: 0.05
   weightAgility: 1
   weightAttackDamage: 1
-  weightAbilityPower: 1
   weightLuck: 1
   weightPsyche: 1
   weightHealth: 1
