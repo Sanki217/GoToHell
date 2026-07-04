@@ -2,9 +2,16 @@
 using System.Collections;
 
 /// <summary>
-/// Player Slash — activates on LMB when the quiver is empty.
+/// Player Slash — the Sword weapon's LMB attack.
 /// Box collider extends from player center toward cursor, scaled by Size stat.
 /// Cooldown reduced by Cooldown stat.
+///
+/// WEAPON MODES (decided by which components RunConfigApplier enables):
+///   • Sword equipped → PlayerShooting disabled → slash fires on LMB directly.
+///   • Bow equipped   → this component is disabled entirely (no slash; arrows
+///     regenerate via ArrowRegenerator instead).
+///   • Testing a scene directly (both enabled, prefab defaults) → legacy
+///     behaviour: slash on LMB when the quiver is empty or Shift is held.
 ///
 /// SETUP:
 ///   1. Add this script to the Player root
@@ -76,11 +83,14 @@ public class PlayerSlash : MonoBehaviour
 
         if (stateController != null && !stateController.HasControl()) return;
 
-        bool shiftHeld = Input.GetKey(KeyCode.LeftShift);
-        bool quiverEmpty = shooting != null && shooting.CurrentArrows <= 0;
+        // Sword mode: PlayerShooting disabled/absent → slash is the primary LMB attack.
+        bool slashIsPrimary = shooting == null || !shooting.enabled;
 
-        // Slash when: quiver is empty OR Shift is held down
-        if ((!quiverEmpty && !shiftHeld) || onCooldown) return;
+        // Legacy fallback mode (both components enabled): quiver empty or Shift held.
+        bool shiftHeld = Input.GetKey(KeyCode.LeftShift);
+        bool quiverEmpty = !slashIsPrimary && shooting.CurrentArrows <= 0;
+
+        if ((!slashIsPrimary && !quiverEmpty && !shiftHeld) || onCooldown) return;
         if (!Input.GetMouseButtonDown(0)) return;
 
         TrySlash();

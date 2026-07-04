@@ -60,6 +60,7 @@ public class PlayerHealth : MonoBehaviour
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
+    private ShieldAbility shieldAbility;
     private Color originalColor;
 
     public int CurrentHP => currentHP;
@@ -72,6 +73,7 @@ public class PlayerHealth : MonoBehaviour
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
         playerStats = GetComponent<PlayerStats>();
+        shieldAbility = GetComponent<ShieldAbility>();
 
         if (playerStats != null) maxHP = playerStats.maxHP;
         currentHP = maxHP;
@@ -86,6 +88,20 @@ public class PlayerHealth : MonoBehaviour
     // ================================================================
     //  PUBLIC API
     // ================================================================
+
+    /// <summary>
+    /// Directional damage (enemy contact, projectiles). Blockable by the
+    /// Warrior's ShieldAbility when the source is within the block arc.
+    /// Non-directional hazards (spikes, lava, curse costs) use TakeDamage(int)
+    /// and cannot be blocked.
+    /// </summary>
+    public void TakeDamage(int amount, Vector3 sourcePosition)
+    {
+        if (shieldAbility != null && shieldAbility.IsBlockingFrom(sourcePosition))
+            return;   // blocked — no damage, no i-frames
+
+        TakeDamage(amount);
+    }
 
     public void TakeDamage(int amount)
     {

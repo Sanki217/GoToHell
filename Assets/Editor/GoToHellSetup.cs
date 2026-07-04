@@ -50,17 +50,59 @@ public static class GoToHellSetup
             Debug.Log("[GoToHellSetup] Created Rogue class (assign its sprite in the Inspector).");
         }
 
-        // Bow
-        const string bowPath = "Assets/Resources/Weapons/Bow.asset";
-        if (AssetDatabase.LoadAssetAtPath<WeaponDefinition>(bowPath) == null)
+        // Warrior
+        const string warriorPath = "Assets/Resources/Classes/Warrior.asset";
+        if (AssetDatabase.LoadAssetAtPath<ClassDefinition>(warriorPath) == null)
         {
-            WeaponDefinition bow = ScriptableObject.CreateInstance<WeaponDefinition>();
-            bow.weaponId          = "bow";
-            bow.displayName       = "Bow";
-            bow.description       = "Charged shots with a finite quiver — arrows stick to the world and can be reclaimed. Empty quiver? Slash.";
-            bow.unlockedByDefault = true;
-            AssetDatabase.CreateAsset(bow, bowPath);
+            ClassDefinition warrior = ScriptableObject.CreateInstance<ClassDefinition>();
+            warrior.classId            = "warrior";
+            warrior.displayName        = "Warrior";
+            warrior.description        = "A bulwark of muscle and spite. Slower, but very hard to put down.";
+            warrior.unlockedByDefault  = true;
+            warrior.skillComponentName = "ShieldAbility";
+            warrior.skillDisplayName   = "Shield";
+            warrior.skillDescription   = "Hold RMB to raise a shield toward the cursor, blocking damage from that direction. Drains energy per second. Size widens the arc.";
+            warrior.agility = 1; warrior.attackDamage = 2; warrior.luck = 0; warrior.psyche = 1;
+            warrior.health = 4;  warrior.size = 1;         warrior.cooldown = 1;
+            AssetDatabase.CreateAsset(warrior, warriorPath);
+            Debug.Log("[GoToHellSetup] Created Warrior class (assign its sprite in the Inspector).");
+        }
+
+        // Bow (create, or upgrade an existing asset with the new component list)
+        const string bowPath = "Assets/Resources/Weapons/Bow.asset";
+        string bowDescription = "Charged shots with a finite quiver — arrows stick to the world and can be reclaimed. The quiver slowly regenerates over time.";
+        WeaponDefinition bowDef = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(bowPath);
+        if (bowDef == null)
+        {
+            bowDef = ScriptableObject.CreateInstance<WeaponDefinition>();
+            bowDef.weaponId          = "bow";
+            bowDef.displayName       = "Bow";
+            bowDef.description       = bowDescription;
+            bowDef.unlockedByDefault = true;
+            bowDef.weaponComponentNames = new[] { "PlayerShooting", "ArrowRegenerator" };
+            AssetDatabase.CreateAsset(bowDef, bowPath);
             Debug.Log("[GoToHellSetup] Created Bow weapon (assign its sprite in the Inspector).");
+        }
+        else if (bowDef.weaponComponentNames == null || bowDef.weaponComponentNames.Length == 0)
+        {
+            bowDef.weaponComponentNames = new[] { "PlayerShooting", "ArrowRegenerator" };
+            bowDef.description = bowDescription;
+            EditorUtility.SetDirty(bowDef);
+            Debug.Log("[GoToHellSetup] Updated Bow with weapon components (PlayerShooting, ArrowRegenerator).");
+        }
+
+        // Sword
+        const string swordPath = "Assets/Resources/Weapons/Sword.asset";
+        if (AssetDatabase.LoadAssetAtPath<WeaponDefinition>(swordPath) == null)
+        {
+            WeaponDefinition sword = ScriptableObject.CreateInstance<WeaponDefinition>();
+            sword.weaponId          = "sword";
+            sword.displayName       = "Sword";
+            sword.description       = "A close-quarters blade. Slash toward the cursor — reach scales with Size, speed with Cooldown.";
+            sword.unlockedByDefault = true;
+            sword.weaponComponentNames = new[] { "PlayerSlash" };
+            AssetDatabase.CreateAsset(sword, swordPath);
+            Debug.Log("[GoToHellSetup] Created Sword weapon (assign its sprite in the Inspector).");
         }
 
         // Starting pact: if no pact is unlocked by default yet, flag the first one
@@ -146,9 +188,8 @@ public static class GoToHellSetup
         creator.nameInput       = nameInput;
         creator.startButton     = startButton;
         creator.nameBackButton  = nameBack;
-        creator.allClasses      = LoadAllAssets<ClassDefinition>();
-        creator.allWeapons      = LoadAllAssets<WeaponDefinition>();
-        creator.allPacts        = LoadAllAssets<PactDefinition>();
+        // Lists intentionally left empty — CharacterCreator auto-loads all
+        // definitions from Resources at runtime, so new content just appears.
 
         weaponPanel.SetActive(false);
         pactPanel.SetActive(false);

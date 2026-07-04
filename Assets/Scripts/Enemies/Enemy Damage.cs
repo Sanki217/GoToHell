@@ -4,6 +4,9 @@ using UnityEngine;
 /// Attach to any enemy child GameObject that has a Trigger Collider.
 /// Deals damage to the player on contact.
 /// The "damage" field is fully visible and editable in the Inspector.
+///
+/// Passes its own position as the damage source, so the Warrior's directional
+/// shield (ShieldAbility) can block contact damage from the facing side.
 /// </summary>
 public class EnemyDamage : MonoBehaviour
 {
@@ -21,7 +24,7 @@ public class EnemyDamage : MonoBehaviour
         PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
         if (playerHealth == null) return;
 
-        playerHealth.TakeDamage(damage);
+        playerHealth.TakeDamage(damage, transform.position);
         lastHitTime = Time.time;
     }
 }

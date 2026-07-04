@@ -62,6 +62,13 @@ public class CreatorCarousel : MonoBehaviour
         if (rightArrow != null) rightArrow.onClick.AddListener(() => Step(1));
     }
 
+    private void Update()
+    {
+        // Keyboard cycling — only runs while this stage's panel is active.
+        if (Input.GetKeyDown(KeyCode.LeftArrow)  || Input.GetKeyDown(KeyCode.A)) Step(-1);
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) Step(1);
+    }
+
     // ================================================================
     //  PUBLIC API
     // ================================================================

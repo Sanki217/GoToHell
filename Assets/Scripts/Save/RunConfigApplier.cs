@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -5,12 +6,14 @@ using UnityEngine;
 /// Put this on the player in gameplay scenes.
 ///
 /// 1. Adds the selected class's stat preset to PlayerStats.
-/// 2. Enables the selected class's RMB skill component and disables the
-///    skill components of every other class (all class-skill components
-///    live on the player prefab, disabled or not — this picks the right one).
+/// 2. Enables the selected class's RMB skill component and disables every
+///    other class's (matched by type name via ClassDefinition.skillComponentName).
+/// 3. Enables the selected weapon's components and disables every other
+///    weapon's (matched by type name via WeaponDefinition.weaponComponentNames).
 ///
-/// If no RunConfig exists (e.g. testing the gameplay scene directly),
-/// it does nothing and the player uses Inspector defaults.
+/// All class-skill and weapon components live on the player prefab (disabled
+/// or not) — this picks the right ones. If no RunConfig exists (e.g. testing
+/// the gameplay scene directly), it does nothing and prefab defaults apply.
 /// </summary>
 [RequireComponent(typeof(PlayerStats))]
 public class RunConfigApplier : MonoBehaviour
@@ -31,6 +34,7 @@ public class RunConfigApplier : MonoBehaviour
         stats.AddPrimary(PrimaryStat.Cooldown,     cfg.cooldown);
 
         ApplyClassSkill(cfg.selectedClassId);
+        ApplyWeaponComponents(cfg.selectedWeaponId);
 
         // Refill HP to the new max after Health allocation
         PlayerHealth health = GetComponent<PlayerHealth>();
@@ -39,7 +43,6 @@ public class RunConfigApplier : MonoBehaviour
 
     /// <summary>
     /// Enables only the selected class's RMB skill component on the player.
-    /// Skill components are matched by type name (ClassDefinition.skillComponentName).
     /// </summary>
     private void ApplyClassSkill(string classId)
     {
@@ -65,6 +68,49 @@ public class RunConfigApplier : MonoBehaviour
                 skill.enabled = d.skillComponentName == selectedSkill;
             else if (d.skillComponentName == selectedSkill)
                 Debug.LogWarning($"[RunConfigApplier] Player has no '{selectedSkill}' component for class '{classId}'.");
+        }
+    }
+
+    /// <summary>
+    /// Enables only the selected weapon's components on the player.
+    /// </summary>
+    private void ApplyWeaponComponents(string weaponId)
+    {
+        if (string.IsNullOrEmpty(weaponId)) return;   // no weapon chosen — leave prefab defaults
+
+        WeaponDefinition[] defs = Resources.LoadAll<WeaponDefinition>("Weapons");
+        if (defs == null || defs.Length == 0) return;
+
+        WeaponDefinition selected = null;
+        foreach (WeaponDefinition d in defs)
+            if (d != null && d.weaponId == weaponId) { selected = d; break; }
+
+        if (selected == null)
+        {
+            Debug.LogWarning($"[RunConfigApplier] No WeaponDefinition found for '{weaponId}' in Resources/Weapons.");
+            return;
+        }
+
+        var selectedSet = new HashSet<string>();
+        if (selected.weaponComponentNames != null)
+            foreach (string n in selected.weaponComponentNames)
+                if (!string.IsNullOrEmpty(n)) selectedSet.Add(n);
+
+        // Union of every weapon's components — anything not in the selected set gets disabled
+        var allNames = new HashSet<string>();
+        foreach (WeaponDefinition d in defs)
+        {
+            if (d == null || d.weaponComponentNames == null) continue;
+            foreach (string n in d.weaponComponentNames)
+                if (!string.IsNullOrEmpty(n)) allNames.Add(n);
+        }
+
+        foreach (string name in allNames)
+        {
+            if (GetComponent(name) is Behaviour comp)
+                comp.enabled = selectedSet.Contains(name);
+            else if (selectedSet.Contains(name))
+                Debug.LogWarning($"[RunConfigApplier] Player has no '{name}' component for weapon '{weaponId}'.");
         }
     }
 }

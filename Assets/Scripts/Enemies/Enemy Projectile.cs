@@ -54,7 +54,9 @@ public class EnemyProjectile : MonoBehaviour
         // ── PLAYER ──────────────────────────────────────────────────
         if (other.CompareTag("Player"))
         {
-            other.GetComponent<PlayerHealth>()?.TakeDamage(damage);
+            // Directional damage — the Warrior's shield can block it (projectile
+            // is still destroyed on a blocked hit: the shield absorbs it).
+            other.GetComponent<PlayerHealth>()?.TakeDamage(damage, transform.position);
             Destroy(gameObject);
             return;
         }

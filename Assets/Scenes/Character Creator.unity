@@ -419,18 +419,15 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   classCarousel: {fileID: 462702262}
-  allClasses:
-  - {fileID: 11400000, guid: 70254678def26f840a13bf21482778ce, type: 2}
+  allClasses: []
   classNextButton: {fileID: 1789291473}
   weaponCarousel: {fileID: 408164355}
-  allWeapons:
-  - {fileID: 11400000, guid: 206cac2f3844a1743ad539f4a6e42009, type: 2}
+  allWeapons: []
   weaponNextButton: {fileID: 416779698}
   weaponBackButton: {fileID: 168935627}
   pactListContainer: {fileID: 1108078191}
   pactOptionPrefab: {fileID: 5754411254954818532, guid: 87ac8d29b532f1f459a860a19c70400f, type: 3}
-  allPacts:
-  - {fileID: 11400000, guid: 93325565ffdc9d0489caed86ac590984, type: 2}
+  allPacts: []
   pactNextButton: {fileID: 1605561349}
   pactBackButton: {fileID: 1460865279}
   nameInput: {fileID: 1822887585}

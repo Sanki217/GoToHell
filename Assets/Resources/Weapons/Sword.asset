@@ -10,14 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3397920ce4b627447a5795db80887a71, type: 3}
-  m_Name: Bow
+  m_Name: Sword
   m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
-  weaponId: bow
-  displayName: Bow
-  description: "Charged shots with a finite quiver \u2014 arrows stick to the world
-    and can be reclaimed. The quiver slowly regenerates over time."
-  sprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  weaponId: sword
+  displayName: Sword
+  description: "A close-quarters blade. Slash toward the cursor \u2014 reach scales
+    with Size, speed with Cooldown."
+  sprite: {fileID: 0}
   unlockedByDefault: 1
   weaponComponentNames:
-  - PlayerShooting
-  - ArrowRegenerator
+  - PlayerSlash

@@ -68,6 +68,13 @@ public class CharacterCreator : MonoBehaviour
     {
         EnsureRunConfig();
 
+        // Auto-load definitions from Resources when the Inspector lists are empty,
+        // so newly added classes/weapons/pacts appear without rewiring the scene.
+        // (Populate a list manually in the Inspector only to override order/content.)
+        if (allClasses.Count == 0) allClasses.AddRange(Resources.LoadAll<ClassDefinition>("Classes"));
+        if (allWeapons.Count == 0) allWeapons.AddRange(Resources.LoadAll<WeaponDefinition>("Weapons"));
+        if (allPacts.Count == 0)   allPacts.AddRange(Resources.LoadAll<PactDefinition>("Pacts"));
+
         if (classNextButton  != null) classNextButton.onClick.AddListener(() => GoToStage(Stage.Weapon));
         if (weaponNextButton != null) weaponNextButton.onClick.AddListener(() => GoToStage(Stage.Pact));
         if (weaponBackButton != null) weaponBackButton.onClick.AddListener(() => GoToStage(Stage.Class));
