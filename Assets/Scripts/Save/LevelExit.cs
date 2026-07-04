@@ -3,8 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Place at the end of a level as a trigger volume. When the player enters,
 /// it fires the "level_N_complete" achievement event and advances to the next layer.
-/// On the final layer it counts as victory (handled by the finish flow in Step 6;
-/// for now it goes to the main menu).
+/// On the final layer it shows the Run Summary (victory); if no summary UI
+/// exists in the scene it falls back to the main menu.
 ///
 /// The current layer is read from RunConfig.currentLayer.
 /// </summary>
@@ -31,8 +31,9 @@ public class LevelExit : MonoBehaviour
 
         if (layer >= SceneFlow.MaxLayer)
         {
-            // Final layer cleared — victory. Finish screen comes in Step 6.
-            SceneFlow.GoToMainMenu();
+            // Final layer cleared — victory. Show run summary, fall back to menu.
+            if (!RunSummaryUI.TryShow(true))
+                SceneFlow.GoToMainMenu();
         }
         else
         {

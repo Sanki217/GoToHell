@@ -6,6 +6,7 @@ using UnityEngine;
 /// are layered on in Step 5.
 ///
 /// Create via: Assets → Create → GoToHell → Pact
+/// Store in: Resources/Pacts/ (Collection loads from there)
 /// </summary>
 [CreateAssetMenu(menuName = "GoToHell/Pact")]
 public class PactDefinition : ScriptableObject
@@ -19,4 +20,7 @@ public class PactDefinition : ScriptableObject
     public string description;
 
     public Sprite icon;
+
+    [Tooltip("Unlocked without any save-data entry (the player's starting pact).")]
+    public bool unlockedByDefault;
 }

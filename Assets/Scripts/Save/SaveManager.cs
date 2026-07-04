@@ -68,6 +68,34 @@ public static class SaveManager
     }
 
     // ================================================================
+    //  CLASSES
+    // ================================================================
+
+    public static bool IsClassUnlocked(string classId) =>
+        Data.unlockedClassIds.Contains(classId);
+
+    public static void UnlockClass(string classId)
+    {
+        if (string.IsNullOrEmpty(classId) || Data.unlockedClassIds.Contains(classId)) return;
+        Data.unlockedClassIds.Add(classId);
+        Save();
+    }
+
+    // ================================================================
+    //  WEAPONS
+    // ================================================================
+
+    public static bool IsWeaponUnlocked(string weaponId) =>
+        Data.unlockedWeaponIds.Contains(weaponId);
+
+    public static void UnlockWeapon(string weaponId)
+    {
+        if (string.IsNullOrEmpty(weaponId) || Data.unlockedWeaponIds.Contains(weaponId)) return;
+        Data.unlockedWeaponIds.Add(weaponId);
+        Save();
+    }
+
+    // ================================================================
     //  PACTS
     // ================================================================
 

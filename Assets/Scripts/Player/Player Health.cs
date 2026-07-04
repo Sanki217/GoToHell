@@ -176,6 +176,10 @@ public class PlayerHealth : MonoBehaviour
         }
 
         upgradeManager?.PlayerDied();
+
+        // Run summary (records the run + back-to-menu). Fallback: old fade-and-reload
+        // for scenes without a RunSummaryUI (e.g. testing).
+        if (RunSummaryUI.TryShow(false)) return;
         Object.FindFirstObjectByType<GameStartSequence>()?.PlayerDied();
     }
 

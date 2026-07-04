@@ -5,53 +5,60 @@ using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
-/// Character Creator flow. Stages: Name → Stats → Pact → Ready.
+/// Character Creator flow. Stages: Class → Weapon → Pact → Name.
 /// Each stage is a panel. A UnityEvent fires when each stage is entered,
 /// so animations can be hooked in the Inspector.
 ///
-/// On Start (the run begins): writes name, stat allocation, and selected pact
+/// Class and Weapon use CreatorCarousel (sprite carousel with side previews).
+/// Class fully determines starting stats (no manual allocation).
+/// Pact is optional. Name is last; Start begins the run.
+///
+/// On Start: writes name, class stats, classId, weaponId, and selected pact
 /// into RunConfig, then loads Level 1 via SceneFlow.
 /// </summary>
 public class CharacterCreator : MonoBehaviour
 {
-    public enum Stage { Name, Stats, Pact, Ready }
+    public enum Stage { Class, Weapon, Pact, Name }
 
     [Header("Stage Panels")]
-    public GameObject namePanel;
-    public GameObject statsPanel;
+    public GameObject classPanel;
+    public GameObject weaponPanel;
     public GameObject pactPanel;
+    public GameObject namePanel;
 
     [Header("Stage Enter Events (hook animations here)")]
-    public UnityEvent onEnterName;
-    public UnityEvent onEnterStats;
+    public UnityEvent onEnterClass;
+    public UnityEvent onEnterWeapon;
     public UnityEvent onEnterPact;
-    public UnityEvent onEnterReady;
+    public UnityEvent onEnterName;
 
-    [Header("Name Stage")]
-    public TMP_InputField nameInput;
-    public Button nameNextButton;
+    [Header("Class Stage")]
+    public CreatorCarousel classCarousel;
+    public List<ClassDefinition> allClasses = new List<ClassDefinition>();
+    public Button classNextButton;
 
-    [Header("Stats Stage")]
-    public int totalStatPoints = 10;
-    public TMP_Text pointsRemainingText;
-    public StatAllocatorRow[] statRows;
-    public Button statsNextButton;
-    public Button statsBackButton;
+    [Header("Weapon Stage")]
+    public CreatorCarousel weaponCarousel;
+    public List<WeaponDefinition> allWeapons = new List<WeaponDefinition>();
+    public Button weaponNextButton;
+    public Button weaponBackButton;
 
     [Header("Pact Stage")]
     public Transform pactListContainer;
     public GameObject pactOptionPrefab;
     public List<PactDefinition> allPacts = new List<PactDefinition>();
+    public Button pactNextButton;
     public Button pactBackButton;
+
+    [Header("Name Stage")]
+    public TMP_InputField nameInput;
     public Button startButton;
+    public Button nameBackButton;
 
     // ── state ───────────────────────────────────────────────────────
     private Stage currentStage;
-    private int pointsRemaining;
     private PactOptionButton selectedPactButton;
     private readonly List<PactOptionButton> spawnedPactButtons = new List<PactOptionButton>();
-
-    public int PointsRemaining => pointsRemaining;
 
     // ================================================================
     //  INIT
@@ -61,22 +68,19 @@ public class CharacterCreator : MonoBehaviour
     {
         EnsureRunConfig();
 
-        pointsRemaining = totalStatPoints;
+        if (classNextButton  != null) classNextButton.onClick.AddListener(() => GoToStage(Stage.Weapon));
+        if (weaponNextButton != null) weaponNextButton.onClick.AddListener(() => GoToStage(Stage.Pact));
+        if (weaponBackButton != null) weaponBackButton.onClick.AddListener(() => GoToStage(Stage.Class));
+        if (pactNextButton   != null) pactNextButton.onClick.AddListener(() => GoToStage(Stage.Name));
+        if (pactBackButton   != null) pactBackButton.onClick.AddListener(() => GoToStage(Stage.Weapon));
+        if (nameBackButton   != null) nameBackButton.onClick.AddListener(() => GoToStage(Stage.Pact));
+        if (startButton      != null) startButton.onClick.AddListener(BeginRun);
 
-        if (statRows != null)
-            foreach (var row in statRows)
-                row?.Init(this);
-
-        UpdatePointsText();
-
-        if (nameNextButton  != null) nameNextButton.onClick.AddListener(() => GoToStage(Stage.Stats));
-        if (statsNextButton != null) statsNextButton.onClick.AddListener(() => GoToStage(Stage.Pact));
-        if (statsBackButton != null) statsBackButton.onClick.AddListener(() => GoToStage(Stage.Name));
-        if (pactBackButton  != null) pactBackButton.onClick.AddListener(() => GoToStage(Stage.Stats));
-        if (startButton     != null) startButton.onClick.AddListener(BeginRun);
-
+        BuildClassCarousel();
+        BuildWeaponCarousel();
         BuildPactList();
-        GoToStage(Stage.Name);
+
+        GoToStage(Stage.Class);
     }
 
     private void EnsureRunConfig()
@@ -97,41 +101,97 @@ public class CharacterCreator : MonoBehaviour
     {
         currentStage = stage;
 
-        if (namePanel  != null) namePanel.SetActive(stage == Stage.Name);
-        if (statsPanel != null) statsPanel.SetActive(stage == Stage.Stats);
-        if (pactPanel  != null) pactPanel.SetActive(stage == Stage.Pact);
+        if (classPanel  != null) classPanel.SetActive(stage == Stage.Class);
+        if (weaponPanel != null) weaponPanel.SetActive(stage == Stage.Weapon);
+        if (pactPanel   != null) pactPanel.SetActive(stage == Stage.Pact);
+        if (namePanel   != null) namePanel.SetActive(stage == Stage.Name);
 
         switch (stage)
         {
-            case Stage.Name:  onEnterName?.Invoke();  break;
-            case Stage.Stats: onEnterStats?.Invoke(); break;
-            case Stage.Pact:  onEnterPact?.Invoke();  break;
-            case Stage.Ready: onEnterReady?.Invoke(); break;
+            case Stage.Class:  onEnterClass?.Invoke();  break;
+            case Stage.Weapon: onEnterWeapon?.Invoke(); break;
+            case Stage.Pact:   onEnterPact?.Invoke();   break;
+            case Stage.Name:   onEnterName?.Invoke();   break;
         }
     }
 
     // ================================================================
-    //  STAT POOL  (called by StatAllocatorRow)
+    //  CLASS CAROUSEL
     // ================================================================
 
-    public bool TrySpendPoint()
+    private void BuildClassCarousel()
     {
-        if (pointsRemaining <= 0) return false;
-        pointsRemaining--;
-        UpdatePointsText();
-        return true;
+        if (classCarousel == null) return;
+
+        var entries = new List<CreatorCarousel.Entry>();
+        foreach (ClassDefinition def in allClasses)
+        {
+            if (def == null) continue;
+            entries.Add(new CreatorCarousel.Entry
+            {
+                id          = def.classId,
+                displayName = def.displayName,
+                description = BuildClassDescription(def),
+                sprite      = def.sprite,
+                unlocked    = def.unlockedByDefault || SaveManager.IsClassUnlocked(def.classId)
+            });
+        }
+
+        classCarousel.OnSelectionChanged += e =>
+        {
+            if (classNextButton != null)
+                classNextButton.interactable = e != null && e.unlocked;
+        };
+        classCarousel.SetEntries(entries);
     }
 
-    public void RefundPoint()
+    private static string BuildClassDescription(ClassDefinition d)
     {
-        pointsRemaining++;
-        UpdatePointsText();
+        string desc = d.description;
+
+        if (!string.IsNullOrEmpty(d.skillDisplayName))
+            desc += $"\n\n<b>Skill (RMB):</b> {d.skillDisplayName}\n{d.skillDescription}";
+
+        desc += "\n\n"
+             + $"<color=#FFA500>AGI {d.agility}</color>  "
+             + $"<color=#FF5555>ATK {d.attackDamage}</color>  "
+             + $"<color=#ADFF2F>LCK {d.luck}</color>  "
+             + $"<color=#FF66CC>PSY {d.psyche}</color>\n"
+             + $"<color=#66FF66>HP {d.health}</color>  "
+             + $"<color=#BBBBBB>SIZ {d.size}</color>  "
+             + $"<color=#66FFFF>CDR {d.cooldown}</color>";
+
+        return desc;
     }
 
-    private void UpdatePointsText()
+    // ================================================================
+    //  WEAPON CAROUSEL
+    // ================================================================
+
+    private void BuildWeaponCarousel()
     {
-        if (pointsRemainingText != null)
-            pointsRemainingText.text = $"Points: {pointsRemaining}";
+        if (weaponCarousel == null) return;
+
+        var entries = new List<CreatorCarousel.Entry>();
+        foreach (WeaponDefinition def in allWeapons)
+        {
+            if (def == null) continue;
+            entries.Add(new CreatorCarousel.Entry
+            {
+                id          = def.weaponId,
+                displayName = def.displayName,
+                description = def.description,
+                sprite      = def.sprite,
+                unlocked    = def.unlockedByDefault || SaveManager.IsWeaponUnlocked(def.weaponId)
+            });
+        }
+
+        weaponCarousel.OnSelectionChanged += e =>
+        {
+            if (weaponNextButton != null)
+                weaponNextButton.interactable = e != null && e.unlocked;
+        };
+        weaponCarousel.SetEntries(entries);
     }
 
     // ================================================================
@@ -145,7 +205,7 @@ public class CharacterCreator : MonoBehaviour
         foreach (PactDefinition def in allPacts)
         {
             if (def == null) continue;
-            if (!SaveManager.IsPactUnlocked(def.pactId)) continue;
+            if (!def.unlockedByDefault && !SaveManager.IsPactUnlocked(def.pactId)) continue;
 
             GameObject go = Instantiate(pactOptionPrefab, pactListContainer);
             PactOptionButton opt = go.GetComponent<PactOptionButton>();
@@ -181,29 +241,27 @@ public class CharacterCreator : MonoBehaviour
         RunConfig cfg = RunConfig.I;
         if (cfg == null) return;
 
+        CreatorCarousel.Entry classEntry  = classCarousel  != null ? classCarousel.Current  : null;
+        CreatorCarousel.Entry weaponEntry = weaponCarousel != null ? weaponCarousel.Current : null;
+        if (classEntry == null || !classEntry.unlocked) return;
+        if (weaponEntry == null || !weaponEntry.unlocked) return;
+
+        ClassDefinition classDef = allClasses.Find(c => c != null && c.classId == classEntry.id);
+        if (classDef == null) return;
+
         cfg.playerName = string.IsNullOrWhiteSpace(nameInput?.text) ? "Sinner" : nameInput.text;
 
-        // Apply stat allocation
-        cfg.agility = cfg.attackDamage = cfg.luck = cfg.psyche = 0;
-        cfg.health  = cfg.size = cfg.cooldown = 0;
+        cfg.selectedClassId  = classDef.classId;
+        cfg.selectedWeaponId = weaponEntry.id;
 
-        if (statRows != null)
-        {
-            foreach (var row in statRows)
-            {
-                if (row == null) continue;
-                switch (row.stat)
-                {
-                    case PrimaryStat.Agility:      cfg.agility      = row.Value; break;
-                    case PrimaryStat.AttackDamage: cfg.attackDamage = row.Value; break;
-                    case PrimaryStat.Luck:         cfg.luck         = row.Value; break;
-                    case PrimaryStat.Psyche:       cfg.psyche       = row.Value; break;
-                    case PrimaryStat.Health:       cfg.health       = row.Value; break;
-                    case PrimaryStat.Size:         cfg.size         = row.Value; break;
-                    case PrimaryStat.Cooldown:     cfg.cooldown     = row.Value; break;
-                }
-            }
-        }
+        // Class preset fully determines the starting stat allocation
+        cfg.agility      = classDef.agility;
+        cfg.attackDamage = classDef.attackDamage;
+        cfg.luck         = classDef.luck;
+        cfg.psyche       = classDef.psyche;
+        cfg.health       = classDef.health;
+        cfg.size         = classDef.size;
+        cfg.cooldown     = classDef.cooldown;
 
         cfg.selectedPactId = selectedPactButton != null ? selectedPactButton.Pact.pactId : "";
 

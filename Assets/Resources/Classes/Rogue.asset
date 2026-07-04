@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd661e232fad924a9b12ce2c1c977a1, type: 3}
+  m_Name: Rogue
+  m_EditorClassIdentifier: Assembly-CSharp::ClassDefinition
+  classId: rogue
+  displayName: Rogue
+  description: A nimble sinner who trusts speed over armour.
+  sprite: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
+  unlockedByDefault: 1
+  skillComponentName: DashAbility
+  skillDisplayName: Dash
+  skillDescription: Spend energy to dash toward the cursor, damaging enemies in your
+    path, while avoiding damage
+  agility: 2
+  attackDamage: 2
+  luck: 3
+  psyche: 1
+  health: 0
+  size: 1
+  cooldown: 1

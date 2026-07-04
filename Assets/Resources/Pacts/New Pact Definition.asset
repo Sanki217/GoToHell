@@ -16,3 +16,4 @@ MonoBehaviour:
   displayName: Getting started
   description: Finish level 1
   icon: {fileID: 0}
+  unlockedByDefault: 1
