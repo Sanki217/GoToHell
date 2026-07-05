@@ -11,10 +11,17 @@ public class RunStats
     // Meta
     public string playerName;
     public string dateUtc;          // when the run ended
+    public string classId;          // selected class (leaderboard display)
+    public string weaponId;         // selected weapon (leaderboard display)
     public int    deepestLayer;     // highest layer reached
     public int    finalLevel;       // player level at death
     public float  runDurationSeconds;
     public bool   victory;          // reached the end vs died
+
+    // Max depth reached (world units below the layer start, summed across
+    // layers). Tracked as lowest-Y-ever by DepthTracker — bouncing back up
+    // and falling again never double-counts.
+    public float maxDepthReached;
 
     // Movement
     public float distanceMovedLeft;

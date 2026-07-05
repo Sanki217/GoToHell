@@ -74,6 +74,14 @@ public class RunSummaryUI : MonoBehaviour
         if (stats != null)
         {
             run = RunStatsBuilder.Build(stats, playerName, deepestLayer, duration, victory);
+
+            // Loadout + max depth (banked layers + live tracker) for the leaderboard
+            run.classId  = cfg != null ? cfg.selectedClassId  : "";
+            run.weaponId = cfg != null ? cfg.selectedWeaponId : "";
+            DepthTracker tracker = Object.FindFirstObjectByType<DepthTracker>();
+            run.maxDepthReached = (cfg != null ? cfg.bankedDepth : 0f)
+                                + (tracker != null ? tracker.CurrentDepth : 0f);
+
             SaveManager.RecordRun(run);
         }
 
@@ -99,6 +107,7 @@ public class RunSummaryUI : MonoBehaviour
         return
             $"<b>{r.playerName}</b>\n\n" +
             $"Layer reached:  {r.deepestLayer}\n" +
+            $"Max depth:  {r.maxDepthReached:F0} m\n" +
             $"Level:  {r.finalLevel}\n" +
             $"Time:  {FormatDuration(r.runDurationSeconds)}\n\n" +
             $"Enemies killed:  {r.enemiesKilled}\n" +

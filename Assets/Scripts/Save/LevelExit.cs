@@ -32,11 +32,17 @@ public class LevelExit : MonoBehaviour
         if (layer >= SceneFlow.MaxLayer)
         {
             // Final layer cleared — victory. Show run summary, fall back to menu.
+            // (Depth is NOT banked here — RunSummaryUI reads the live tracker.)
             if (!RunSummaryUI.TryShow(true))
                 SceneFlow.GoToMainMenu();
         }
         else
         {
+            // Bank this layer's depth before the scene (and its DepthTracker) unloads.
+            DepthTracker tracker = other.GetComponentInParent<DepthTracker>();
+            if (tracker != null && RunConfig.I != null)
+                RunConfig.I.bankedDepth += tracker.CurrentDepth;
+
             SceneFlow.GoToNextLayer();
         }
     }

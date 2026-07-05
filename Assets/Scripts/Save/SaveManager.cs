@@ -143,6 +143,7 @@ public static class SaveManager
         RunStats b = Data.bestRun;
 
         b.deepestLayer       = Mathf.Max(b.deepestLayer, r.deepestLayer);
+        b.maxDepthReached    = Mathf.Max(b.maxDepthReached, r.maxDepthReached);
         b.finalLevel         = Mathf.Max(b.finalLevel, r.finalLevel);
         b.runDurationSeconds = Mathf.Max(b.runDurationSeconds, r.runDurationSeconds);
 

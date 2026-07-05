@@ -39,6 +39,10 @@ public class RunConfig : MonoBehaviour
     public int currentLayer = 1;
     public float runStartTime;
 
+    // Depth accumulated from COMPLETED layers (banked by LevelExit on layer
+    // advance). The current layer's live depth lives in DepthTracker.
+    public float bankedDepth;
+
     private void Awake()
     {
         if (I != null && I != this)
@@ -70,6 +74,7 @@ public class RunConfig : MonoBehaviour
         cooldown         = 0;
         currentLayer     = 1;
         runStartTime     = 0f;
+        bankedDepth      = 0f;
     }
 
     /// <summary>Marks the moment gameplay begins, for run-duration tracking.</summary>
@@ -77,6 +82,7 @@ public class RunConfig : MonoBehaviour
     {
         runStartTime = Time.time;
         currentLayer = 1;
+        bankedDepth  = 0f;
     }
 
     /// <summary>Seconds elapsed since the run began.</summary>

@@ -254,10 +254,11 @@ public static class GoToHellSetup
         CreateText(root, "Title", "COLLECTION", 56, new Vector2(0, 470), new Vector2(800, 80), TextAlignmentOptions.Center, FontStyles.Bold);
         Button backBtn = CreateButton(root, "BackButton", "BACK", new Vector2(-850, 470), new Vector2(160, 60));
 
-        Button classesTab  = CreateButton(root, "ClassesTab",  "CLASSES",  new Vector2(-450, 380), new Vector2(260, 60));
-        Button weaponsTab  = CreateButton(root, "WeaponsTab",  "WEAPONS",  new Vector2(-150, 380), new Vector2(260, 60));
-        Button pactsTab    = CreateButton(root, "PactsTab",    "PACTS",    new Vector2(150, 380),  new Vector2(260, 60));
-        Button upgradesTab = CreateButton(root, "UpgradesTab", "UPGRADES", new Vector2(450, 380),  new Vector2(260, 60));
+        Button classesTab     = CreateButton(root, "ClassesTab",     "CLASSES",     new Vector2(-600, 380), new Vector2(270, 60));
+        Button weaponsTab     = CreateButton(root, "WeaponsTab",     "WEAPONS",     new Vector2(-300, 380), new Vector2(270, 60));
+        Button pactsTab       = CreateButton(root, "PactsTab",       "PACTS",       new Vector2(0, 380),    new Vector2(270, 60));
+        Button upgradesTab    = CreateButton(root, "UpgradesTab",    "UPGRADES",    new Vector2(300, 380),  new Vector2(270, 60));
+        Button leaderboardTab = CreateButton(root, "LeaderboardTab", "LEADERBOARD", new Vector2(600, 380),  new Vector2(270, 60), 24);
 
         // Scroll view
         GameObject scroll = CreateUIObject(root, "Scroll");
@@ -289,16 +290,52 @@ public static class GoToHellSetup
         scrollRect.horizontal = false;
         scrollRect.scrollSensitivity = 30f;
 
-        CollectionUI collection = canvas.gameObject.AddComponent<CollectionUI>();
-        collection.contentContainer  = content.transform;
-        collection.itemPrefab        = EnsureCollectionItemPrefab();
-        collection.classesTabButton  = classesTab;
-        collection.weaponsTabButton  = weaponsTab;
-        collection.pactsTabButton    = pactsTab;
-        collection.upgradesTabButton = upgradesTab;
-        collection.backButton        = backBtn;
+        // ── Leaderboard panel (own scroll view, hidden until its tab is clicked)
+        GameObject lbPanel = CreateUIObject(root, "LeaderboardPanel");
+        CenterRect(lbPanel, new Vector2(0, -90), new Vector2(1500, 680));
+        Image lbBg = lbPanel.AddComponent<Image>();
+        lbBg.color = new Color(1f, 1f, 1f, 0.03f);
+        ScrollRect lbScrollRect = lbPanel.AddComponent<ScrollRect>();
 
-        FinishScene(canvas.gameObject, "Collection UI built.");
+        GameObject lbViewport = CreateUIObject(lbPanel.transform, "Viewport");
+        StretchRect(lbViewport);
+        lbViewport.AddComponent<RectMask2D>();
+
+        GameObject lbContent = CreateUIObject(lbViewport.transform, "Content");
+        RectTransform lbRt = lbContent.GetComponent<RectTransform>();
+        lbRt.anchorMin = new Vector2(0f, 1f);
+        lbRt.anchorMax = new Vector2(1f, 1f);
+        lbRt.pivot     = new Vector2(0.5f, 1f);
+        lbRt.offsetMin = new Vector2(40f, 0f);
+        lbRt.offsetMax = new Vector2(-40f, 0f);
+        TextMeshProUGUI lbText = lbContent.AddComponent<TextMeshProUGUI>();
+        lbText.fontSize = 28;
+        lbText.alignment = TextAlignmentOptions.TopLeft;
+        lbText.color = Color.white;
+        lbText.lineSpacing = 14f;
+        ContentSizeFitter lbFitter = lbContent.AddComponent<ContentSizeFitter>();
+        lbFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        lbScrollRect.viewport = lbViewport.GetComponent<RectTransform>();
+        lbScrollRect.content  = lbRt;
+        lbScrollRect.horizontal = false;
+        lbScrollRect.scrollSensitivity = 30f;
+        lbPanel.SetActive(false);
+
+        CollectionUI collection = canvas.gameObject.AddComponent<CollectionUI>();
+        collection.gridScroll           = scroll;
+        collection.contentContainer     = content.transform;
+        collection.itemPrefab           = EnsureCollectionItemPrefab();
+        collection.leaderboardPanel     = lbPanel;
+        collection.leaderboardText      = lbText;
+        collection.classesTabButton     = classesTab;
+        collection.weaponsTabButton     = weaponsTab;
+        collection.pactsTabButton       = pactsTab;
+        collection.upgradesTabButton    = upgradesTab;
+        collection.leaderboardTabButton = leaderboardTab;
+        collection.backButton           = backBtn;
+
+        FinishScene(canvas.gameObject, "Collection UI built (incl. Leaderboard tab).");
     }
 
     // ================================================================
