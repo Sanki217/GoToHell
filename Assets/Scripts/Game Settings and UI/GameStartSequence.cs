@@ -71,14 +71,14 @@ public class GameStartSequence : MonoBehaviour
         player.DisableControl();
         playerRb.linearVelocity = Vector3.zero;
 
-        Time.timeScale = 0f;
+        GameTime.Pause();
 
         // Fade the single Image alpha from 0 → 1
         yield return StartCoroutine(FadeImage(0f, 1f, fadeDuration));
 
         yield return new WaitForSecondsRealtime(reloadDelay);
 
-        Time.timeScale = 1f;
+        GameTime.Resume();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 

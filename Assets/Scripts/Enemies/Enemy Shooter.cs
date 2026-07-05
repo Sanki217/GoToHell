@@ -155,7 +155,7 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
     private void Shoot(Vector3 dir)
     {
         Vector3 pos = transform.position + dir * muzzleOffset;
-        GameObject proj = Instantiate(projectilePrefab, pos, Quaternion.identity);
+        GameObject proj = Pool.Spawn(projectilePrefab, pos, Quaternion.identity);
         proj.GetComponent<EnemyProjectile>()?.Initialize(dir, projectileSpeed, transform.root);
     }
 

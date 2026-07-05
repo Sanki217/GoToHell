@@ -61,6 +61,10 @@ public class SceneOptimizer : MonoBehaviour
     //  INIT
     // ================================================================
 
+    // Static level renderers, cached once — spawned objects (souls, arrows,
+    // projectiles) are always near the action and don't need culling.
+    private Renderer[] cachedRenderers;
+
     private void Start()
     {
         mainCamera = Camera.main;
@@ -68,7 +72,22 @@ public class SceneOptimizer : MonoBehaviour
         if (playerTransform == null)
             playerTransform = PlayerRefs.I?.T;
 
+        CacheRenderers();
         StartCoroutine(OptimizeLoop());
+    }
+
+    private void CacheRenderers()
+    {
+        var all = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+        var list = new List<Renderer>(all.Length);
+        foreach (var r in all)
+        {
+            if (r == null) continue;
+            if (r is SpriteRenderer) continue;
+            if (r.GetComponentInParent<Enemy>() != null) continue;  // enemies handled by sleep
+            list.Add(r);
+        }
+        cachedRenderers = list.ToArray();
     }
 
     // ================================================================
@@ -98,12 +117,13 @@ public class SceneOptimizer : MonoBehaviour
     {
         Vector3 playerPos = playerTransform.position;
 
-        // Find all enemies by tag — cheaper than FindObjectsByType
-        GameObject[] allEnemyObjects = GameObject.FindGameObjectsWithTag("Enemy");
-
-        foreach (var go in allEnemyObjects)
+        // Enemies self-register in EnemyRegistry — no scene scan needed.
+        var enemies = EnemyRegistry.All;
+        for (int i = 0; i < enemies.Count; i++)
         {
-            if (go == null) continue;
+            Enemy enemy = enemies[i];
+            if (enemy == null) continue;
+            GameObject go = enemy.gameObject;
 
             float dist = Vector3.Distance(go.transform.position, playerPos);
             bool sleeping = sleepingEnemies.Contains(go);
@@ -156,13 +176,10 @@ public class SceneOptimizer : MonoBehaviour
 
         Plane[] planes = GeometryUtility.CalculateFrustumPlanes(mainCamera);
 
-        var allRenderers = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
-
-        foreach (var r in allRenderers)
+        // Cached once at Start — no per-tick scene scan or GetComponentInParent.
+        foreach (var r in cachedRenderers)
         {
             if (r == null) continue;
-            if (r.GetComponentInParent<Enemy>() != null) continue;  // enemies handled by sleep
-            if (r is SpriteRenderer) continue;
 
             Bounds bounds = r.bounds;
             bounds.Expand(rendererCullMargin * 2f);

@@ -109,7 +109,7 @@ public class Vase : MonoBehaviour
         for (int i = 0; i < soulCount; i++)
         {
             if (!soulPrefab) break;
-            GameObject s = Instantiate(soulPrefab, pos, Quaternion.identity);
+            GameObject s = Pool.Spawn(soulPrefab, pos, Quaternion.identity);
             Soul soul = s.GetComponent<Soul>();
             if (soul != null)
             {

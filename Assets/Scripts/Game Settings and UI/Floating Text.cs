@@ -2,8 +2,9 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// A single floating damage number. Spawned by FloatingTextManager.
-/// Rises upward, fades out, then destroys itself.
+/// A single floating damage number. Spawned by FloatingTextManager via Pool
+/// (one of the highest-volume objects in the game — every hit spawns one).
+/// Rises upward, fades out, then returns to the pool.
 /// Attach this to a prefab that has a TMP_Text component.
 /// </summary>
 [RequireComponent(typeof(TMP_Text))]
@@ -16,7 +17,6 @@ public class FloatingText : MonoBehaviour
 
     private TMP_Text label;
     private float timer;
-    private Color startColor;
 
     private void Awake()
     {
@@ -25,13 +25,13 @@ public class FloatingText : MonoBehaviour
 
     /// <summary>
     /// Call this immediately after spawning to set up the text.
+    /// Fully resets state, so pooled reuse is safe.
     /// </summary>
     public void Init(string text, Color color, float fontSize = 5f)
     {
         label.text = text;
-        label.color = color;
+        label.color = color;      // alpha restored to the color's own alpha
         label.fontSize = fontSize;
-        startColor = color;
         timer = 0f;
     }
 
@@ -52,6 +52,6 @@ public class FloatingText : MonoBehaviour
         }
 
         if (timer >= lifetime)
-            Destroy(gameObject);
+            Pool.Despawn(gameObject);
     }
 }

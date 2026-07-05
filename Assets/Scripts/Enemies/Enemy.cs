@@ -1,6 +1,17 @@
 using UnityEngine;
 using System.Collections;
 
+/// <summary>
+/// Enemy core: health, status effects, death + drops. Knockback and wall
+/// depenetration live in EnemyKnockback (auto-added at runtime — existing
+/// prefabs need no changes; all tuning stays serialized here).
+///
+/// Public API is stable: TakeDamage overloads, WillDie, OnDied, ApplyStatus.
+/// Enemies self-register in EnemyRegistry (OnEnable/OnDisable) so systems
+/// iterate the registry instead of scanning the scene.
+///
+/// Planned: BossBase subclass overriding the virtual TakeDamage.
+/// </summary>
 public class Enemy : MonoBehaviour
 {
     [Header("Health")]
@@ -23,7 +34,7 @@ public class Enemy : MonoBehaviour
     [Header("Wall Safety")]
     [Tooltip("Layers considered solid walls. Used by the fallback knockback path " +
              "(enemies with no IKnockbackReceiver, e.g. training dummy) and the " +
-             "per-frame depenetration check.")]
+             "post-knockback depenetration check.")]
     public LayerMask wallLayers;
 
     [Tooltip("Half-extents for the BoxCast / OverlapBox wall checks. " +
@@ -33,6 +44,10 @@ public class Enemy : MonoBehaviour
     [Tooltip("Bounce damping for the fallback knockback path (0 = dead stop, 1 = perfect bounce).")]
     [Range(0f, 1f)]
     public float knockbackBounceDamping = 0.4f;
+
+    [Tooltip("Run wall depenetration every physics frame instead of only after " +
+             "knockback. Enable per-prefab only if this enemy gets stuck in walls.")]
+    public bool alwaysDepenetrate = false;
 
     // ================================================================
     //  EVENTS
@@ -47,11 +62,10 @@ public class Enemy : MonoBehaviour
 
     private int currentHealth;
     private EnemyHealthBar healthBar;
-    private IKnockbackReceiver[] knockbackReceivers;
-    private Collider[] selfColliders;
+    private EnemyKnockback knockback;
 
     // ================================================================
-    //  INIT
+    //  INIT / REGISTRY
     // ================================================================
 
     private void Start()
@@ -63,81 +77,27 @@ public class Enemy : MonoBehaviour
         healthBar = GetComponent<EnemyHealthBar>();
         healthBar?.Initialize(maxHealth, currentHealth);
 
-        // Cache all knockback receivers on this enemy (patrol scripts, shooters, wall jumpers, etc.)
-        knockbackReceivers = GetComponents<IKnockbackReceiver>();
-        selfColliders = GetComponentsInChildren<Collider>();
-
         // Auto-default wallLayers to the "Wall" layer if the Inspector left it empty.
-        // Everything in this project is on the Wall layer, so this makes wall-bounce
-        // and depenetration "just work" without per-prefab setup.
         if (wallLayers == 0)
         {
             int wallLayer = LayerMask.NameToLayer("Wall");
             if (wallLayer >= 0)
                 wallLayers = 1 << wallLayer;
         }
+
+        // Knockback/depenetration component — added at runtime so existing
+        // prefabs keep working without manual edits. All tuning stays here.
+        knockback = GetComponent<EnemyKnockback>();
+        if (knockback == null) knockback = gameObject.AddComponent<EnemyKnockback>();
+        knockback.Configure(
+            wallLayers, wallCheckHalfExtents, knockbackBounceDamping,
+            knockbackDuration, alwaysDepenetrate,
+            GetComponents<IKnockbackReceiver>(),
+            GetComponentsInChildren<Collider>());
     }
 
-    // ================================================================
-    //  WALL DEPENETRATION — runs every physics frame
-    // ================================================================
-
-    private static readonly Collider[] depenBuffer = new Collider[8];
-
-    private void FixedUpdate()
-    {
-        if (wallLayers == 0) return;
-
-        // Check if we overlap any wall right now and push out
-        int count = Physics.OverlapBoxNonAlloc(
-            transform.position, wallCheckHalfExtents, depenBuffer,
-            Quaternion.identity, wallLayers, QueryTriggerInteraction.Ignore);
-
-        for (int i = 0; i < count; i++)
-        {
-            Collider wallCol = depenBuffer[i];
-            // Skip our own colliders
-            bool isSelf = false;
-            if (selfColliders != null)
-                foreach (var sc in selfColliders)
-                    if (sc == wallCol) { isSelf = true; break; }
-            if (isSelf) continue;
-
-            // Compute penetration and push out
-            // Use a small BoxCollider stand-in via ComputePenetration isn't available
-            // without a collider pair — use a simpler approach: cast back toward
-            // the wall from our position and snap to the surface.
-            Vector3 toWall = wallCol.ClosestPoint(transform.position) - transform.position;
-            toWall.z = 0f;
-            if (toWall.sqrMagnitude < 0.001f)
-            {
-                // We're deep inside — pick a direction via bounds center
-                toWall = transform.position - wallCol.bounds.center;
-                toWall.z = 0f;
-                if (toWall.sqrMagnitude < 0.001f) toWall = Vector3.up;
-            }
-
-            // If ClosestPoint is AT our position, we're inside the wall
-            Vector3 closestOnWall = wallCol.ClosestPoint(transform.position);
-            closestOnWall.z = 0f;
-            Vector3 meFlat = new Vector3(transform.position.x, transform.position.y, 0f);
-            float overlap = (closestOnWall - meFlat).magnitude;
-
-            // Only push if closest point is very near (means we're overlapping)
-            if (overlap < wallCheckHalfExtents.x * 1.1f)
-            {
-                Vector3 pushDir = (meFlat - closestOnWall).normalized;
-                if (pushDir.sqrMagnitude < 0.001f) pushDir = Vector3.up;
-                float pushAmount = wallCheckHalfExtents.x - overlap + 0.05f;
-                if (pushAmount > 0f)
-                {
-                    Vector3 newPos = transform.position + pushDir * pushAmount;
-                    newPos.z = 0f;
-                    transform.position = newPos;
-                }
-            }
-        }
-    }
+    private void OnEnable() => EnemyRegistry.Register(this);
+    private void OnDisable() => EnemyRegistry.Unregister(this);
 
     // ================================================================
     //  PUBLIC API
@@ -171,7 +131,7 @@ public class Enemy : MonoBehaviour
         healthBar?.NotifyDamage(Mathf.Max(0, currentHealth));
 
         if (knockbackForce > 0f && knockbackDir != Vector3.zero)
-            StartCoroutine(ApplyKnockback(knockbackDir.normalized * knockbackForce));
+            knockback?.ApplyKnockback(knockbackDir.normalized * knockbackForce);
 
         if (enemyRenderer != null)
             StartCoroutine(HitFlash());
@@ -205,49 +165,8 @@ public class Enemy : MonoBehaviour
     }
 
     // ================================================================
-    //  PRIVATE
+    //  DEATH
     // ================================================================
-
-    private IEnumerator ApplyKnockback(Vector3 impulse)
-    {
-        // Dispatch to every IKnockbackReceiver component on this enemy.
-        // Patrol scripts, shooters, wall-jumpers, and future enemy types all implement the interface.
-        bool handled = false;
-        if (knockbackReceivers != null)
-        {
-            foreach (var r in knockbackReceivers)
-            {
-                if (r == null) continue;
-                r.ReceiveKnockback(impulse, knockbackDuration);
-                handled = true;
-            }
-        }
-
-        if (handled) yield break;
-
-        // Fallback for enemies with no movement scripts (e.g. training dummy):
-        // ease-out the impulse directly on transform, with wall bounce.
-        float elapsed = 0f;
-        while (elapsed < knockbackDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / knockbackDuration;
-            Vector3 step = impulse * (1f - t) * Time.deltaTime;
-            step.z = 0f;
-
-            if (wallLayers != 0)
-            {
-                step = KnockbackBouncer.StepWithWallBounce(
-                    step, transform.position, wallCheckHalfExtents,
-                    knockbackBounceDamping, wallLayers, selfColliders);
-            }
-
-            Vector3 newPos = transform.position + step;
-            newPos.z = 0f;
-            transform.position = newPos;
-            yield return null;
-        }
-    }
 
     private void Die()
     {
@@ -255,7 +174,7 @@ public class Enemy : MonoBehaviour
         for (int i = 0; i < soulCount; i++)
         {
             if (!soulPrefab) break;
-            GameObject s = Instantiate(soulPrefab, transform.position, Quaternion.identity);
+            GameObject s = Pool.Spawn(soulPrefab, transform.position, Quaternion.identity);
             Soul soul = s.GetComponent<Soul>();
             if (soul != null)
             {
@@ -265,7 +184,7 @@ public class Enemy : MonoBehaviour
             }
         }
 
-        Camera.main?.GetComponent<CameraFollow>()?.Shake(0.08f, 0.08f);
+        PlayerRefs.CamFollow?.Shake(0.08f, 0.08f);
 
         var refs = PlayerRefs.I;
         if (refs != null)

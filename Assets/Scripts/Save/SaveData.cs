@@ -12,6 +12,10 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
+    // Bump when the save format changes incompatibly; lets future versions
+    // migrate old files instead of discarding them.
+    public int saveVersion = 1;
+
     // IDs of classes the player has unlocked (beyond defaults)
     public List<string> unlockedClassIds = new List<string>();
 

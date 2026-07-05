@@ -23,6 +23,8 @@ public class HoverAbility : MonoBehaviour
 
     private float DrainRate => playerStats != null ? playerStats.hoverDrainRate : energyDrainPerSecond;
 
+    private PlayerStateController stateCtrl;
+
     void Start()
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
@@ -30,11 +32,12 @@ public class HoverAbility : MonoBehaviour
         playerStats = GetComponent<PlayerStats>();
         rb = GetComponent<Rigidbody>();
         energySystem = GetComponent<PlayerEnergy>();
+        stateCtrl = GetComponent<PlayerStateController>();
     }
 
     void Update()
     {
-        if (!GetComponent<PlayerStateController>().HasControl())
+        if (!stateCtrl.HasControl())
         {
             if (isHovering) EndHover();
             return;

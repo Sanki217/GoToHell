@@ -112,7 +112,7 @@ public class ChestRewardUI : MonoBehaviour
         pendingSouls = RollSouls(pendingOffer.rarity);
 
         isOpen = true;
-        Time.timeScale = 0f;
+        GameTime.Pause();
         playerState?.DisableControl();
 
         chestPanel.SetActive(true);
@@ -262,7 +262,7 @@ public class ChestRewardUI : MonoBehaviour
         isOpen = false;
         pendingOffer = null;
         pendingSouls = 0;
-        Time.timeScale = 1f;
+        GameTime.Resume();
         chestPanel.SetActive(false);
 
         if (rollingNameLabel != null) rollingNameLabel.gameObject.SetActive(true);

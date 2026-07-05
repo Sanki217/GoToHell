@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System;
 using UnityEngine;
 
@@ -11,12 +11,23 @@ public class PlayerUpgradeManager : MonoBehaviour
     [SerializeField]
     private List<string> debugActiveUpgrades = new();
 
+    [Header("Debug")]
+    [Tooltip("Log every event fired on the upgrade bus — turn on when debugging upgrade synergies.")]
+    public bool logEvents = false;
+
+    private void Log(string evt)
+    {
+        if (logEvents) Debug.Log($"[UpgradeBus] {evt}");
+    }
+
+#if UNITY_EDITOR
     private void Update()
     {
         debugActiveUpgrades.Clear();
         foreach (var id in activeUpgrades.Keys)
             debugActiveUpgrades.Add(id);
     }
+#endif
 
     // ============================================================
     //  QUERY
@@ -149,89 +160,89 @@ public class PlayerUpgradeManager : MonoBehaviour
     //  EVENT TRIGGERS — Shooting
     // ============================================================
 
-    public void FireWeakArrow(Vector3 dir, float speed) => OnWeakArrowFired?.Invoke(dir, speed);
-    public void FireMediumArrow(Vector3 dir, float charge) => OnMediumArrowFired?.Invoke(dir, charge);
-    public void FireChargedArrow(Vector3 dir, float speed) => OnChargedArrowFired?.Invoke(dir, speed);
-    public void FireExtraArrow(Vector3 dir, float speed) => OnExtraArrowFired?.Invoke(dir, speed);
+    public void FireWeakArrow(Vector3 dir, float speed) { Log("WeakArrowFired"); OnWeakArrowFired?.Invoke(dir, speed); }
+    public void FireMediumArrow(Vector3 dir, float charge) { Log("MediumArrowFired"); OnMediumArrowFired?.Invoke(dir, charge); }
+    public void FireChargedArrow(Vector3 dir, float speed) { Log("ChargedArrowFired"); OnChargedArrowFired?.Invoke(dir, speed); }
+    public void FireExtraArrow(Vector3 dir, float speed) { Log("ExtraArrowFired"); OnExtraArrowFired?.Invoke(dir, speed); }
 
     public void ArrowHitEnemy(GameObject enemy, float chargeLevel = 0f, bool wasCrit = false)
-        => OnArrowHitEnemy?.Invoke(enemy, chargeLevel, wasCrit);
-    public void ArrowHitWall(Vector3 position) => OnArrowHitWall?.Invoke(position);
-    public void ArrowHitDestructible(GameObject target) => OnArrowHitDestructible?.Invoke(target);
-    public void ArrowPickedUp() => OnArrowPickedUp?.Invoke();
-    public void ArrowChargeCancelledByEnergy(float cr) => OnArrowChargeCancelledByEnergy?.Invoke(cr);
+    { Log("ArrowHitEnemy"); OnArrowHitEnemy?.Invoke(enemy, chargeLevel, wasCrit); }
+    public void ArrowHitWall(Vector3 position) { Log("ArrowHitWall"); OnArrowHitWall?.Invoke(position); }
+    public void ArrowHitDestructible(GameObject target) { Log("ArrowHitDestructible"); OnArrowHitDestructible?.Invoke(target); }
+    public void ArrowPickedUp() { Log("ArrowPickedUp"); OnArrowPickedUp?.Invoke(); }
+    public void ArrowChargeCancelledByEnergy(float cr) { Log("ArrowChargeCancelledByEnergy"); OnArrowChargeCancelledByEnergy?.Invoke(cr); }
 
     // ============================================================
     //  EVENT TRIGGERS — Dash
     // ============================================================
 
-    public void DashStart() => OnDashStarted?.Invoke();
-    public void DashEnd() => OnDashEnded?.Invoke();
-    public void DashHitEnemy(GameObject e) => OnDashHitEnemy?.Invoke(e);
-    public void DashHitWall() => OnDashHitWall?.Invoke();
+    public void DashStart() { Log("DashStart"); OnDashStarted?.Invoke(); }
+    public void DashEnd() { Log("DashEnd"); OnDashEnded?.Invoke(); }
+    public void DashHitEnemy(GameObject e) { Log("DashHitEnemy"); OnDashHitEnemy?.Invoke(e); }
+    public void DashHitWall() { Log("DashHitWall"); OnDashHitWall?.Invoke(); }
 
     // ============================================================
     //  EVENT TRIGGERS — Wall Slide
     // ============================================================
 
-    public void WallSlideStart() => OnWallSlideStart?.Invoke();
-    public void WallSlideTick(float dt) => OnWallSlideTick?.Invoke(dt);
-    public void WallSlideEnd() => OnWallSlideEnd?.Invoke();
+    public void WallSlideStart() { Log("WallSlideStart"); OnWallSlideStart?.Invoke(); }
+    public void WallSlideTick(float dt) { OnWallSlideTick?.Invoke(dt); }   // per-frame: not logged
+    public void WallSlideEnd() { Log("WallSlideEnd"); OnWallSlideEnd?.Invoke(); }
 
     // ============================================================
     //  EVENT TRIGGERS — Hover
     // ============================================================
 
-    public void HoverStart() => OnHoverStart?.Invoke();
-    public void HoverTick(float dt) => OnHoverTick?.Invoke(dt);
-    public void HoverEnd() => OnHoverEnd?.Invoke();
+    public void HoverStart() { Log("HoverStart"); OnHoverStart?.Invoke(); }
+    public void HoverTick(float dt) { OnHoverTick?.Invoke(dt); }           // per-frame: not logged
+    public void HoverEnd() { Log("HoverEnd"); OnHoverEnd?.Invoke(); }
 
     // ============================================================
     //  EVENT TRIGGERS — Movement
     // ============================================================
 
-    public void Jump(int n) => OnJump?.Invoke(n);
-    public void Land(float speed) => OnLand?.Invoke(speed);
-    public void Falling(float dt, float s) => OnFalling?.Invoke(dt, s);
+    public void Jump(int n) { Log("Jump"); OnJump?.Invoke(n); }
+    public void Land(float speed) { Log("Land"); OnLand?.Invoke(speed); }
+    public void Falling(float dt, float s) { OnFalling?.Invoke(dt, s); }   // per-frame: not logged
 
     // ============================================================
     //  EVENT TRIGGERS — Combat
     // ============================================================
 
-    public void EnemyKilled(GameObject e) => OnEnemyKilled?.Invoke(e);
-    public void CriticalHit(GameObject e, float dmg) => OnCriticalHit?.Invoke(e, dmg);
-    public void DamageTaken(int amount) => OnDamageTaken?.Invoke(amount);
-    public void PlayerDied() => OnPlayerDied?.Invoke();
+    public void EnemyKilled(GameObject e) { Log("EnemyKilled"); OnEnemyKilled?.Invoke(e); }
+    public void CriticalHit(GameObject e, float dmg) { Log("CriticalHit"); OnCriticalHit?.Invoke(e, dmg); }
+    public void DamageTaken(int amount) { Log("DamageTaken"); OnDamageTaken?.Invoke(amount); }
+    public void PlayerDied() { Log("PlayerDied"); OnPlayerDied?.Invoke(); }
 
     // ============================================================
     //  EVENT TRIGGERS — Status Effects
     // ============================================================
 
-    public void StatusApplied(GameObject e, StatusType t) => OnStatusApplied?.Invoke(e, t);
-    public void BurnTick(GameObject e, float dmg) => OnBurnTick?.Invoke(e, dmg);
-    public void FreezeTick(GameObject e) => OnFreezeTick?.Invoke(e);
-    public void HolyDetonated(GameObject e, float dmg) => OnHolyDetonated?.Invoke(e, dmg);
-    public void ShockConsumed(GameObject e, float bonus) => OnShockConsumed?.Invoke(e, bonus);
+    public void StatusApplied(GameObject e, StatusType t) { Log($"StatusApplied:{t}"); OnStatusApplied?.Invoke(e, t); }
+    public void BurnTick(GameObject e, float dmg) { OnBurnTick?.Invoke(e, dmg); }   // per-tick: not logged
+    public void FreezeTick(GameObject e) { OnFreezeTick?.Invoke(e); }               // per-tick: not logged
+    public void HolyDetonated(GameObject e, float dmg) { Log("HolyDetonated"); OnHolyDetonated?.Invoke(e, dmg); }
+    public void ShockConsumed(GameObject e, float bonus) { Log("ShockConsumed"); OnShockConsumed?.Invoke(e, bonus); }
 
     // ============================================================
     //  EVENT TRIGGERS — Environment
     // ============================================================
 
-    public void SpikesTouched() => OnSpikesTouched?.Invoke();
-    public void LavaTick(float dt) => OnLavaTick?.Invoke(dt);
-    public void LavaZoneDrained() => OnLavaZoneDrained?.Invoke();
+    public void SpikesTouched() { Log("SpikesTouched"); OnSpikesTouched?.Invoke(); }
+    public void LavaTick(float dt) { OnLavaTick?.Invoke(dt); }             // per-tick: not logged
+    public void LavaZoneDrained() { Log("LavaZoneDrained"); OnLavaZoneDrained?.Invoke(); }
 
     // ============================================================
     //  EVENT TRIGGERS — Resources
     // ============================================================
 
-    public void ArrowKill(GameObject enemy) => OnArrowKill?.Invoke(enemy);
+    public void ArrowKill(GameObject enemy) { Log("ArrowKill"); OnArrowKill?.Invoke(enemy); }
 
-    public void SoulCollected(int amount) => OnSoulCollected?.Invoke(amount);
-    public void EnergyGained(float amt, EnergySource s) => OnEnergyGained?.Invoke(amt, s);
-    public void PlayerLevelUp(int newLevel) => OnPlayerLevelUp?.Invoke(newLevel);
-    public void ChestOpened(ChestRarity r) => OnChestOpened?.Invoke(r);
-    public void MerchantPurchase(string id) => OnMerchantPurchase?.Invoke(id);
+    public void SoulCollected(int amount) { Log("SoulCollected"); OnSoulCollected?.Invoke(amount); }
+    public void EnergyGained(float amt, EnergySource s) { OnEnergyGained?.Invoke(amt, s); }   // high-volume: not logged
+    public void PlayerLevelUp(int newLevel) { Log("PlayerLevelUp"); OnPlayerLevelUp?.Invoke(newLevel); }
+    public void ChestOpened(ChestRarity r) { Log("ChestOpened"); OnChestOpened?.Invoke(r); }
+    public void MerchantPurchase(string id) { Log($"MerchantPurchase:{id}"); OnMerchantPurchase?.Invoke(id); }
 
     // ============================================================
     //  APPLY UPGRADE

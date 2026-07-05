@@ -226,7 +226,7 @@ public class KillStreak : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            GameObject s = Instantiate(soulPrefab, transform.position, Quaternion.identity);
+            GameObject s = Pool.Spawn(soulPrefab, transform.position, Quaternion.identity);
             Soul soul = s.GetComponent<Soul>();
             if (soul != null)
             {

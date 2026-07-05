@@ -87,7 +87,7 @@ public class RunSummaryUI : MonoBehaviour
 
         // Freeze the world, release the player
         Object.FindFirstObjectByType<PlayerStateController>()?.DisableControl();
-        Time.timeScale = 0f;
+        GameTime.Pause();
 
         if (titleText != null)
             titleText.text = victory ? victoryTitle : deathTitle;

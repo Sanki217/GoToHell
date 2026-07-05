@@ -93,11 +93,14 @@ public class PlayerShooting : MonoBehaviour
     private const float LightMax = 0.25f;
     private const float MediumMax = 0.75f;
 
+    private PlayerStateController stateCtrl;
+
     void Start()
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
         playerEnergy = GetComponent<PlayerEnergy>();
         playerStats = GetComponent<PlayerStats>();
+        stateCtrl = GetComponent<PlayerStateController>();
 
         mainCam = Camera.main;
         cam = mainCam.GetComponent<CameraFollow>();
@@ -116,7 +119,7 @@ public class PlayerShooting : MonoBehaviour
 
     void Update()
     {
-        if (!GetComponent<PlayerStateController>().HasControl()) return;
+        if (!stateCtrl.HasControl()) return;
         UpdateAimingLine();
         HandleChargeInput();
         UpdateCameraZoom();
@@ -175,8 +178,7 @@ public class PlayerShooting : MonoBehaviour
         currentSpeedMultiplier = Mathf.Lerp(1f, maxChargeMultiplier, chargeNormalized);
 
         float slowT = Mathf.Clamp01(chargeTimer / timeSlowDuration);
-        Time.timeScale = Mathf.Lerp(1f, minTimeScale, slowT);
-        Time.fixedDeltaTime = 0.02f * Time.timeScale;
+        GameTime.SetScale(Mathf.Lerp(1f, minTimeScale, slowT));
 
         UpdateChargeUI();
     }
@@ -219,8 +221,7 @@ public class PlayerShooting : MonoBehaviour
         chargeNormalized = 0f;
         currentSpeedMultiplier = 1f;
         energySpentThisCharge = 0f;
-        Time.timeScale = 1f;
-        Time.fixedDeltaTime = 0.02f;
+        GameTime.Resume();
         ShowChargeUI(false);
     }
 

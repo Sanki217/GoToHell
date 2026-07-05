@@ -122,7 +122,7 @@ public class PlayerHealth : MonoBehaviour
         playerStats?.RecordDamageTaken(amount);
         upgradeManager?.DamageTaken(amount);
 
-        CameraFollow cam = Camera.main?.GetComponent<CameraFollow>();
+        CameraFollow cam = PlayerRefs.CamFollow;   // cached — this runs on every hit
         if (currentHP > 0)
         {
             float mag = shakeMagnitudeBase + shakeMagnitudePer10Dmg * (amount / 10f);
@@ -215,8 +215,7 @@ public class PlayerHealth : MonoBehaviour
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / resurrectionSlowDuration);
             float curve = 1f - Mathf.Pow(1f - t, 3f);
-            Time.timeScale = Mathf.Lerp(1f, resurrectionMinTimeScale, curve);
-            Time.fixedDeltaTime = 0.02f * Time.timeScale;
+            GameTime.SetScale(Mathf.Lerp(1f, resurrectionMinTimeScale, curve));
 
             // Ease camera Z in (zoom)
             if (mainCam != null)
@@ -247,8 +246,7 @@ public class PlayerHealth : MonoBehaviour
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / resurrectionSlowDuration);
-            Time.timeScale = Mathf.Lerp(resurrectionMinTimeScale, 1f, t);
-            Time.fixedDeltaTime = 0.02f * Time.timeScale;
+            GameTime.SetScale(Mathf.Lerp(resurrectionMinTimeScale, 1f, t));
 
             if (mainCam != null)
             {
@@ -260,8 +258,7 @@ public class PlayerHealth : MonoBehaviour
             yield return null;
         }
 
-        Time.timeScale = 1f;
-        Time.fixedDeltaTime = 0.02f;
+        GameTime.Resume();
 
         if (mainCam != null)
         {

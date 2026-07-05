@@ -1,5 +1,13 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
+/// <summary>
+/// Enemy projectile. POOLED — spawned via Pool.Spawn by EnemyShooter and
+/// returned with Pool.Despawn on hit or lifetime expiry (never Destroy).
+///
+/// Owner-collision ignores are tracked and undone on despawn, so a reused
+/// projectile never inherits a previous owner's ignore pairs.
+/// </summary>
 [RequireComponent(typeof(Collider))]
 public class EnemyProjectile : MonoBehaviour
 {
@@ -13,36 +21,61 @@ public class EnemyProjectile : MonoBehaviour
     private Vector3 direction;
     private float speed;
     private Transform ownerRoot;
+    private float lifeTimer;
+
+    private Collider myCollider;
+    private readonly List<Collider> ignoredColliders = new List<Collider>();
+
+    private void Awake()
+    {
+        myCollider = GetComponent<Collider>();
+    }
 
     public void Initialize(Vector3 dir, float moveSpeed, Transform owner)
     {
         direction = dir.normalized;
         speed = moveSpeed;
         ownerRoot = owner;
+        lifeTimer = 0f;
 
         transform.rotation = Quaternion.LookRotation(Vector3.forward, direction);
 
-        Collider myCollider = GetComponent<Collider>();
-
-        // Ignore ALL colliders on the shooting enemy (root + children)
-        if (myCollider && ownerRoot)
+        // Ignore ALL colliders on the shooting enemy (root + children),
+        // remembering each pair so it can be undone on despawn.
+        if (myCollider != null && ownerRoot != null)
         {
             foreach (Collider c in ownerRoot.GetComponentsInChildren<Collider>())
+            {
+                if (c == null) continue;
                 Physics.IgnoreCollision(myCollider, c);
+                ignoredColliders.Add(c);
+            }
         }
+    }
 
-        Destroy(gameObject, lifeTime);
+    private void OnDisable()
+    {
+        // Undo owner ignores so pooled reuse starts clean
+        foreach (Collider c in ignoredColliders)
+            if (c != null && myCollider != null)
+                Physics.IgnoreCollision(myCollider, c, false);
+        ignoredColliders.Clear();
+        ownerRoot = null;
     }
 
     private void Update()
     {
         transform.position += direction * speed * Time.deltaTime;
+
+        lifeTimer += Time.deltaTime;
+        if (lifeTimer >= lifeTime)
+            Pool.Despawn(gameObject);
     }
 
     private void OnTriggerEnter(Collider other)
     {
         // Ignore owner
-        if (other.transform.root == ownerRoot) return;
+        if (ownerRoot != null && other.transform.root == ownerRoot) return;
 
         // Ignore pickups / sensors
         if (other.CompareTag("EnemySensor") || other.CompareTag("Orb") || other.CompareTag("Looter"))
@@ -55,9 +88,9 @@ public class EnemyProjectile : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             // Directional damage — the Warrior's shield can block it (projectile
-            // is still destroyed on a blocked hit: the shield absorbs it).
+            // is still despawned on a blocked hit: the shield absorbs it).
             other.GetComponent<PlayerHealth>()?.TakeDamage(damage, transform.position);
-            Destroy(gameObject);
+            Pool.Despawn(gameObject);
             return;
         }
 
@@ -74,11 +107,11 @@ public class EnemyProjectile : MonoBehaviour
                 enemy.TakeDamage(damage);
             }
 
-            Destroy(gameObject);
+            Pool.Despawn(gameObject);
             return;
         }
 
         // ── WORLD ───────────────────────────────────────────────────
-        Destroy(gameObject);
+        Pool.Despawn(gameObject);
     }
 }

@@ -23,42 +23,41 @@ public static class SceneFlow
 
     public static void GoToMainMenu()
     {
-        Time.timeScale = 1f;
+        RunManager.EndRun();   // resets run-scoped state + time
         SceneManager.LoadScene(MainMenu);
     }
 
     public static void GoToCharacterCreator()
     {
-        Time.timeScale = 1f;
+        GameTime.Resume();
         SceneManager.LoadScene(CharacterCreator);
     }
 
     public static void GoToCollection()
     {
-        Time.timeScale = 1f;
+        GameTime.Resume();
         SceneManager.LoadScene(Collection);
     }
 
     /// <summary>Loads a specific gameplay layer (1–9).</summary>
     public static void GoToLevel(int layer)
     {
-        Time.timeScale = 1f;
+        GameTime.Resume();
         layer = Mathf.Clamp(layer, 1, MaxLayer);
         SceneManager.LoadScene(LevelPrefix + layer);
     }
 
-    /// <summary>Starts a fresh run at Level 1. Marks run start on RunConfig.</summary>
+    /// <summary>Starts a fresh run at Level 1. RunManager resets all run-scoped state.</summary>
     public static void StartRunAtLevel1()
     {
-        Time.timeScale = 1f;
-        RunConfig.I?.MarkRunStart();
+        RunManager.BeginRun();
         SceneManager.LoadScene(LevelPrefix + "1");
     }
 
     /// <summary>Advances to the next layer, updating RunConfig.currentLayer.</summary>
     public static void GoToNextLayer()
     {
-        Time.timeScale = 1f;
+        GameTime.Resume();
         int next = (RunConfig.I != null ? RunConfig.I.currentLayer : 1) + 1;
         next = Mathf.Clamp(next, 1, MaxLayer);
         if (RunConfig.I != null) RunConfig.I.currentLayer = next;

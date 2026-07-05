@@ -97,4 +97,32 @@ public class PlayerRefs : MonoBehaviour
 
     /// <summary>World position of the player, or Vector3.zero if no player exists.</summary>
     public static Vector3 Position => I != null ? I.T.position : Vector3.zero;
+
+    // ================================================================
+    //  CACHED CAMERA — use these instead of Camera.main in hot paths
+    // ================================================================
+
+    private static Camera cachedCam;
+    private static CameraFollow cachedCamFollow;
+
+    /// <summary>Cached main camera. Re-resolves automatically after scene loads.</summary>
+    public static Camera Cam
+    {
+        get
+        {
+            if (cachedCam == null) cachedCam = Camera.main;
+            return cachedCam;
+        }
+    }
+
+    /// <summary>Cached CameraFollow on the main camera (screen shake etc.).</summary>
+    public static CameraFollow CamFollow
+    {
+        get
+        {
+            if (cachedCamFollow == null && Cam != null)
+                cachedCamFollow = Cam.GetComponent<CameraFollow>();
+            return cachedCamFollow;
+        }
+    }
 }

@@ -87,7 +87,7 @@ public class PauseMenu : MonoBehaviour
     public void Resume()
     {
         isPaused = false;
-        Time.timeScale = 1f;
+        GameTime.Resume();
         if (pausePanel != null) pausePanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
         playerState?.EnableControl();
@@ -96,14 +96,14 @@ public class PauseMenu : MonoBehaviour
     public void Pause()
     {
         isPaused = true;
-        Time.timeScale = 0f;
+        GameTime.Pause();
         if (pausePanel != null) pausePanel.SetActive(true);
         playerState?.DisableControl();
     }
 
     public void Restart()
     {
-        Time.timeScale = 1f;
+        GameTime.Resume();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 

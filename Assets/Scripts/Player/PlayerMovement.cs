@@ -88,6 +88,8 @@ public class PlayerMovement : MonoBehaviour
     public enum WallSlidePhase { None, LerpToZero, WaitingAtZero, AcceleratingToSlide, Sliding }
     public WallSlidePhase wallSlidePhase = WallSlidePhase.None;
 
+    private PlayerStateController stateCtrl;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -95,6 +97,7 @@ public class PlayerMovement : MonoBehaviour
         rb.useGravity = true;
         playerStats = GetComponent<PlayerStats>();
         upgradeManager = GetComponent<PlayerUpgradeManager>();
+        stateCtrl = GetComponent<PlayerStateController>();
     }
 
     private void Start()
@@ -107,7 +110,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (!GetComponent<PlayerStateController>().HasControl())
+        if (!stateCtrl.HasControl())
         {
             currentVelocity = rb.linearVelocity;
             return;
@@ -153,7 +156,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        var state = GetComponent<PlayerStateController>();
+        var state = stateCtrl;
 
         if (!state.HasControl())
         {
@@ -172,7 +175,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleInput()
     {
-        if (!GetComponent<PlayerStateController>().HasControl()) return;
+        if (!stateCtrl.HasControl()) return;
 
         if (Input.GetButtonDown("Jump"))
         {

@@ -142,13 +142,13 @@ public class LevelUpUI : MonoBehaviour
             pendingLevelUps = 0;
             pendingPickedIds.Clear();
             cachedOffers = null;
-            Time.timeScale = 1f;
+            GameTime.Resume();
             playerState?.EnableControl();
             UpdatePrompt();
             return;
         }
 
-        Time.timeScale = 0f;
+        GameTime.Pause();
         isOpen = true;
         playerState?.DisableControl();
 
@@ -193,7 +193,7 @@ public class LevelUpUI : MonoBehaviour
             // No more picks queued - clear the pending set so it doesn't
             // linger across future level-up sessions
             pendingPickedIds.Clear();
-            Time.timeScale = 1f;
+            GameTime.Resume();
             playerState?.EnableControl();
         }
 
@@ -207,7 +207,7 @@ public class LevelUpUI : MonoBehaviour
 
         if (restoreControl)
         {
-            Time.timeScale = 1f;
+            GameTime.Resume();
             playerState?.EnableControl();
         }
     }

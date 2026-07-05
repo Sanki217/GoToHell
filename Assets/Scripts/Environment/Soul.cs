@@ -1,6 +1,13 @@
-﻿using UnityEngine;
-using System.Collections;
+using UnityEngine;
 
+/// <summary>
+/// Soul pickup. POOLED — spawn with Pool.Spawn, collected souls return to the
+/// pool. Motion (eject damping + attraction) is ticked by SoulMotionManager
+/// in a single FixedUpdate for all souls — no per-soul coroutines.
+///
+/// Lifecycle: Pool.Spawn → Initialize(ejectDir, force) → [Looter calls
+/// StartAttract OR SoulLooter trigger contact] → Collect → Pool.Despawn.
+/// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class Soul : MonoBehaviour
 {
@@ -25,13 +32,19 @@ public class Soul : MonoBehaviour
 
     public float speedEscalationPerSecond = 8f;
 
+    // ── state ───────────────────────────────────────────────────────
     private Rigidbody rb;
-    private bool isAttracted = false;
-    private bool collected = false;
+    private Vector3 originalScale;
+
+    private bool collected;
+    private bool isAttracted;
     private Transform attractTarget;
     private PlayerInventory targetInventory;
-    private Vector3 originalScale;
-    private Coroutine dampRoutine;
+    private float attractElapsed;
+
+    private bool damping;
+    private float dampTimer;
+    private Vector3 dampStartVelocity;
 
     void Awake()
     {
@@ -39,25 +52,33 @@ public class Soul : MonoBehaviour
         originalScale = transform.localScale;
     }
 
+    // OnEnable runs on every pool reuse — full state reset here.
+    void OnEnable()
+    {
+        collected = false;
+        isAttracted = false;
+        attractTarget = null;
+        targetInventory = null;
+        attractElapsed = 0f;
+        damping = false;
+        dampTimer = 0f;
+        transform.localScale = originalScale;
+        rb.isKinematic = false;
+
+        SoulMotionManager.Register(this);
+    }
+
+    void OnDisable()
+    {
+        SoulMotionManager.Unregister(this);
+    }
+
     public void Initialize(Vector3 ejectDir, float ejectForce)
     {
         rb.linearVelocity = ejectDir.normalized * ejectForce;
-        dampRoutine = StartCoroutine(InitialDampCoroutine());
-    }
-
-    IEnumerator InitialDampCoroutine()
-    {
-        float t = 0f;
-        Vector3 startVelocity = rb.linearVelocity;
-        while (t < initialDampDuration)
-        {
-            if (rb.isKinematic) yield break;
-            t += Time.deltaTime;
-            float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / initialDampDuration), 2f);
-            rb.linearVelocity = Vector3.Lerp(startVelocity, Vector3.zero, ease);
-            yield return null;
-        }
-        rb.linearVelocity = Vector3.zero;
+        dampStartVelocity = rb.linearVelocity;
+        dampTimer = 0f;
+        damping = true;
     }
 
     // ================================================================
@@ -70,22 +91,16 @@ public class Soul : MonoBehaviour
         isAttracted = true;
         attractTarget = playerTransform;
         targetInventory = inventory;
-
-        if (dampRoutine != null) { StopCoroutine(dampRoutine); dampRoutine = null; }
+        attractElapsed = 0f;
+        damping = false;
 
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         rb.isKinematic = true;
-
-        StartCoroutine(AttractCoroutine());
     }
 
     // ================================================================
     //  DIRECT CONTACT — SoulLooter child trigger collider on player
-    //
-    //  Tag the SoulLooter child GameObject with the tag "SoulLooter".
-    //  When the soul physically touches that collider it collects
-    //  immediately — no coroutine stalling possible.
     // ================================================================
 
     private void OnTriggerEnter(Collider other)
@@ -93,57 +108,67 @@ public class Soul : MonoBehaviour
         if (collected) return;
         if (!other.CompareTag("SoulLooter")) return;
 
-        // Grab inventory from the player root if not yet set
         if (targetInventory == null)
-        {
             targetInventory = other.transform.root.GetComponent<PlayerInventory>();
-        }
 
         Collect();
     }
 
     // ================================================================
-    //  ATTRACT COROUTINE — moves soul toward player root
+    //  TICK — called by SoulMotionManager from a single FixedUpdate
     // ================================================================
 
-    IEnumerator AttractCoroutine()
+    public void Tick(float dt)
     {
-        float elapsed = 0f;
+        if (collected) return;
 
-        while (true)
+        if (isAttracted) { AttractTick(dt); return; }
+        if (damping) DampTick(dt);
+    }
+
+    private void DampTick(float dt)
+    {
+        if (rb.isKinematic) { damping = false; return; }
+
+        dampTimer += dt;
+        float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(dampTimer / initialDampDuration), 2f);
+        rb.linearVelocity = Vector3.Lerp(dampStartVelocity, Vector3.zero, ease);
+
+        if (dampTimer >= initialDampDuration)
         {
-            yield return new WaitForFixedUpdate();
-
-            if (attractTarget == null || collected) yield break;
-
-            float dt = Time.fixedDeltaTime;
-            elapsed += dt;
-
-            Vector3 toPlayer = attractTarget.position - transform.position;
-            toPlayer.z = 0f;
-            float dist = toPlayer.magnitude;
-
-            // Distance arrival
-            if (dist <= arrivalDistance) { Collect(); yield break; }
-
-            // Timeout snap
-            if (elapsed >= timeoutSeconds && dist <= snapDistance) { Collect(); yield break; }
-
-            float t = Mathf.Clamp01(elapsed / attractAccelerationTime);
-            float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, t * t);
-
-            // Escalation: speed grows linearly over time, uncapped.
-            // Near the player this barely matters. When falling away, this
-            // guarantees the soul always catches up eventually.
-            float escalation = elapsed * speedEscalationPerSecond;
-            speed += escalation;
-
-            float scaleT = Mathf.Clamp01(dist / shrinkStartDistance);
-            transform.localScale = originalScale * scaleT;
-
-            float step = Mathf.Min(speed * dt, Mathf.Max(0f, dist - arrivalDistance));
-            rb.MovePosition(transform.position + toPlayer.normalized * step);
+            rb.linearVelocity = Vector3.zero;
+            damping = false;
         }
+    }
+
+    private void AttractTick(float dt)
+    {
+        if (attractTarget == null) { isAttracted = false; return; }
+
+        attractElapsed += dt;
+
+        Vector3 toPlayer = attractTarget.position - transform.position;
+        toPlayer.z = 0f;
+        float dist = toPlayer.magnitude;
+
+        // Distance arrival
+        if (dist <= arrivalDistance) { Collect(); return; }
+
+        // Timeout snap
+        if (attractElapsed >= timeoutSeconds && dist <= snapDistance) { Collect(); return; }
+
+        float t = Mathf.Clamp01(attractElapsed / attractAccelerationTime);
+        float speed = Mathf.Lerp(minAttractSpeed, maxAttractSpeed, t * t);
+
+        // Escalation: speed grows linearly over time, uncapped — the soul
+        // always catches up eventually, even if the player is falling away.
+        speed += attractElapsed * speedEscalationPerSecond;
+
+        float scaleT = Mathf.Clamp01(dist / shrinkStartDistance);
+        transform.localScale = originalScale * scaleT;
+
+        float step = Mathf.Min(speed * dt, Mathf.Max(0f, dist - arrivalDistance));
+        rb.MovePosition(transform.position + toPlayer.normalized * step);
     }
 
     private void Collect()
@@ -151,6 +176,6 @@ public class Soul : MonoBehaviour
         if (collected) return;
         collected = true;
         targetInventory?.AddSouls(value);
-        Destroy(gameObject);
+        Pool.Despawn(gameObject);
     }
 }

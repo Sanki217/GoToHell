@@ -44,7 +44,7 @@ public class FloatingTextManager : MonoBehaviour
     // ================================================================
 
     [Header("Prefab")]
-    public GameObject floatingTextPrefab;  // assign in Inspector — see setup instructions
+    public GameObject floatingTextPrefab;  // assign in Inspector ï¿½ see setup instructions
 
     [Header("Settings")]
     public bool showDamageNumbers = true;  // toggled from Settings menu
@@ -108,7 +108,7 @@ public class FloatingTextManager : MonoBehaviour
         // Slight random horizontal offset so numbers don't stack perfectly
         Vector3 spawnPos = position + new Vector3(Random.Range(-0.3f, 0.3f), 0.3f, 0f);
 
-        GameObject go = Instantiate(floatingTextPrefab, spawnPos, Quaternion.identity);
+        GameObject go = Pool.Spawn(floatingTextPrefab, spawnPos, Quaternion.identity);
         FloatingText ft = go.GetComponent<FloatingText>();
 
         if (ft == null)
