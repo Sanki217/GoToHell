@@ -9199,6 +9199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debugActiveUpgrades: []
+  logEvents: 0
 --- !u!114 &1048261606
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9488,7 +9489,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac82512f45dfd0f44924c06d613cd004, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArrowRegenerator
-  secondsPerArrow: 3
+  secondsPerArrow: 5
 --- !u!114 &1048261613
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15686,7 +15687,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1681856967}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Shop
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

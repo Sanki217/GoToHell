@@ -329,12 +329,58 @@ public class PlayerShooting : MonoBehaviour
 
     void UpdateArrowUI()
     {
+        EnsureArrowDotCapacity();
+
         for (int i = 0; i < arrowDots.Length; i++)
         {
             if (arrowDots[i] == null) continue;
             arrowDots[i].SetActive(i < currentArrows);
         }
         ApplyDotTints();
+    }
+
+    /// <summary>
+    /// The quiver can grow mid-run (Better Quiver shop item). The dot UI was
+    /// a fixed Inspector array, so extra arrows were invisible — the quiver
+    /// LOOKED infinite. This clones the last dot to match maxArrows.
+    /// </summary>
+    private void EnsureArrowDotCapacity()
+    {
+        if (arrowDots == null || arrowDots.Length == 0) return;
+        if (maxArrows <= arrowDots.Length) return;
+
+        int oldCount = arrowDots.Length;
+        var newDots = new GameObject[maxArrows];
+        var newColors = new Color[maxArrows];
+
+        for (int i = 0; i < oldCount; i++)
+        {
+            newDots[i] = arrowDots[i];
+            newColors[i] = (arrowDotOriginalColors != null && i < arrowDotOriginalColors.Length)
+                ? arrowDotOriginalColors[i] : Color.white;
+        }
+
+        GameObject template = arrowDots[oldCount - 1];
+        // Offset new dots by the spacing between the last two existing dots
+        // (skip if a LayoutGroup is doing the positioning).
+        Vector3 step = Vector3.zero;
+        bool hasLayoutGroup = template.transform.parent != null &&
+                              template.transform.parent.GetComponent<UnityEngine.UI.LayoutGroup>() != null;
+        if (!hasLayoutGroup && oldCount >= 2 && arrowDots[oldCount - 2] != null)
+            step = template.transform.localPosition - arrowDots[oldCount - 2].transform.localPosition;
+
+        for (int i = oldCount; i < maxArrows; i++)
+        {
+            GameObject clone = Instantiate(template, template.transform.parent);
+            clone.name = $"ArrowDot {i + 1}";
+            if (!hasLayoutGroup)
+                clone.transform.localPosition = template.transform.localPosition + step * (i - (oldCount - 1));
+            newDots[i] = clone;
+            newColors[i] = newColors[oldCount - 1];
+        }
+
+        arrowDots = newDots;
+        arrowDotOriginalColors = newColors;
     }
 
     private void CacheArrowDotColors()

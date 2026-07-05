@@ -1,12 +1,20 @@
 using UnityEngine;
 
 /// <summary>
-/// Soul pickup. POOLED — spawn with Pool.Spawn, collected souls return to the
-/// pool. Motion (eject damping + attraction) is ticked by SoulMotionManager
-/// in a single FixedUpdate for all souls — no per-soul coroutines.
+/// Soul pickup. POOLED — spawn with Pool.Spawn; collected souls return to the
+/// pool. Motion is ticked by SoulMotionManager in a single FixedUpdate.
 ///
-/// Lifecycle: Pool.Spawn → Initialize(ejectDir, force) → [Looter calls
-/// StartAttract OR SoulLooter trigger contact] → Collect → Pool.Despawn.
+/// KINEMATIC MOVEMENT, MANUAL COLLISION: the soul moves itself and checks the
+/// Wall layer with a spherecast each step — the physics engine never resolves
+/// contacts for it, so there is no residual jitter, and it ignores arrows,
+/// other souls, and everything not on wallLayers by construction.
+///
+/// Bounce rule: exactly ONE reflected bounce off walls/platforms at
+/// bounceRetainedSpeed (default half) of the impact velocity — mirror
+/// direction, like physics. The next wall contact stops it dead.
+///
+/// Collection is unchanged (the fun part): Looter range starts the attraction,
+/// SoulLooter contact collects instantly.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class Soul : MonoBehaviour
@@ -14,8 +22,17 @@ public class Soul : MonoBehaviour
     [Header("Soul Value")]
     public int value = 1;
 
-    [Header("Initial Eject Physics")]
+    [Header("Eject Movement")]
     public float initialDampDuration = 0.6f;
+
+    [Header("Wall Bounce")]
+    [Tooltip("Layers the soul bounces off (once) and then stops on. Auto-set to 'Wall' if left empty.")]
+    public LayerMask wallLayers;
+    [Tooltip("Fraction of impact speed kept after the single bounce.")]
+    [Range(0f, 1f)]
+    public float bounceRetainedSpeed = 0.5f;
+    [Tooltip("Radius of the movement spherecast — roughly the soul's visual radius.")]
+    public float castRadius = 0.15f;
 
     [Header("Attract Movement")]
     public float minAttractSpeed = 10f;
@@ -32,6 +49,8 @@ public class Soul : MonoBehaviour
 
     public float speedEscalationPerSecond = 8f;
 
+    private const float Skin = 0.02f;   // gap kept from wall surfaces
+
     // ── state ───────────────────────────────────────────────────────
     private Rigidbody rb;
     private Vector3 originalScale;
@@ -42,14 +61,22 @@ public class Soul : MonoBehaviour
     private PlayerInventory targetInventory;
     private float attractElapsed;
 
-    private bool damping;
-    private float dampTimer;
-    private Vector3 dampStartVelocity;
+    private Vector3 ejectVelocity;   // undamped base velocity; damp curve scales it
+    private float ejectTimer;
+    private bool hasBounced;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;    // engine never moves or resolves this body
+        rb.useGravity = false;
         originalScale = transform.localScale;
+
+        if (wallLayers == 0)
+        {
+            int wall = LayerMask.NameToLayer("Wall");
+            if (wall >= 0) wallLayers = 1 << wall;
+        }
     }
 
     // OnEnable runs on every pool reuse — full state reset here.
@@ -60,10 +87,10 @@ public class Soul : MonoBehaviour
         attractTarget = null;
         targetInventory = null;
         attractElapsed = 0f;
-        damping = false;
-        dampTimer = 0f;
+        ejectVelocity = Vector3.zero;
+        ejectTimer = 0f;
+        hasBounced = false;
         transform.localScale = originalScale;
-        rb.isKinematic = false;
 
         SoulMotionManager.Register(this);
     }
@@ -75,10 +102,9 @@ public class Soul : MonoBehaviour
 
     public void Initialize(Vector3 ejectDir, float ejectForce)
     {
-        rb.linearVelocity = ejectDir.normalized * ejectForce;
-        dampStartVelocity = rb.linearVelocity;
-        dampTimer = 0f;
-        damping = true;
+        ejectVelocity = ejectDir.normalized * ejectForce;
+        ejectTimer = 0f;
+        hasBounced = false;
     }
 
     // ================================================================
@@ -87,16 +113,12 @@ public class Soul : MonoBehaviour
 
     public void StartAttract(Transform playerTransform, PlayerInventory inventory)
     {
-        if (isAttracted || collected) return;
+        if (isAttracted || collected || playerTransform == null) return;
         isAttracted = true;
         attractTarget = playerTransform;
         targetInventory = inventory;
         attractElapsed = 0f;
-        damping = false;
-
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
-        rb.isKinematic = true;
+        ejectVelocity = Vector3.zero;
     }
 
     // ================================================================
@@ -122,28 +144,65 @@ public class Soul : MonoBehaviour
     {
         if (collected) return;
 
-        if (isAttracted) { AttractTick(dt); return; }
-        if (damping) DampTick(dt);
+        if (isAttracted)
+        {
+            AttractTick(dt);
+            return;
+        }
+
+        EjectTick(dt);
     }
 
-    private void DampTick(float dt)
+    private void EjectTick(float dt)
     {
-        if (rb.isKinematic) { damping = false; return; }
+        if (ejectVelocity == Vector3.zero || ejectTimer >= initialDampDuration) return;
 
-        dampTimer += dt;
-        float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(dampTimer / initialDampDuration), 2f);
-        rb.linearVelocity = Vector3.Lerp(dampStartVelocity, Vector3.zero, ease);
+        ejectTimer += dt;
 
-        if (dampTimer >= initialDampDuration)
+        // Ease-out damping: current speed = base * (1 - t)^2.
+        // Halving the base at a bounce halves the current speed too, so the
+        // "half the power it had when colliding" rule holds exactly.
+        float remaining = 1f - Mathf.Clamp01(ejectTimer / initialDampDuration);
+        Vector3 velocity = ejectVelocity * (remaining * remaining);
+
+        Vector3 step = velocity * dt;
+        float dist = step.magnitude;
+        if (dist < 0.0001f) return;
+
+        Vector3 dir = step / dist;
+
+        if (Physics.SphereCast(transform.position, castRadius, dir, out RaycastHit hit,
+                               dist + Skin, wallLayers, QueryTriggerInteraction.Ignore))
         {
-            rb.linearVelocity = Vector3.zero;
-            damping = false;
+            // Advance to the contact point (minus skin), never into the wall
+            Vector3 contactPos = transform.position + dir * Mathf.Max(0f, hit.distance - Skin);
+            rb.MovePosition(contactPos);
+
+            if (!hasBounced)
+            {
+                hasBounced = true;
+                Vector3 reflected = Vector3.Reflect(ejectVelocity, hit.normal) * bounceRetainedSpeed;
+                reflected.z = 0f;
+                ejectVelocity = reflected;
+            }
+            else
+            {
+                ejectVelocity = Vector3.zero;   // second wall contact — stop dead
+            }
+        }
+        else
+        {
+            rb.MovePosition(transform.position + step);
         }
     }
 
     private void AttractTick(float dt)
     {
-        if (attractTarget == null) { isAttracted = false; return; }
+        if (attractTarget == null)
+        {
+            isAttracted = false;   // player gone (death/scene edge) — go idle
+            return;
+        }
 
         attractElapsed += dt;
 
