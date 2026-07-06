@@ -47,6 +47,7 @@ public class PlayerSlash : MonoBehaviour
     private PlayerStats playerStats;
     private PlayerShooting shooting;
     private PlayerStateController stateController;
+    private PlayerUpgradeManager upgradeManager;
     private Camera mainCam;
 
     // Geometry computed at slash time — read by Slash_Damage_Collider
@@ -63,6 +64,7 @@ public class PlayerSlash : MonoBehaviour
         playerStats = GetComponent<PlayerStats>();
         shooting = GetComponent<PlayerShooting>();
         stateController = GetComponent<PlayerStateController>();
+        upgradeManager = GetComponent<PlayerUpgradeManager>();
         mainCam = Camera.main;
 
         if (slashColliderObject != null)
@@ -181,7 +183,10 @@ public class PlayerSlash : MonoBehaviour
         );
 
         playerStats?.RecordSlashHitEnemy();
-        playerStats?.RecordDamageDealt(finalDmg, DamageSource.Slash);
+        playerStats?.RecordDamageDealt(finalDmg, DamageSource.Slash, enemyGO);
+
+        // Upgrade bus — lets weapon-agnostic upgrades (e.g. Burning Weapon) react to slashes
+        upgradeManager?.SlashHitEnemy(enemyGO);
     }
 
     public void OnSlashHitDestructible(Vase vase, ExplosiveBarrel barrel)

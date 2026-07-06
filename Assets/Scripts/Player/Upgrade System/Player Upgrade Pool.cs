@@ -102,6 +102,9 @@ public class PlayerUpgradePool : ScriptableObject
             // Skip upgrades already owned by the manager
             if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
 
+            // Skip upgrades tied to a weapon/class the player isn't running
+            if (!upgrade.IsAvailableForCurrentRun()) continue;
+
             // Skip upgrades picked this session but whose orbs haven't landed yet
             if (extraExcludeIds != null && extraExcludeIds.Contains(upgrade.UpgradeId)) continue;
 
@@ -129,6 +132,7 @@ public class PlayerUpgradePool : ScriptableObject
             PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
             if (upgrade == null) continue;
             if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
+            if (!upgrade.IsAvailableForCurrentRun()) continue;
 
             UpgradeRarity rarity = UpgradeRarityRoller.RollWithLuckOnly(luck);
             return BuildOffer(prefab, upgrade, rarity, stats);

@@ -75,6 +75,13 @@ public class PlayerHealth : MonoBehaviour
         playerStats = GetComponent<PlayerStats>();
         shieldAbility = GetComponent<ShieldAbility>();
 
+        // Spawned-prefab support: pull scene HUD refs not wired on the prefab
+        if (HUDRefs.I != null)
+        {
+            if (hpSlider == null) hpSlider = HUDRefs.I.hpSlider;
+            if (hpText == null) hpText = HUDRefs.I.hpText;
+        }
+
         if (playerStats != null) maxHP = playerStats.maxHP;
         currentHP = maxHP;
 
@@ -95,10 +102,13 @@ public class PlayerHealth : MonoBehaviour
     /// Non-directional hazards (spikes, lava, curse costs) use TakeDamage(int)
     /// and cannot be blocked.
     /// </summary>
-    public void TakeDamage(int amount, Vector3 sourcePosition)
+    public void TakeDamage(int amount, Vector3 sourcePosition, GameObject source = null)
     {
         if (shieldAbility != null && shieldAbility.IsBlockingFrom(sourcePosition))
+        {
+            shieldAbility.OnBlockedHit(source);   // shield counter: damage + knockback
             return;   // blocked — no damage, no i-frames
+        }
 
         TakeDamage(amount);
     }
@@ -118,6 +128,7 @@ public class PlayerHealth : MonoBehaviour
 
         currentHP -= amount;
         currentHP = Mathf.Max(currentHP, 0);
+        playerStats?.SyncHPMirror(currentHP);
 
         playerStats?.RecordDamageTaken(amount);
         upgradeManager?.DamageTaken(amount);
@@ -160,6 +171,7 @@ public class PlayerHealth : MonoBehaviour
     public void RestoreHP(int amount)
     {
         currentHP = Mathf.Min(currentHP + amount, maxHP);
+        playerStats?.SyncHPMirror(currentHP);
         playerStats?.RecordHPRestored(amount);
         UpdateHealthUI();
     }
@@ -167,6 +179,7 @@ public class PlayerHealth : MonoBehaviour
     public void SetHP(int value)
     {
         currentHP = Mathf.Clamp(value, 0, maxHP);
+        playerStats?.SyncHPMirror(currentHP);
         UpdateHealthUI();
     }
 
@@ -192,6 +205,7 @@ public class PlayerHealth : MonoBehaviour
         }
 
         upgradeManager?.PlayerDied();
+        Achievements.TriggerEvent("player_died");   // e.g. unlocks the Warrior class
 
         // Run summary (records the run + back-to-menu). Fallback: old fade-and-reload
         // for scenes without a RunSummaryUI (e.g. testing).

@@ -29,9 +29,14 @@ public class LevelExit : MonoBehaviour
         // Fire achievement event: "level_1_complete", "level_2_complete", ...
         Achievements.TriggerEvent($"level_{layer}_complete");
 
-        if (layer >= SceneFlow.MaxLayer)
+        // Demo-safe: if the next layer's scene isn't in Build Settings yet,
+        // the run ends here as a victory instead of crashing on a missing scene.
+        bool isFinalLayer = layer >= SceneFlow.MaxLayer;
+        bool nextLevelExists = Application.CanStreamedLevelBeLoaded(SceneFlow.LevelPrefix + (layer + 1));
+
+        if (isFinalLayer || !nextLevelExists)
         {
-            // Final layer cleared — victory. Show run summary, fall back to menu.
+            // Run complete — victory summary, fall back to menu.
             // (Depth is NOT banked here — RunSummaryUI reads the live tracker.)
             if (!RunSummaryUI.TryShow(true))
                 SceneFlow.GoToMainMenu();

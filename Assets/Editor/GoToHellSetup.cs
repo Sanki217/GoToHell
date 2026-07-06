@@ -23,6 +23,25 @@ using UnityEngine.UI;
 public static class GoToHellSetup
 {
     // ================================================================
+    //  0. DELETE SAVE
+    // ================================================================
+
+    [MenuItem("Tools/Go To Hell/0. Delete Save File")]
+    public static void DeleteSaveFile()
+    {
+        string path = System.IO.Path.Combine(Application.persistentDataPath, "save.json");
+        if (System.IO.File.Exists(path))
+        {
+            System.IO.File.Delete(path);
+            Debug.Log("[GoToHellSetup] Deleted save: " + path);
+        }
+        else
+        {
+            Debug.Log("[GoToHellSetup] No save file at: " + path);
+        }
+    }
+
+    // ================================================================
     //  1. DEFAULT ASSETS
     // ================================================================
 
@@ -58,7 +77,7 @@ public static class GoToHellSetup
             warrior.classId            = "warrior";
             warrior.displayName        = "Warrior";
             warrior.description        = "A bulwark of muscle and spite. Slower, but very hard to put down.";
-            warrior.unlockedByDefault  = true;
+            warrior.unlockedByDefault  = false;   // unlocked by the "die once" achievement
             warrior.skillComponentName = "ShieldAbility";
             warrior.skillDisplayName   = "Shield";
             warrior.skillDescription   = "Hold RMB to raise a shield toward the cursor, blocking damage from that direction. Drains energy per second. Size widens the arc.";
@@ -99,24 +118,136 @@ public static class GoToHellSetup
             sword.weaponId          = "sword";
             sword.displayName       = "Sword";
             sword.description       = "A close-quarters blade. Slash toward the cursor — reach scales with Size, speed with Cooldown.";
-            sword.unlockedByDefault = true;
+            sword.unlockedByDefault = false;   // unlocked by the "finish Level 1" achievement
             sword.weaponComponentNames = new[] { "PlayerSlash" };
             AssetDatabase.CreateAsset(sword, swordPath);
             Debug.Log("[GoToHellSetup] Created Sword weapon (assign its sprite in the Inspector).");
         }
 
-        // Starting pact: if no pact is unlocked by default yet, flag the first one
-        PactDefinition[] pacts = Resources.LoadAll<PactDefinition>("Pacts");
-        if (pacts.Length > 0 && !pacts.Any(p => p.unlockedByDefault))
+        // DEMO LOCK STATE — only Rogue + Bow start unlocked.
+        // Warrior/Sword unlock via achievements; pacts arrive after the first boss.
+        ClassDefinition warriorDef = AssetDatabase.LoadAssetAtPath<ClassDefinition>(warriorPath);
+        if (warriorDef != null && warriorDef.unlockedByDefault)
         {
-            pacts[0].unlockedByDefault = true;
-            EditorUtility.SetDirty(pacts[0]);
-            Debug.Log($"[GoToHellSetup] Marked pact '{pacts[0].name}' as unlockedByDefault.");
+            warriorDef.unlockedByDefault = false;
+            EditorUtility.SetDirty(warriorDef);
+            Debug.Log("[GoToHellSetup] Warrior locked (achievement: die once).");
         }
+        WeaponDefinition swordDef = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(swordPath);
+        if (swordDef != null && swordDef.unlockedByDefault)
+        {
+            swordDef.unlockedByDefault = false;
+            EditorUtility.SetDirty(swordDef);
+            Debug.Log("[GoToHellSetup] Sword locked (achievement: finish Level 1).");
+        }
+        foreach (PactDefinition p in Resources.LoadAll<PactDefinition>("Pacts"))
+        {
+            if (p != null && p.unlockedByDefault)
+            {
+                p.unlockedByDefault = false;
+                EditorUtility.SetDirty(p);
+                Debug.Log($"[GoToHellSetup] Pact '{p.name}' locked (not in demo).");
+            }
+        }
+
+        // Unlock achievements
+        EnsureFolder("Assets/Resources/Achievements");
+        EnsureUnlockAchievement("ach_first_death", "Death Is Just The Beginning",
+            "Die for the first time.", "player_died", warriorDef, null);
+        EnsureUnlockAchievement("ach_limbo_cleared", "Limbo Cleared",
+            "Finish Level 1 for the first time.", "level_1_complete", null, swordDef);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[GoToHellSetup] Default assets done.");
+    }
+
+    // ================================================================
+    //  1b. UPGRADE AVAILABILITY TAGS
+    // ================================================================
+
+    [MenuItem("Tools/Go To Hell/1b. Tag Upgrade Availability")]
+    public static void TagUpgradeAvailability()
+    {
+        PlayerUpgradePool pool = Resources.Load<PlayerUpgradePool>("UpgradePool");
+        if (pool == null)
+        {
+            Debug.LogError("[GoToHellSetup] No PlayerUpgradePool at Resources/UpgradePool.");
+            return;
+        }
+
+        // Bow-only upgrades (arrow mechanics)
+        var bowUpgrades = new System.Collections.Generic.HashSet<string>
+        {
+            "UpgradeArrowPierce", "UpgradeGravityArrow", "UpgradeMirrorArrow",
+            "UpgradeSoulArrow", "UpgradeNewSharpSet", "UpgradeDeadMansHand",
+            "UpgradeBloodArrow"
+        };
+        // Rogue-only upgrades (dash mechanics)
+        var rogueUpgrades = new System.Collections.Generic.HashSet<string>
+        {
+            "UpgradePredator", "UpgradePhantomStep"
+        };
+
+        int tagged = 0;
+        foreach (GameObject prefab in pool.upgradePrefabs)
+        {
+            if (prefab == null) continue;
+            PlayerUpgrade u = prefab.GetComponent<PlayerUpgrade>();
+            if (u == null) continue;
+
+            string typeName = u.GetType().Name;
+            string weapon = bowUpgrades.Contains(typeName) ? "bow" : "";
+            string cls = rogueUpgrades.Contains(typeName) ? "rogue" : "";
+
+            bool dirty = false;
+            if (u.requiredWeaponId != weapon) { u.requiredWeaponId = weapon; dirty = true; }
+            if (u.requiredClassId != cls) { u.requiredClassId = cls; dirty = true; }
+
+            // Burning Arrow → Burning Weapon display rebrand (same prefab/GUID)
+            if (typeName == "UpgradeBurningWeapon" && u.displayName != "Burning Weapon")
+            {
+                u.displayName = "Burning Weapon";
+                u.description = "Your weapon hits set enemies on fire. Works with arrows, slashes, and dashes.";
+                dirty = true;
+            }
+
+            if (dirty)
+            {
+                EditorUtility.SetDirty(u);
+                tagged++;
+                Debug.Log($"[GoToHellSetup] Tagged {typeName}: weapon='{weapon}' class='{cls}'.");
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[GoToHellSetup] Upgrade tagging done ({tagged} prefabs updated).");
+    }
+
+    private static void EnsureUnlockAchievement(string id, string displayName, string description,
+        string eventId, ClassDefinition classUnlock, WeaponDefinition weaponUnlock)
+    {
+        string path = $"Assets/Resources/Achievements/{id}.asset";
+        AchievementDefinition existing = AssetDatabase.LoadAssetAtPath<AchievementDefinition>(path);
+        if (existing != null)
+        {
+            bool dirty = false;
+            if (existing.classToUnlock == null && classUnlock != null) { existing.classToUnlock = classUnlock; dirty = true; }
+            if (existing.weaponToUnlock == null && weaponUnlock != null) { existing.weaponToUnlock = weaponUnlock; dirty = true; }
+            if (dirty) EditorUtility.SetDirty(existing);
+            return;
+        }
+
+        AchievementDefinition a = ScriptableObject.CreateInstance<AchievementDefinition>();
+        a.id = id;
+        a.displayName = displayName;
+        a.description = description;
+        a.type = AchievementType.Event;
+        a.eventId = eventId;
+        a.classToUnlock = classUnlock;
+        a.weaponToUnlock = weaponUnlock;
+        AssetDatabase.CreateAsset(a, path);
+        Debug.Log($"[GoToHellSetup] Created achievement '{id}' ({eventId}).");
     }
 
     // ================================================================

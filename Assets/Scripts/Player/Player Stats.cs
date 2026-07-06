@@ -321,7 +321,17 @@ public class PlayerStats : MonoBehaviour
     public int CurrentHP
     {
         get => _currentHP;
-        set { _currentHP = value; if (health != null) health.SetHP(value); }
+        set { _currentHP = value; _lastReadHP = value; if (health != null) health.SetHP(value); }
+    }
+
+    /// <summary>
+    /// Called by PlayerHealth whenever HP changes so the Inspector mirror can
+    /// never push a stale value back over a fresh heal/damage.
+    /// </summary>
+    public void SyncHPMirror(int hp)
+    {
+        _currentHP = hp;
+        _lastReadHP = hp;
     }
 
     private void Update()
@@ -491,7 +501,7 @@ public class PlayerStats : MonoBehaviour
         if (airborne) timeAirborne += dt;
     }
 
-    public void RecordDamageDealt(float amount, DamageSource source)
+    public void RecordDamageDealt(float amount, DamageSource source, GameObject target = null)
     {
         totalDamageDealt += amount;
         switch (source)
@@ -502,7 +512,9 @@ public class PlayerStats : MonoBehaviour
             case DamageSource.Explosion: damageByExplosion += amount; break;
             case DamageSource.Slash: damageBySlash += amount; break;
         }
-        if (lifeSteal > 0f && health != null)
+        // Lifesteal — never procs off the training dummy (infinite-heal exploit)
+        bool isDummy = target != null && target.GetComponentInParent<TrainingDummy>() != null;
+        if (lifeSteal > 0f && health != null && !isDummy)
             health.RestoreHP(Mathf.Max(1, Mathf.RoundToInt(amount * lifeSteal)));
     }
 

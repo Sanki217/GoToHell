@@ -79,6 +79,14 @@ public class KillStreak : MonoBehaviour
 
     private void Start()
     {
+        // Spawned-prefab support: pull scene HUD refs not wired on the prefab
+        if (HUDRefs.I != null)
+        {
+            if (streakPanel == null) streakPanel = HUDRefs.I.streakPanel;
+            if (streakLabel == null) streakLabel = HUDRefs.I.streakLabel;
+            if (timerSlider == null) timerSlider = HUDRefs.I.streakTimerSlider;
+        }
+
         if (streakPanel != null) streakPanel.SetActive(false);
     }
 

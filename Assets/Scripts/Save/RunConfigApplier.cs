@@ -3,17 +3,17 @@ using UnityEngine;
 
 /// <summary>
 /// Applies the current RunConfig to the player when a gameplay scene loads.
-/// Put this on the player in gameplay scenes.
+/// Lives on every class player prefab.
 ///
 /// 1. Adds the selected class's stat preset to PlayerStats.
-/// 2. Enables the selected class's RMB skill component and disables every
-///    other class's (matched by type name via ClassDefinition.skillComponentName).
-/// 3. Enables the selected weapon's components and disables every other
+/// 2. Enables the selected weapon's components and disables every other
 ///    weapon's (matched by type name via WeaponDefinition.weaponComponentNames).
 ///
-/// All class-skill and weapon components live on the player prefab (disabled
-/// or not) — this picks the right ones. If no RunConfig exists (e.g. testing
-/// the gameplay scene directly), it does nothing and prefab defaults apply.
+/// The class RMB skill needs no toggling anymore — each class has its own
+/// player prefab carrying only its skill components (see PlayerSpawner).
+///
+/// If no RunConfig exists (e.g. testing the gameplay scene directly),
+/// it does nothing and prefab defaults apply.
 /// </summary>
 [RequireComponent(typeof(PlayerStats))]
 public class RunConfigApplier : MonoBehaviour
@@ -33,42 +33,11 @@ public class RunConfigApplier : MonoBehaviour
         stats.AddPrimary(PrimaryStat.Size,         cfg.size);
         stats.AddPrimary(PrimaryStat.Cooldown,     cfg.cooldown);
 
-        ApplyClassSkill(cfg.selectedClassId);
         ApplyWeaponComponents(cfg.selectedWeaponId);
 
         // Refill HP to the new max after Health allocation
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null) health.SetHP(health.maxHP);
-    }
-
-    /// <summary>
-    /// Enables only the selected class's RMB skill component on the player.
-    /// </summary>
-    private void ApplyClassSkill(string classId)
-    {
-        if (string.IsNullOrEmpty(classId)) return;   // no class chosen — leave prefab defaults
-
-        ClassDefinition[] defs = Resources.LoadAll<ClassDefinition>("Classes");
-        if (defs == null || defs.Length == 0) return;
-
-        string selectedSkill = null;
-        foreach (ClassDefinition d in defs)
-            if (d != null && d.classId == classId) { selectedSkill = d.skillComponentName; break; }
-
-        if (string.IsNullOrEmpty(selectedSkill))
-        {
-            Debug.LogWarning($"[RunConfigApplier] No ClassDefinition found for '{classId}' in Resources/Classes.");
-            return;
-        }
-
-        foreach (ClassDefinition d in defs)
-        {
-            if (d == null || string.IsNullOrEmpty(d.skillComponentName)) continue;
-            if (GetComponent(d.skillComponentName) is Behaviour skill)
-                skill.enabled = d.skillComponentName == selectedSkill;
-            else if (d.skillComponentName == selectedSkill)
-                Debug.LogWarning($"[RunConfigApplier] Player has no '{selectedSkill}' component for class '{classId}'.");
-        }
     }
 
     /// <summary>

@@ -32,7 +32,13 @@ public class AchievementDefinition : ScriptableObject
     [Header("Event — id to match (only for Event type)")]
     public string eventId;
 
-    [Header("Reward")]
+    [Header("Rewards (any combination, all optional)")]
     [Tooltip("Pact unlocked when this achievement completes.")]
     public PactDefinition pactToUnlock;
+
+    [Tooltip("Class unlocked when this achievement completes (e.g. Warrior on first death).")]
+    public ClassDefinition classToUnlock;
+
+    [Tooltip("Weapon unlocked when this achievement completes (e.g. Sword on finishing Level 1).")]
+    public WeaponDefinition weaponToUnlock;
 }

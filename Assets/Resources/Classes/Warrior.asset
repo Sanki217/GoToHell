@@ -16,7 +16,8 @@ MonoBehaviour:
   displayName: Warrior
   description: A bulwark of muscle and spite. Slower, but very hard to put down.
   sprite: {fileID: 10917, guid: 0000000000000000f000000000000000, type: 0}
-  unlockedByDefault: 1
+  unlockedByDefault: 0
+  playerPrefab: {fileID: 7728477047858160054, guid: 208525a8fc9edde4bbfb3733925fc8d1, type: 3}
   skillComponentName: ShieldAbility
   skillDisplayName: Shield
   skillDescription: Hold RMB to raise a shield toward the cursor, blocking damage

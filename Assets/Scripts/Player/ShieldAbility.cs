@@ -20,6 +20,14 @@ public class ShieldAbility : MonoBehaviour
     public float arcDegreesPerSizePoint = 5f;
     public float maxArcDegrees = 360f;
 
+    [Header("Projectile Reflection")]
+    [Tooltip("Energy paid per reflected projectile. If the player can't afford it, the projectile is absorbed instead.")]
+    public float reflectEnergyCost = 5f;
+
+    [Header("Contact Counter")]
+    [Tooltip("Enemies whose contact hit is blocked take Attack Damage × this, plus knockback.")]
+    public float contactDamageMultiplier = 0.4f;
+
     [Header("Visual (optional)")]
     [Tooltip("Child object shown while blocking, rotated toward the cursor (e.g. a curved quad).")]
     public GameObject shieldVisual;
@@ -92,6 +100,38 @@ public class ShieldAbility : MonoBehaviour
             float sizeBonus = playerStats != null ? playerStats.size * arcDegreesPerSizePoint : 0f;
             return Mathf.Clamp(baseArcDegrees + sizeBonus, 0f, maxArcDegrees);
         }
+    }
+
+    /// <summary>
+    /// Pays the reflect cost for one projectile. Called by EnemyProjectile
+    /// when it hits a raised shield. False = can't afford it (absorb instead).
+    /// </summary>
+    public bool TryPayReflectCost()
+    {
+        return isBlocking && energy != null && energy.SpendEnergy(reflectEnergyCost);
+    }
+
+    /// <summary>
+    /// Called by PlayerHealth when a directional hit was blocked. If the
+    /// source is an enemy (contact damage), counter with damage + knockback.
+    /// </summary>
+    public void OnBlockedHit(GameObject source)
+    {
+        if (source == null) return;
+
+        Enemy enemy = source.GetComponentInParent<Enemy>();
+        if (enemy == null) return;
+
+        float attack = playerStats != null ? playerStats.attackDamage : 5f;
+        int dmg = Mathf.Max(1, Mathf.RoundToInt(attack * contactDamageMultiplier));
+
+        Vector3 dir = enemy.transform.position - transform.position;
+        dir.z = 0f;
+        if (dir.sqrMagnitude < 0.001f) dir = blockDirection;
+
+        enemy.TakeDamage(dmg, enemy.transform.position, dir.normalized,
+                         playerStats != null ? playerStats.knockbackForce : 5f,
+                         false, FloatingTextManager.HitType.Normal);
     }
 
     /// <summary>True if currently blocking AND the source lies within the block arc.</summary>

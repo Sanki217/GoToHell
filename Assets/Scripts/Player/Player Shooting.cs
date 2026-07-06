@@ -106,6 +106,14 @@ public class PlayerShooting : MonoBehaviour
         cam = mainCam.GetComponent<CameraFollow>();
         originalCamZ = cam.transform.position.z;
 
+        // Spawned-prefab support: pull scene HUD refs not wired on the prefab
+        if (HUDRefs.I != null)
+        {
+            if (arrowDots == null || arrowDots.Length == 0) arrowDots = HUDRefs.I.arrowDots;
+            if (chargeSlider == null) chargeSlider = HUDRefs.I.chargeSlider;
+            if (chargePercentText == null) chargePercentText = HUDRefs.I.chargePercentText;
+        }
+
         currentArrows = maxArrows;
         CacheArrowDotColors();
         UpdateArrowUI();

@@ -27,6 +27,11 @@ public class ClassDefinition : ScriptableObject
     [Tooltip("Unlocked without any save-data entry (e.g. Rogue).")]
     public bool unlockedByDefault;
 
+    [Header("Player Prefab")]
+    [Tooltip("The class-specific player prefab spawned by PlayerSpawner at run start. " +
+             "Carries ONLY this class's skill components.")]
+    public GameObject playerPrefab;
+
     [Header("RMB Skill")]
     [Tooltip("Exact component type name on the player prefab, e.g. \"DashAbility\".")]
     public string skillComponentName;

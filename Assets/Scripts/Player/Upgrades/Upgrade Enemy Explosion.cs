@@ -75,7 +75,7 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
             nearby.TakeDamage(rounded, pos, dir,
                 playerStats != null ? playerStats.knockbackForce : 0f,
                 false, FloatingTextManager.HitType.Normal);
-            playerStats?.RecordDamageDealt(dmg * falloff, DamageSource.Explosion);
+            playerStats?.RecordDamageDealt(dmg * falloff, DamageSource.Explosion, nearby.gameObject);
         }
 
         foreach (var hit in hits)

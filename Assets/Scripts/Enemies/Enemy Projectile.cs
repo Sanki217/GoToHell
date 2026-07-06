@@ -55,12 +55,49 @@ public class EnemyProjectile : MonoBehaviour
 
     private void OnDisable()
     {
-        // Undo owner ignores so pooled reuse starts clean
+        ClearOwnerIgnores();
+        ownerRoot = null;
+    }
+
+    private void ClearOwnerIgnores()
+    {
         foreach (Collider c in ignoredColliders)
             if (c != null && myCollider != null)
                 Physics.IgnoreCollision(myCollider, c, false);
         ignoredColliders.Clear();
-        ownerRoot = null;
+    }
+
+    /// <summary>
+    /// Shield reflect: fly back toward the original shooter (or straight back
+    /// if it's gone). The player becomes the new owner, so the projectile now
+    /// damages enemies — including the shooter — and ignores the player.
+    /// </summary>
+    private void Reflect(Transform newOwnerRoot)
+    {
+        // Old owner can be hit again; new owner (player) is ignored
+        ClearOwnerIgnores();
+
+        Transform shooter = ownerRoot;
+        ownerRoot = newOwnerRoot;
+
+        if (myCollider != null && newOwnerRoot != null)
+        {
+            foreach (Collider c in newOwnerRoot.GetComponentsInChildren<Collider>())
+            {
+                if (c == null) continue;
+                Physics.IgnoreCollision(myCollider, c);
+                ignoredColliders.Add(c);
+            }
+        }
+
+        Vector3 dir = shooter != null
+            ? (shooter.position - transform.position)
+            : -direction;
+        dir.z = 0f;
+        direction = dir.sqrMagnitude > 0.001f ? dir.normalized : -direction;
+
+        transform.rotation = Quaternion.LookRotation(Vector3.forward, direction);
+        lifeTimer = 0f;   // fresh flight time for the return trip
     }
 
     private void Update()
@@ -87,8 +124,18 @@ public class EnemyProjectile : MonoBehaviour
         // ── PLAYER ──────────────────────────────────────────────────
         if (other.CompareTag("Player"))
         {
-            // Directional damage — the Warrior's shield can block it (projectile
-            // is still despawned on a blocked hit: the shield absorbs it).
+            // Warrior's shield: reflect back at the shooter (costs energy per
+            // projectile). Can't afford it → the shield absorbs the hit.
+            ShieldAbility shield = other.GetComponent<ShieldAbility>();
+            if (shield != null && shield.isActiveAndEnabled && shield.IsBlockingFrom(transform.position))
+            {
+                if (shield.TryPayReflectCost())
+                    Reflect(other.transform.root);
+                else
+                    Pool.Despawn(gameObject);
+                return;
+            }
+
             other.GetComponent<PlayerHealth>()?.TakeDamage(damage, transform.position);
             Pool.Despawn(gameObject);
             return;

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
@@ -112,7 +112,7 @@ public class UpgradePhantomStep : PlayerUpgrade
                 false,
                 FloatingTextManager.HitType.Normal);
 
-            playerStats?.RecordDamageDealt(damage, DamageSource.Explosion);
+            playerStats?.RecordDamageDealt(damage, DamageSource.Explosion, enemy.gameObject);
         }
 
         // Spawn VFX if assigned

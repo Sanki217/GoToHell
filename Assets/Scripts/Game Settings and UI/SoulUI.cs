@@ -1,6 +1,11 @@
 using UnityEngine;
 using TMPro;
 
+/// <summary>
+/// Scene-side souls counter. Resolves the (possibly runtime-spawned) player
+/// via PlayerRefs in Start — PlayerSpawner runs in Awake, so the player
+/// always exists by now. No HUDRefs entry needed.
+/// </summary>
 public class SoulUI : MonoBehaviour
 {
     public PlayerInventory playerInventory;
@@ -8,6 +13,8 @@ public class SoulUI : MonoBehaviour
 
     void Start()
     {
+        if (playerInventory == null)
+            playerInventory = PlayerRefs.I != null ? PlayerRefs.I.Inventory : null;
         if (playerInventory == null)
             playerInventory = Object.FindFirstObjectByType<PlayerInventory>();
 

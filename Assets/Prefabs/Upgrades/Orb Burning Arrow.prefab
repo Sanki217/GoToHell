@@ -63,10 +63,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1800952367939015602}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -116,11 +116,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e99a79c4aa8c2674db79c1c88c262e0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayName: Burning Arrow
-  description: Arrows apply burn to enemies
+  displayName: Burning Weapon
+  description: Your weapon hits set enemies on fire. Works with arrows, slashes,
+    and dashes.
   icon: {fileID: 0}
   category: 0
   rarity: 0
+  requiredWeaponId: 
+  requiredClassId: 
   statCountCommon: 1
   statCountRare: 1
   statCountEpic: 1

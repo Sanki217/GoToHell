@@ -79,7 +79,7 @@ public class HolyEffect : StatusEffect
 
         FXManager.Play(ActionFX.StatusHolyDetonate, transform.position);
         upgradeManager?.HolyDetonated(gameObject, finalDmg);
-        playerStats?.RecordDamageDealt(finalDmg, DamageSource.Status);
+        playerStats?.RecordDamageDealt(finalDmg, DamageSource.Status, gameObject);
     }
 
     protected override void OnExpired()

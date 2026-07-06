@@ -17,6 +17,6 @@ MonoBehaviour:
   description: "A close-quarters blade. Slash toward the cursor \u2014 reach scales
     with Size, speed with Cooldown."
   sprite: {fileID: 0}
-  unlockedByDefault: 1
+  unlockedByDefault: 0
   weaponComponentNames:
   - PlayerSlash

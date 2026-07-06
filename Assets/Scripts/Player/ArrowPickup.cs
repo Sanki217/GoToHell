@@ -16,7 +16,13 @@ public class ArrowPickup : MonoBehaviour
     [Tooltip("Extra speed added per second of suck time. Ensures arrow catches a falling player.")]
     public float speedEscalationPerSecond = 8f;
 
+    [Header("Stuck Lifetime")]
+    [Tooltip("Seconds a SHOT arrow stays stuck in a wall before despawning. Pre-placed arrows never despawn.")]
+    public float stuckLifetime = 10f;
+
     private float suckElapsed = 0f;
+    private float stuckTimer = 0f;
+    private bool despawnsWhenStuck = false;   // only shot arrows despawn
 
     private Arrow arrow;
 
@@ -43,6 +49,8 @@ public class ArrowPickup : MonoBehaviour
     public void OnArrowLanded()
     {
         canPickUp = true;
+        despawnsWhenStuck = true;
+        stuckTimer = 0f;
     }
 
     public void StartSuck(Transform targetPlayer, System.Action onArrived = null)
@@ -60,6 +68,17 @@ public class ArrowPickup : MonoBehaviour
 
     private void Update()
     {
+        // Shot arrows rot away after stuckLifetime unless being collected
+        if (despawnsWhenStuck && canPickUp && !isBeingSucked)
+        {
+            stuckTimer += Time.deltaTime;
+            if (stuckTimer >= stuckLifetime)
+            {
+                Destroy(gameObject);
+                return;
+            }
+        }
+
         if (!isBeingSucked || target == null) return;
 
         suckElapsed += Time.deltaTime;

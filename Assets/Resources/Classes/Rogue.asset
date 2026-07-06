@@ -17,6 +17,7 @@ MonoBehaviour:
   description: A nimble sinner who trusts speed over armour.
   sprite: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
   unlockedByDefault: 1
+  playerPrefab: {fileID: 5885043042379458451, guid: 21d835b4a0831244d8d04a75018f0dcb, type: 3}
   skillComponentName: DashAbility
   skillDisplayName: Dash
   skillDescription: Spend energy to dash toward the cursor, damaging enemies in your

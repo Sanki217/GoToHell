@@ -44,6 +44,8 @@ public class CharacterCreator : MonoBehaviour
     public Button weaponBackButton;
 
     [Header("Pact Stage")]
+    [Tooltip("Off for the demo — pacts unlock after the first boss (Level 3). When off, the flow is Class → Weapon → Name.")]
+    public bool includePactStage = false;
     public Transform pactListContainer;
     public GameObject pactOptionPrefab;
     public List<PactDefinition> allPacts = new List<PactDefinition>();
@@ -76,16 +78,16 @@ public class CharacterCreator : MonoBehaviour
         if (allPacts.Count == 0)   allPacts.AddRange(Resources.LoadAll<PactDefinition>("Pacts"));
 
         if (classNextButton  != null) classNextButton.onClick.AddListener(() => GoToStage(Stage.Weapon));
-        if (weaponNextButton != null) weaponNextButton.onClick.AddListener(() => GoToStage(Stage.Pact));
+        if (weaponNextButton != null) weaponNextButton.onClick.AddListener(() => GoToStage(includePactStage ? Stage.Pact : Stage.Name));
         if (weaponBackButton != null) weaponBackButton.onClick.AddListener(() => GoToStage(Stage.Class));
         if (pactNextButton   != null) pactNextButton.onClick.AddListener(() => GoToStage(Stage.Name));
         if (pactBackButton   != null) pactBackButton.onClick.AddListener(() => GoToStage(Stage.Weapon));
-        if (nameBackButton   != null) nameBackButton.onClick.AddListener(() => GoToStage(Stage.Pact));
+        if (nameBackButton   != null) nameBackButton.onClick.AddListener(() => GoToStage(includePactStage ? Stage.Pact : Stage.Weapon));
         if (startButton      != null) startButton.onClick.AddListener(BeginRun);
 
         BuildClassCarousel();
         BuildWeaponCarousel();
-        BuildPactList();
+        if (includePactStage) BuildPactList();
 
         GoToStage(Stage.Class);
     }

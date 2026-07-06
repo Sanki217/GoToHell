@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
@@ -184,7 +184,7 @@ public class Arrow : MonoBehaviour
             isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal);
 
         playerStats?.RecordArrowHitEnemy();
-        playerStats?.RecordDamageDealt(finalDamage, DamageSource.Arrow);
+        playerStats?.RecordDamageDealt(finalDamage, DamageSource.Arrow, enemy.gameObject);
         upgradeManager?.ArrowHitEnemy(enemy.gameObject, chargeAmount, isCrit);
 
         // Notify Soul Arrow (chain copies excluded to prevent infinite chaining)
@@ -206,7 +206,7 @@ public class Arrow : MonoBehaviour
                     int pierceRound = Mathf.Max(1, Mathf.RoundToInt(pierceDmg));
                     enemy.TakeDamage(pierceRound, transform.position, kbDir, 0f, false,
                         FloatingTextManager.HitType.Normal);
-                    playerStats.RecordDamageDealt(pierceDmg, DamageSource.Arrow);
+                    playerStats.RecordDamageDealt(pierceDmg, DamageSource.Arrow, enemy.gameObject);
                 }
             }
             else

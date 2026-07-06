@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Put this script on a child GameObject of the Player that has a Trigger Collider.
@@ -41,7 +41,7 @@ public class DashDamageCollider : MonoBehaviour
             (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, other.gameObject);
         else { finalDamage = baseDamage; isCrit = false; }
 
-        // Zero Z before normalizing � prevents 3D direction errors
+        // Zero Z before normalizing — prevents 3D direction errors
         Vector3 rawDir = other.transform.position - transform.root.position;
         rawDir.z = 0f;
         Vector3 kbDir = rawDir.magnitude > 0.001f ? rawDir.normalized : Vector3.right;
@@ -58,7 +58,7 @@ public class DashDamageCollider : MonoBehaviour
         );
 
         playerStats?.RecordDashHitEnemy();
-        playerStats?.RecordDamageDealt(finalDamage, DamageSource.Dash);
+        playerStats?.RecordDamageDealt(finalDamage, DamageSource.Dash, other.gameObject);
         upgradeManager?.DashHitEnemy(other.gameObject);
     }
 }

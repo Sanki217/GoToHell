@@ -27,6 +27,20 @@ public class GameStartSequence : MonoBehaviour
 
     void Start()
     {
+        // Spawned-prefab support: resolve the player via PlayerRefs when unassigned
+        if (player == null && PlayerRefs.I != null)
+        {
+            player = PlayerRefs.I.StateCtrl;
+            playerRb = PlayerRefs.I.GetComponent<Rigidbody>();
+        }
+
+        if (player == null)
+        {
+            Debug.LogWarning("[GameStartSequence] No player found — start sequence disabled.");
+            enabled = false;
+            return;
+        }
+
         player.DisableControl();
 
         // Ensure blackscreen starts invisible

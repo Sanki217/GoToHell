@@ -23,6 +23,12 @@ public abstract class PlayerUpgrade : MonoBehaviour
     public UpgradeCategory category;
     public UpgradeRarity rarity;   // set per-prefab; used by UI for colour
 
+    [Header("Availability (empty = common pool)")]
+    [Tooltip("If set, offered only when this weapon is equipped (WeaponDefinition.weaponId, e.g. \"bow\").")]
+    public string requiredWeaponId = "";
+    [Tooltip("If set, offered only to this class (ClassDefinition.classId, e.g. \"rogue\").")]
+    public string requiredClassId = "";
+
     [Header("Stat Bonus Count per Rarity")]
     [Tooltip("How many primary stat bonuses are rolled when offered at each rarity.")]
     public int statCountCommon = 1;
@@ -32,6 +38,19 @@ public abstract class PlayerUpgrade : MonoBehaviour
 
     /// <summary>Unique ownership key — derived from class name, no manual setup needed.</summary>
     public string UpgradeId => GetType().Name;
+
+    /// <summary>
+    /// True if this upgrade may be offered with the current run's loadout.
+    /// Without a RunConfig (testing a scene directly) everything is available.
+    /// </summary>
+    public bool IsAvailableForCurrentRun()
+    {
+        RunConfig cfg = RunConfig.I;
+        if (cfg == null) return true;
+        if (!string.IsNullOrEmpty(requiredWeaponId) && requiredWeaponId != cfg.selectedWeaponId) return false;
+        if (!string.IsNullOrEmpty(requiredClassId) && requiredClassId != cfg.selectedClassId) return false;
+        return true;
+    }
 
     public int GetStatCount(UpgradeRarity rarity) => rarity switch
     {

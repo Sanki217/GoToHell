@@ -60,12 +60,17 @@ public class PauseMenu : MonoBehaviour
             shakeIntensitySlider.onValueChanged.AddListener(val => cameraFollow.shakeIntensity = val);
         }
 
-        // VSync toggle � on = vSyncCount 1, off = 0
+        // VSync toggle — on = vSyncCount 1, off = 0. Persisted; default OFF
+        // (applied at boot by GameSettingsBootstrap).
         if (vSyncToggle != null)
         {
             vSyncToggle.isOn = QualitySettings.vSyncCount > 0;
             vSyncToggle.onValueChanged.AddListener(val =>
-                QualitySettings.vSyncCount = val ? 1 : 0);
+            {
+                QualitySettings.vSyncCount = val ? 1 : 0;
+                PlayerPrefs.SetInt(GameSettingsBootstrap.VSyncPref, val ? 1 : 0);
+                PlayerPrefs.Save();
+            });
         }
     }
 

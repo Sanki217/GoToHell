@@ -30,6 +30,7 @@ public static class RunManager
     {
         PlayerHealth.HasExtraLife = false;      // unused extra life must not carry over
         UpgradeRarityRoller.ResetPity();        // pity is a per-run mechanic
+        Achievements.ResetRun();                // per-run earned list for the finish screen
         GameTime.Resume();                      // never enter/leave a run frozen or slowed
     }
 }

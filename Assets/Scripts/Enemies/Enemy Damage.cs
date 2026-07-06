@@ -24,7 +24,7 @@ public class EnemyDamage : MonoBehaviour
         PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
         if (playerHealth == null) return;
 
-        playerHealth.TakeDamage(damage, transform.position);
+        playerHealth.TakeDamage(damage, transform.position, gameObject);
         lastHitTime = Time.time;
     }
 }

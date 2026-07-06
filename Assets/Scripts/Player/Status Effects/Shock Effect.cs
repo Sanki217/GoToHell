@@ -49,7 +49,7 @@ public class ShockEffect : StatusEffect
 
         FXManager.Play(ActionFX.StatusShockConsume, transform.position);
         upgradeManager?.ShockConsumed(gameObject, bonusDmg);
-        playerStats?.RecordDamageDealt(bonusDmg, DamageSource.Status);
+        playerStats?.RecordDamageDealt(bonusDmg, DamageSource.Status, gameObject);
 
         RestoreTint();
         Destroy(this);

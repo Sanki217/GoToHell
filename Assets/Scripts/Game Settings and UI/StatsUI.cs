@@ -508,6 +508,7 @@ public class StatsUI : MonoBehaviour
             $"{"Dmg Taken",-18}{s.damageTaken:F0}\n" +
             $"{"Times Hit",-18}{s.timesHit}\n" +
             $"{"HP Restored",-18}{s.hpRestored:F0}\n" +
+            $"{"Extra Life",-18}{(PlayerHealth.HasExtraLife ? "<color=#66FF66>YES</color>" : "<color=#888888>no</color>")}\n" +
             $"{"Layers Done",-18}{s.layersCompleted}\n";
 
         return right;

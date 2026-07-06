@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3159937ea76a4334bb3020f6e6704a6c, type: 3}
+  m_Name: ach_limbo_cleared
+  m_EditorClassIdentifier: Assembly-CSharp::AchievementDefinition
+  id: ach_limbo_cleared
+  displayName: Limbo Cleared
+  description: Finish Level 1 for the first time.
+  icon: {fileID: 0}
+  type: 2
+  statField: 0
+  threshold: 100
+  eventId: level_1_complete
+  pactToUnlock: {fileID: 0}
+  classToUnlock: {fileID: 0}
+  weaponToUnlock: {fileID: 11400000, guid: edd6aed5d3807904590db75d755fccef, type: 2}

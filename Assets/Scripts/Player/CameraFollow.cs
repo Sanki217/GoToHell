@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
@@ -14,6 +14,8 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Global intensity scale applied to all shakes. 0 = off, 1 = full.")]
     [Range(0f, 2f)]
     public float shakeIntensity = 1f;
+    [Tooltip("World-space amplitude of a full-trauma shake.")]
+    public float maxShakeOffset = 1.2f;
 
     [Header("Shake Decay")]
     [Tooltip("How fast trauma decays per second. Higher = shorter shakes.")]
@@ -65,7 +67,12 @@ public class CameraFollow : MonoBehaviour
             return;
         }
 
-        if (player == null) return;
+        // Spawned-prefab support: resolve the player via PlayerRefs when unassigned
+        if (player == null)
+        {
+            player = PlayerRefs.I != null ? PlayerRefs.I.T : null;
+            if (player == null) return;
+        }
 
         float targetX = player.position.x * -parallaxRatio;
         float targetY = player.position.y + yOffset;
@@ -88,7 +95,7 @@ public class CameraFollow : MonoBehaviour
             float t = Time.unscaledTime;
             float nx = Mathf.PerlinNoise(seedX, t * 10f) * 2f - 1f;
             float ny = Mathf.PerlinNoise(seedY, t * 10f) * 2f - 1f;
-            shakeOffset = new Vector3(nx, ny, 0f) * magnitude * shakeIntensity;
+            shakeOffset = new Vector3(nx, ny, 0f) * magnitude * shakeIntensity * maxShakeOffset;
         }
         else
         {
@@ -106,8 +113,11 @@ public class CameraFollow : MonoBehaviour
     /// Add shake trauma (0–1). Multiple calls accumulate.
     /// duration param kept for backwards compatibility — decay controlled by traumaDecayRate.
     /// </summary>
-    public void Shake(float duration, float magnitude)
+    public void Shake(float magnitude, float duration = 0f)
     {
+        // NOTE: parameter order matches every call site: Shake(magnitude, duration).
+        // (This was previously declared (duration, magnitude) — callers were feeding
+        // tiny duration values in as trauma, which is why shake was invisible.)
         if (isLocked) return; // no shake while locked to zone anchor
         trauma = Mathf.Clamp01(trauma + magnitude);
     }

@@ -86,6 +86,10 @@ public static class Achievements
         SaveManager.CompleteAchievement(a.id);
         if (a.pactToUnlock != null)
             SaveManager.UnlockPact(a.pactToUnlock.pactId);
+        if (a.classToUnlock != null)
+            SaveManager.UnlockClass(a.classToUnlock.classId);
+        if (a.weaponToUnlock != null)
+            SaveManager.UnlockWeapon(a.weaponToUnlock.weaponId);
 
         EarnedThisRun.Add(a);
         OnUnlocked?.Invoke(a);

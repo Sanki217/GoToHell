@@ -41,6 +41,10 @@ public class PlayerEnergy : MonoBehaviour
         playerStats = GetComponent<PlayerStats>();
         playerCapsule = GetComponent<CapsuleCollider>();
 
+        // Spawned-prefab support: pull scene HUD refs not wired on the prefab
+        if (energyTMPText == null && HUDRefs.I != null)
+            energyTMPText = HUDRefs.I.energyText;
+
         if (playerCapsule == null)
             Debug.LogWarning("PlayerEnergy: No CapsuleCollider found on player.");
 

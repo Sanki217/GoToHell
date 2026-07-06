@@ -97,6 +97,7 @@ public class PlayerUpgradeManager : MonoBehaviour
     public event Action<GameObject, float> OnCriticalHit;
     public event Action<int> OnDamageTaken;
     public event Action OnPlayerDied;
+    public event Action<GameObject> OnSlashHitEnemy;
 
     // ============================================================
     //  EVENTS — Status Effects
@@ -210,6 +211,7 @@ public class PlayerUpgradeManager : MonoBehaviour
     // ============================================================
 
     public void EnemyKilled(GameObject e) { Log("EnemyKilled"); OnEnemyKilled?.Invoke(e); }
+    public void SlashHitEnemy(GameObject e) { Log("SlashHitEnemy"); OnSlashHitEnemy?.Invoke(e); }
     public void CriticalHit(GameObject e, float dmg) { Log("CriticalHit"); OnCriticalHit?.Invoke(e, dmg); }
     public void DamageTaken(int amount) { Log("DamageTaken"); OnDamageTaken?.Invoke(amount); }
     public void PlayerDied() { Log("PlayerDied"); OnPlayerDied?.Invoke(); }

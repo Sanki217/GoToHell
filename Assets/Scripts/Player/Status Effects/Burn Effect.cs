@@ -63,7 +63,7 @@ public class BurnEffect : StatusEffect
 
         FXManager.Play(ActionFX.StatusBurnTick, transform.position);
         upgradeManager?.BurnTick(gameObject, dmg);
-        playerStats?.RecordDamageDealt(dmg, DamageSource.Status);
+        playerStats?.RecordDamageDealt(dmg, DamageSource.Status, gameObject);
     }
 
     protected override void OnExpired()
