@@ -16,6 +16,9 @@ public class SaveData
     // migrate old files instead of discarding them.
     public int saveVersion = 1;
 
+    // Last name the player entered — pre-fills the Level 1 name prompt.
+    public string lastPlayerName = "";
+
     // IDs of classes the player has unlocked (beyond defaults)
     public List<string> unlockedClassIds = new List<string>();
 

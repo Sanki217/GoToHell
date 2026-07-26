@@ -2,9 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Place at the end of a level as a trigger volume. When the player enters,
-/// it fires the "level_N_complete" achievement event and advances to the next layer.
-/// On the final layer it shows the Run Summary (victory); if no summary UI
-/// exists in the scene it falls back to the main menu.
+/// the layer completes — see CompleteLevel(). Kept for levels that still end
+/// by walking through; LevelExitTarget ends the layer by shooting instead.
 ///
 /// The current layer is read from RunConfig.currentLayer.
 /// </summary>
@@ -24,6 +23,16 @@ public class LevelExit : MonoBehaviour
         if (!other.CompareTag("Player")) return;
         used = true;
 
+        CompleteLevel();
+    }
+
+    /// <summary>
+    /// Ends the current layer: fires the "level_N_complete" achievement event,
+    /// then shows the victory summary on the final layer (falling back to the
+    /// main menu), or banks depth and advances to the next layer.
+    /// </summary>
+    public static void CompleteLevel()
+    {
         int layer = RunConfig.I != null ? RunConfig.I.currentLayer : 1;
 
         // Fire achievement event: "level_1_complete", "level_2_complete", ...
@@ -44,7 +53,7 @@ public class LevelExit : MonoBehaviour
         else
         {
             // Bank this layer's depth before the scene (and its DepthTracker) unloads.
-            DepthTracker tracker = other.GetComponentInParent<DepthTracker>();
+            DepthTracker tracker = Object.FindFirstObjectByType<DepthTracker>();
             if (tracker != null && RunConfig.I != null)
                 RunConfig.I.bankedDepth += tracker.CurrentDepth;
 

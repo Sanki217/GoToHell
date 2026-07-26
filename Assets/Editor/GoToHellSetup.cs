@@ -12,7 +12,7 @@ using UnityEngine.UI;
 /// Run from the menu, in this order:
 ///
 ///   Tools → Go To Hell → 1. Create Default Assets        (any scene)
-///   Tools → Go To Hell → 2. Build Character Creator UI   (open "Character Creator" scene)
+///   Tools → Go To Hell → 2. Build Name Prompt UI          (open "Level 1" scene)
 ///   Tools → Go To Hell → 3. Build Run Summary UI         (open "Level 1" scene)
 ///   Tools → Go To Hell → 4. Build Collection UI          (open "Collection" scene)
 ///
@@ -251,83 +251,38 @@ public static class GoToHellSetup
     }
 
     // ================================================================
-    //  2. CHARACTER CREATOR UI
+    //  2. NAME PROMPT UI (LEVEL 1)
     // ================================================================
 
-    [MenuItem("Tools/Go To Hell/2. Build Character Creator UI")]
-    public static void BuildCharacterCreatorUI()
+    [MenuItem("Tools/Go To Hell/2. Build Name Prompt UI (Level 1)")]
+    public static void BuildNamePromptUI()
     {
-        if (GameObject.Find("CharacterCreatorUI") != null)
+        if (Object.FindFirstObjectByType<NamePromptUI>(FindObjectsInactive.Include) != null)
         {
-            Debug.LogWarning("[GoToHellSetup] 'CharacterCreatorUI' already exists in this scene — delete it first to rebuild.");
+            Debug.LogWarning("[GoToHellSetup] A NamePromptUI already exists in this scene.");
             return;
         }
 
-        Canvas canvas = CreateCanvas("CharacterCreatorUI", 10);
+        Canvas canvas = CreateCanvas("NamePromptCanvas", 150);
         Transform root = canvas.transform;
 
-        // ── Panels ──────────────────────────────────────────────────
-        GameObject classPanel  = CreatePanel(root, "ClassPanel");
-        GameObject weaponPanel = CreatePanel(root, "WeaponPanel");
-        GameObject pactPanel   = CreatePanel(root, "PactPanel");
-        GameObject namePanel   = CreatePanel(root, "NamePanel");
+        GameObject panel = CreateUIObject(root, "NamePanel");
+        StretchRect(panel);
+        Image bg = panel.AddComponent<Image>();
+        bg.color = new Color(0f, 0f, 0f, 0.85f);
 
-        // ── Class stage ─────────────────────────────────────────────
-        CreateText(classPanel.transform, "Title", "CHOOSE YOUR CLASS", 56, new Vector2(0, 460), new Vector2(1200, 80), TextAlignmentOptions.Center, FontStyles.Bold);
-        CreatorCarousel classCarousel = BuildCarousel(classPanel);
-        Button classNext = CreateButton(classPanel.transform, "NextButton", "NEXT", new Vector2(760, -480), new Vector2(220, 70));
+        CreateText(panel.transform, "Title", "NAME YOUR SINNER", 56, new Vector2(0, 180), new Vector2(1200, 80), TextAlignmentOptions.Center, FontStyles.Bold);
+        TMP_InputField nameInput = CreateInputField(panel.transform, "NameInput", "Sinner", new Vector2(0, 40), new Vector2(600, 90));
+        Button confirmButton = CreateButton(panel.transform, "PlayButton", "PLAY", new Vector2(0, -120), new Vector2(300, 90), 36);
 
-        // ── Weapon stage ────────────────────────────────────────────
-        CreateText(weaponPanel.transform, "Title", "CHOOSE YOUR WEAPON", 56, new Vector2(0, 460), new Vector2(1200, 80), TextAlignmentOptions.Center, FontStyles.Bold);
-        CreatorCarousel weaponCarousel = BuildCarousel(weaponPanel);
-        Button weaponNext = CreateButton(weaponPanel.transform, "NextButton", "NEXT", new Vector2(760, -480), new Vector2(220, 70));
-        Button weaponBack = CreateButton(weaponPanel.transform, "BackButton", "BACK", new Vector2(-760, -480), new Vector2(180, 70));
-
-        // ── Pact stage ──────────────────────────────────────────────
-        CreateText(pactPanel.transform, "Title", "SIGN A PACT  <size=60%>(optional)</size>", 56, new Vector2(0, 460), new Vector2(1200, 80), TextAlignmentOptions.Center, FontStyles.Bold);
-        GameObject pactList = CreateUIObject(pactPanel.transform, "PactList");
-        CenterRect(pactList, new Vector2(0, 20), new Vector2(760, 640));
-        VerticalLayoutGroup vlg = pactList.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 15;
-        vlg.childAlignment = TextAnchor.UpperCenter;
-        vlg.childControlWidth = false;  vlg.childControlHeight = false;
-        vlg.childForceExpandWidth = false; vlg.childForceExpandHeight = false;
-        Button pactNext = CreateButton(pactPanel.transform, "NextButton", "NEXT", new Vector2(760, -480), new Vector2(220, 70));
-        Button pactBack = CreateButton(pactPanel.transform, "BackButton", "BACK", new Vector2(-760, -480), new Vector2(180, 70));
-
-        // ── Name stage ──────────────────────────────────────────────
-        CreateText(namePanel.transform, "Title", "NAME YOUR SINNER", 56, new Vector2(0, 460), new Vector2(1200, 80), TextAlignmentOptions.Center, FontStyles.Bold);
-        TMP_InputField nameInput = CreateInputField(namePanel.transform, "NameInput", "Sinner", new Vector2(0, 60), new Vector2(600, 90));
-        Button startButton = CreateButton(namePanel.transform, "StartButton", "START", new Vector2(0, -100), new Vector2(300, 90), 36);
-        Button nameBack = CreateButton(namePanel.transform, "BackButton", "BACK", new Vector2(-760, -480), new Vector2(180, 70));
-
-        // ── Controller ──────────────────────────────────────────────
-        CharacterCreator creator = canvas.gameObject.AddComponent<CharacterCreator>();
-        creator.classPanel      = classPanel;
-        creator.weaponPanel     = weaponPanel;
-        creator.pactPanel       = pactPanel;
-        creator.namePanel       = namePanel;
-        creator.classCarousel   = classCarousel;
-        creator.weaponCarousel  = weaponCarousel;
-        creator.classNextButton = classNext;
-        creator.weaponNextButton = weaponNext;
-        creator.weaponBackButton = weaponBack;
-        creator.pactListContainer = pactList.transform;
-        creator.pactOptionPrefab  = EnsurePactOptionPrefab();
-        creator.pactNextButton  = pactNext;
-        creator.pactBackButton  = pactBack;
-        creator.nameInput       = nameInput;
-        creator.startButton     = startButton;
-        creator.nameBackButton  = nameBack;
-        // Lists intentionally left empty — CharacterCreator auto-loads all
-        // definitions from Resources at runtime, so new content just appears.
-
-        weaponPanel.SetActive(false);
-        pactPanel.SetActive(false);
-        namePanel.SetActive(false);
+        NamePromptUI prompt = canvas.gameObject.AddComponent<NamePromptUI>();
+        prompt.panel = panel;
+        prompt.nameInput = nameInput;
+        prompt.confirmButton = confirmButton;
+        // startSequence is auto-resolved from the scene at runtime
 
         FinishScene(canvas.gameObject,
-            "Character Creator UI built. If an old creator canvas exists, delete it. Assign class/weapon sprites on their assets.");
+            "Name Prompt UI built — this belongs in the Level 1 scene only.");
     }
 
     // ================================================================
@@ -473,52 +428,6 @@ public static class GoToHellSetup
     //  PREFAB BUILDERS
     // ================================================================
 
-    private static GameObject EnsurePactOptionPrefab()
-    {
-        const string path = "Assets/Prefabs/UI/PactOption.prefab";
-        GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-        if (existing != null) return existing;
-
-        GameObject rootGo = CreateUIObject(null, "PactOption");
-        RectTransform rt = rootGo.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(760, 120);
-        Image bg = rootGo.AddComponent<Image>();
-        bg.color = new Color(0.13f, 0.12f, 0.16f, 1f);
-        Button button = rootGo.AddComponent<Button>();
-        button.targetGraphic = bg;
-
-        GameObject highlight = CreateUIObject(rootGo.transform, "Highlight");
-        StretchRect(highlight);
-        Image hlImg = highlight.AddComponent<Image>();
-        hlImg.color = new Color(0.9f, 0.7f, 0.2f, 0.25f);
-        hlImg.raycastTarget = false;
-        highlight.SetActive(false);
-
-        GameObject iconGo = CreateUIObject(rootGo.transform, "Icon");
-        CenterRect(iconGo, new Vector2(-330, 0), new Vector2(90, 90));
-        Image icon = iconGo.AddComponent<Image>();
-        icon.preserveAspect = true;
-        icon.raycastTarget = false;
-
-        TMP_Text nameLabel = CreateText(rootGo.transform, "Name", "Pact Name", 26,
-            new Vector2(60, 28), new Vector2(560, 40), TextAlignmentOptions.Left, FontStyles.Bold);
-        TMP_Text descLabel = CreateText(rootGo.transform, "Description", "Description", 18,
-            new Vector2(60, -22), new Vector2(560, 62), TextAlignmentOptions.TopLeft);
-
-        PactOptionButton opt = rootGo.AddComponent<PactOptionButton>();
-        opt.nameLabel = nameLabel;
-        opt.descriptionLabel = descLabel;
-        opt.iconImage = icon;
-        opt.button = button;
-        opt.selectedHighlight = highlight;
-
-        EnsureFolder("Assets/Prefabs/UI");
-        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(rootGo, path);
-        Object.DestroyImmediate(rootGo);
-        Debug.Log("[GoToHellSetup] Created " + path);
-        return prefab;
-    }
-
     private static GameObject EnsureCollectionItemPrefab()
     {
         const string path = "Assets/Prefabs/UI/CollectionItem.prefab";
@@ -557,36 +466,6 @@ public static class GoToHellSetup
         Object.DestroyImmediate(rootGo);
         Debug.Log("[GoToHellSetup] Created " + path);
         return prefab;
-    }
-
-    // ================================================================
-    //  CAROUSEL BUILDER
-    // ================================================================
-
-    private static CreatorCarousel BuildCarousel(GameObject panel)
-    {
-        // Side slots first so the center renders on top ("to the back" look)
-        Image left = CreateImageSlot(panel.transform, "LeftSlot", new Vector2(-340, 80), new Vector2(210, 300));
-        Image right = CreateImageSlot(panel.transform, "RightSlot", new Vector2(340, 80), new Vector2(210, 300));
-        Image center = CreateImageSlot(panel.transform, "CenterSlot", new Vector2(0, 60), new Vector2(320, 440));
-
-        Button leftArrow = CreateButton(panel.transform, "LeftArrow", "<", new Vector2(-560, 60), new Vector2(80, 80), 40);
-        Button rightArrow = CreateButton(panel.transform, "RightArrow", ">", new Vector2(560, 60), new Vector2(80, 80), 40);
-
-        TMP_Text nameText = CreateText(panel.transform, "Name", "", 44,
-            new Vector2(0, -220), new Vector2(900, 60), TextAlignmentOptions.Center, FontStyles.Bold);
-        TMP_Text descText = CreateText(panel.transform, "Description", "", 22,
-            new Vector2(0, -350), new Vector2(820, 200), TextAlignmentOptions.Top);
-
-        CreatorCarousel carousel = panel.AddComponent<CreatorCarousel>();
-        carousel.centerImage = center;
-        carousel.leftImage = left;
-        carousel.rightImage = right;
-        carousel.leftArrow = leftArrow;
-        carousel.rightArrow = rightArrow;
-        carousel.nameText = nameText;
-        carousel.descriptionText = descText;
-        return carousel;
     }
 
     // ================================================================

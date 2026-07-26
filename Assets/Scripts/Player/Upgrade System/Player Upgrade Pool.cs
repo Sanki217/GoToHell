@@ -1,11 +1,14 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
 /// Pool of upgrade orb prefabs.
 ///
-/// RARITY CHANGE: all cards in one level-up share the same rarity,
-/// rolled once via UpgradeRarityRoller.RollLevelUpRarity(luck).
+/// RARITY: each upgrade has a FIXED rarity, set per-prefab on PlayerUpgrade.rarity
+/// (e.g. Enemy Explosion is always Legendary). Rolls pick a target rarity
+/// (luck/pity for level-ups, luck-only for chests) and then offer an upgrade OF
+/// that rarity; if that tier has none left, the nearest tier is used instead.
+/// Cards in one level-up can therefore have different rarities.
 /// </summary>
 [CreateAssetMenu(menuName = "Upgrades/Upgrade Pool")]
 public class PlayerUpgradePool : ScriptableObject
@@ -73,72 +76,44 @@ public class PlayerUpgradePool : ScriptableObject
 
     /// <summary>
     /// Rolls up to `count` distinct offers for the level-up screen.
-    /// ALL cards share the same rarity, rolled once here.
+    /// A target rarity is rolled PER CARD (luck + pity); each card is an
+    /// upgrade of that rarity (nearest-tier fallback). Cards can differ in rarity.
     /// </summary>
     public List<UpgradeOrbOffer> RollLevelUpOffers(int layer, float luck,
                                                     PlayerStats stats = null, int count = 3,
                                                     PlayerUpgradeManager upgradeManager = null,
                                                     System.Collections.Generic.HashSet<string> extraExcludeIds = null)
     {
-        // Roll ONE rarity for ALL cards this level-up
-        UpgradeRarity sharedRarity = UpgradeRarityRoller.RollLevelUpRarity(luck);
-
         var offers = new List<UpgradeOrbOffer>();
-        var pool = new List<GameObject>(upgradePrefabs);
-        int attempts = 0;
+        var candidates = CollectCandidates(upgradeManager, extraExcludeIds);
 
-        while (offers.Count < count && pool.Count > 0 && attempts < 100)
+        for (int i = 0; i < count && candidates.Count > 0; i++)
         {
-            attempts++;
-            int idx = Random.Range(0, pool.Count);
-            GameObject prefab = pool[idx];
-            pool.RemoveAt(idx);
+            UpgradeRarity target = UpgradeRarityRoller.RollLevelUpRarity(luck);
+            int idx = PickCandidateIndex(candidates, target);
+            if (idx < 0) break;
 
-            if (prefab == null) continue;
-
-            PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
-            if (upgrade == null) continue;
-
-            // Skip upgrades already owned by the manager
-            if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
-
-            // Skip upgrades tied to a weapon/class the player isn't running
-            if (!upgrade.IsAvailableForCurrentRun()) continue;
-
-            // Skip upgrades picked this session but whose orbs haven't landed yet
-            if (extraExcludeIds != null && extraExcludeIds.Contains(upgrade.UpgradeId)) continue;
-
-            offers.Add(BuildOffer(prefab, upgrade, sharedRarity, stats));
+            (GameObject prefab, PlayerUpgrade upgrade) = candidates[idx];
+            candidates.RemoveAt(idx);
+            offers.Add(BuildOffer(prefab, upgrade, upgrade.rarity, stats));
         }
 
         return offers;
     }
 
-    /// <summary>Rolls one offer for a chest — independent rarity, no pity.</summary>
+    /// <summary>Rolls one offer for a chest — luck-only target rarity, no pity.</summary>
     public UpgradeOrbOffer RollChestOffer(float luck, PlayerStats stats = null,
                                            PlayerUpgradeManager upgradeManager = null)
     {
-        var pool = new List<GameObject>(upgradePrefabs);
-        int attempts = 0;
+        var candidates = CollectCandidates(upgradeManager, null);
+        if (candidates.Count == 0) return null;
 
-        while (pool.Count > 0 && attempts < 100)
-        {
-            attempts++;
-            int idx = Random.Range(0, pool.Count);
-            GameObject prefab = pool[idx];
-            pool.RemoveAt(idx);
+        UpgradeRarity target = UpgradeRarityRoller.RollWithLuckOnly(luck);
+        int idx = PickCandidateIndex(candidates, target);
+        if (idx < 0) return null;
 
-            if (prefab == null) continue;
-            PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
-            if (upgrade == null) continue;
-            if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
-            if (!upgrade.IsAvailableForCurrentRun()) continue;
-
-            UpgradeRarity rarity = UpgradeRarityRoller.RollWithLuckOnly(luck);
-            return BuildOffer(prefab, upgrade, rarity, stats);
-        }
-
-        return null;
+        (GameObject prefab, PlayerUpgrade upgrade) = candidates[idx];
+        return BuildOffer(prefab, upgrade, upgrade.rarity, stats);
     }
 
     public UpgradeOrbOffer BuildOffer(GameObject prefab, PlayerUpgrade upgrade,
@@ -171,6 +146,66 @@ public class PlayerUpgradePool : ScriptableObject
             if (upgrade != null) names.Add(upgrade.displayName);
         }
         return names;
+    }
+
+    // ================================================================
+    //  PRIVATE — candidate selection
+    // ================================================================
+
+    /// <summary>Every prefab that may be offered right now (not owned, available, not excluded).</summary>
+    private List<(GameObject prefab, PlayerUpgrade upgrade)> CollectCandidates(
+        PlayerUpgradeManager upgradeManager, HashSet<string> extraExcludeIds)
+    {
+        var list = new List<(GameObject, PlayerUpgrade)>();
+        foreach (GameObject prefab in upgradePrefabs)
+        {
+            if (prefab == null) continue;
+
+            PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
+            if (upgrade == null) continue;
+
+            // Skip upgrades already owned by the manager
+            if (upgradeManager != null && upgradeManager.HasUpgrade(upgrade.UpgradeId)) continue;
+
+            // Skip upgrades tied to a weapon/class the player isn't running
+            if (!upgrade.IsAvailableForCurrentRun()) continue;
+
+            // Skip upgrades picked this session but whose orbs haven't landed yet
+            if (extraExcludeIds != null && extraExcludeIds.Contains(upgrade.UpgradeId)) continue;
+
+            list.Add((prefab, upgrade));
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// Random candidate of the target rarity. If that tier is empty, walks down
+    /// through the tiers below, then up through the tiers above.
+    /// Returns -1 only when there are no candidates at all.
+    /// </summary>
+    private static int PickCandidateIndex(
+        List<(GameObject prefab, PlayerUpgrade upgrade)> candidates, UpgradeRarity target)
+    {
+        var matching = new List<int>();
+        foreach (UpgradeRarity tier in FallbackOrder(target))
+        {
+            matching.Clear();
+            for (int i = 0; i < candidates.Count; i++)
+                if (candidates[i].upgrade.rarity == tier) matching.Add(i);
+
+            if (matching.Count > 0)
+                return matching[Random.Range(0, matching.Count)];
+        }
+        return -1;
+    }
+
+    private static IEnumerable<UpgradeRarity> FallbackOrder(UpgradeRarity target)
+    {
+        yield return target;
+        for (int r = (int)target - 1; r >= (int)UpgradeRarity.Common; r--)
+            yield return (UpgradeRarity)r;
+        for (int r = (int)target + 1; r <= (int)UpgradeRarity.Legendary; r++)
+            yield return (UpgradeRarity)r;
     }
 
     // ================================================================

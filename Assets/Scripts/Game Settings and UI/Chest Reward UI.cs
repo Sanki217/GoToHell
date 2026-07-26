@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
@@ -7,6 +7,9 @@ using System.Collections.Generic;
 /// <summary>
 /// Fullscreen chest reward screen.
 /// Rolls one UpgradeOrbOffer (prefab + rarity + stat bonuses) from the pool.
+/// Any key/click during the roll skips straight to the result. Once the result
+/// is shown, any key (or the Collect button) collects it; if the player does
+/// nothing it auto-collects after autoCollectDelay seconds.
 /// On collect: grants souls immediately, spawns the orb which flies in and applies itself.
 /// </summary>
 public class ChestRewardUI : MonoBehaviour
@@ -22,6 +25,10 @@ public class ChestRewardUI : MonoBehaviour
     public float rollStartInterval = 0.05f;
     public float rollEndInterval = 0.35f;
     public float rollDuration = 2.5f;
+
+    [Header("Skip / Auto-Collect")]
+    [Tooltip("Seconds after the result appears before it collects itself. Any key collects sooner.")]
+    public float autoCollectDelay = 5f;
 
     [Header("Result Display")]
     public GameObject resultCard;
@@ -61,6 +68,7 @@ public class ChestRewardUI : MonoBehaviour
     private bool isOpen = false;
     private UpgradeOrbOffer pendingOffer;
     private int pendingSouls;
+    private Coroutine rollRoutine;
 
     /// <summary>Used by CameraFollow to suppress shake while UI is open.</summary>
     public bool IsOpen => isOpen;
@@ -121,7 +129,7 @@ public class ChestRewardUI : MonoBehaviour
         if (rollingNameLabel != null) rollingNameLabel.gameObject.SetActive(true);
         if (rollingBackground != null) rollingBackground.gameObject.SetActive(true);
 
-        StartCoroutine(RollRoutine());
+        rollRoutine = StartCoroutine(RollRoutine());
     }
 
     // ================================================================
@@ -135,6 +143,9 @@ public class ChestRewardUI : MonoBehaviour
 
         while (elapsed < rollDuration)
         {
+            // Any key/click skips straight to the result
+            if (Input.anyKeyDown) break;
+
             elapsed += Time.unscaledDeltaTime;
             float t = elapsed / rollDuration;
             float eased = 1f - Mathf.Pow(1f - t, 3f);
@@ -157,6 +168,20 @@ public class ChestRewardUI : MonoBehaviour
         }
 
         ShowResult();
+
+        // Swallow the skip press's frame so it can't instantly collect too
+        yield return null;
+
+        // Any key collects; otherwise auto-collect after the delay
+        float shown = 0f;
+        while (shown < autoCollectDelay)
+        {
+            shown += Time.unscaledDeltaTime;
+            if (Input.anyKeyDown) break;
+            yield return null;
+        }
+
+        OnCollectClicked();
     }
 
     private void ShowResult()
@@ -259,6 +284,12 @@ public class ChestRewardUI : MonoBehaviour
 
     private void Close()
     {
+        if (rollRoutine != null)
+        {
+            StopCoroutine(rollRoutine);
+            rollRoutine = null;
+        }
+
         isOpen = false;
         pendingOffer = null;
         pendingSouls = 0;

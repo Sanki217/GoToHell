@@ -68,6 +68,20 @@ public static class SaveManager
     }
 
     // ================================================================
+    //  PLAYER NAME
+    // ================================================================
+
+    /// <summary>Last name the player entered — pre-fills the Level 1 name prompt.</summary>
+    public static string LastPlayerName => Data.lastPlayerName;
+
+    public static void SetLastPlayerName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || Data.lastPlayerName == name) return;
+        Data.lastPlayerName = name;
+        Save();
+    }
+
+    // ================================================================
     //  CLASSES
     // ================================================================
 
