@@ -121,7 +121,7 @@ MonoBehaviour:
     and dashes.
   icon: {fileID: 0}
   category: 0
-  rarity: 0
+  rarity: 2
   requiredWeaponId: 
   requiredClassId: 
   statCountCommon: 1

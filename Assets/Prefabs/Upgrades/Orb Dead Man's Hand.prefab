@@ -120,7 +120,7 @@ MonoBehaviour:
   description: Last arrow in quiver critically strikes.
   icon: {fileID: 0}
   category: 0
-  rarity: 0
+  rarity: 1
   requiredWeaponId: bow
   requiredClassId: 
   statCountCommon: 1

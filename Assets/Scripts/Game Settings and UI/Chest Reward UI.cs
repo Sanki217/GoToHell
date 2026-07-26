@@ -10,7 +10,8 @@ using System.Collections.Generic;
 /// Any key/click during the roll skips straight to the result. Once the result
 /// is shown, any key (or the Collect button) collects it; if the player does
 /// nothing it auto-collects after autoCollectDelay seconds.
-/// On collect: grants souls immediately, spawns the orb which flies in and applies itself.
+/// On collect: spawns the orb which flies in and applies itself, and the source
+/// chest bursts soul pickups into the world (see Chest.BurstSouls).
 /// </summary>
 public class ChestRewardUI : MonoBehaviour
 {
@@ -35,18 +36,11 @@ public class ChestRewardUI : MonoBehaviour
     public TMP_Text resultNameLabel;
     public TMP_Text resultRarityLabel;
     public TMP_Text resultDescriptionLabel;
-    public TMP_Text resultSoulsLabel;
     public Image resultIcon;
     public Image resultCardBackground;
     public Transform resultStatContainer;
     public GameObject statLinePrefab;
     public Button collectButton;
-
-    [Header("Soul Rewards per Rarity")]
-    public int soulsCommonMin = 5; public int soulsCommonMax = 15;
-    public int soulsRareMin = 15; public int soulsRareMax = 30;
-    public int soulsEpicMin = 30; public int soulsEpicMax = 60;
-    public int soulsLegendaryMin = 60; public int soulsLegendaryMax = 120;
 
     [Header("References")]
     public PlayerUpgradePool upgradePool;
@@ -59,7 +53,6 @@ public class ChestRewardUI : MonoBehaviour
     public PlayerStats playerStats;
     public PlayerUpgradeManager upgradeManager;
     public PlayerStateController playerState;
-    public PlayerInventory playerInventory;
 
     // ================================================================
     //  PRIVATE STATE
@@ -67,7 +60,7 @@ public class ChestRewardUI : MonoBehaviour
 
     private bool isOpen = false;
     private UpgradeOrbOffer pendingOffer;
-    private int pendingSouls;
+    private Chest sourceChest;
     private Coroutine rollRoutine;
 
     /// <summary>Used by CameraFollow to suppress shake while UI is open.</summary>
@@ -95,7 +88,6 @@ public class ChestRewardUI : MonoBehaviour
                 playerStats = refs.Stats;
                 upgradeManager = refs.Upgrades;
                 playerState = refs.StateCtrl;
-                playerInventory = refs.Inventory;
             }
         }
 
@@ -107,7 +99,7 @@ public class ChestRewardUI : MonoBehaviour
     //  PUBLIC API
     // ================================================================
 
-    public void Show(float luck, PlayerStats statsOverride = null)
+    public void Show(float luck, PlayerStats statsOverride = null, Chest chest = null)
     {
         if (isOpen || upgradePool == null || upgradePool.upgradePrefabs.Count == 0) return;
 
@@ -117,7 +109,7 @@ public class ChestRewardUI : MonoBehaviour
         pendingOffer = upgradePool.RollChestOffer(effectiveLuck, effectiveStats, upgradeManager);
         if (pendingOffer == null) return;
 
-        pendingSouls = RollSouls(pendingOffer.rarity);
+        sourceChest = chest;
 
         isOpen = true;
         GameTime.Pause();
@@ -140,6 +132,10 @@ public class ChestRewardUI : MonoBehaviour
     {
         List<string> allNames = upgradePool.GetAllDisplayNames();
         float elapsed = 0f, nextChange = 0f;
+
+        // Skip the frame the chest was opened on — the key/click that opened
+        // it must not count as a skip press.
+        yield return null;
 
         while (elapsed < rollDuration)
         {
@@ -216,9 +212,6 @@ public class ChestRewardUI : MonoBehaviour
             }
         }
 
-        if (resultSoulsLabel != null)
-            resultSoulsLabel.text = $"+ {pendingSouls} Souls";
-
         // Stat bonus lines — show current → after
         if (resultStatContainer != null && pendingOffer.statBonuses != null)
         {
@@ -249,16 +242,13 @@ public class ChestRewardUI : MonoBehaviour
     {
         if (pendingOffer == null) return;
 
-        var inv = playerInventory;
-        if (inv == null)
-        {
-            inv = PlayerRefs.I?.Inventory;
-        }
-        inv?.AddSouls(pendingSouls);
-
         UpgradeOrbOffer offerToSpawn = pendingOffer;
+        Chest chest = sourceChest;
         Close();
         SpawnOrb(offerToSpawn);
+
+        // Souls burst from the chest in the world, like a breaking vase
+        chest?.BurstSouls();
     }
 
     private void SpawnOrb(UpgradeOrbOffer offer)
@@ -292,7 +282,7 @@ public class ChestRewardUI : MonoBehaviour
 
         isOpen = false;
         pendingOffer = null;
-        pendingSouls = 0;
+        sourceChest = null;
         GameTime.Resume();
         chestPanel.SetActive(false);
 
@@ -301,13 +291,4 @@ public class ChestRewardUI : MonoBehaviour
 
         playerState?.EnableControl();
     }
-
-    private int RollSouls(UpgradeRarity rarity) => rarity switch
-    {
-        UpgradeRarity.Common => Random.Range(soulsCommonMin, soulsCommonMax + 1),
-        UpgradeRarity.Rare => Random.Range(soulsRareMin, soulsRareMax + 1),
-        UpgradeRarity.Epic => Random.Range(soulsEpicMin, soulsEpicMax + 1),
-        UpgradeRarity.Legendary => Random.Range(soulsLegendaryMin, soulsLegendaryMax + 1),
-        _ => Random.Range(soulsCommonMin, soulsCommonMax + 1)
-    };
 }

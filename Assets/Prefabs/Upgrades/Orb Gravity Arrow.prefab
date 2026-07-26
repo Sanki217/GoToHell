@@ -120,7 +120,7 @@ MonoBehaviour:
   description: 
   icon: {fileID: 0}
   category: 0
-  rarity: 0
+  rarity: 2
   requiredWeaponId: bow
   requiredClassId: 
   statCountCommon: 1

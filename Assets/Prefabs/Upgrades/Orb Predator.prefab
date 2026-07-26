@@ -120,7 +120,7 @@ MonoBehaviour:
   description: Killing with dash refunds it's cost
   icon: {fileID: 0}
   category: 0
-  rarity: 0
+  rarity: 2
   requiredWeaponId: 
   requiredClassId: rogue
   statCountCommon: 1
