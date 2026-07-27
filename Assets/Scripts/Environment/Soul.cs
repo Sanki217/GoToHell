@@ -64,6 +64,7 @@ public class Soul : MonoBehaviour
     private Vector3 ejectVelocity;   // undamped base velocity; damp curve scales it
     private float ejectTimer;
     private bool hasBounced;
+    private float attractDelayTimer; // > 0 → attraction refused (chest bursts etc.)
 
     void Awake()
     {
@@ -90,6 +91,7 @@ public class Soul : MonoBehaviour
         ejectVelocity = Vector3.zero;
         ejectTimer = 0f;
         hasBounced = false;
+        attractDelayTimer = 0f;
         transform.localScale = originalScale;
 
         SoulMotionManager.Register(this);
@@ -100,11 +102,14 @@ public class Soul : MonoBehaviour
         SoulMotionManager.Unregister(this);
     }
 
-    public void Initialize(Vector3 ejectDir, float ejectForce)
+    /// <summary>attractDelay: seconds during which Looter attraction is refused,
+    /// so the eject arc can play out (used by chest bursts; 0 = old behaviour).</summary>
+    public void Initialize(Vector3 ejectDir, float ejectForce, float attractDelay = 0f)
     {
         ejectVelocity = ejectDir.normalized * ejectForce;
         ejectTimer = 0f;
         hasBounced = false;
+        attractDelayTimer = attractDelay;
     }
 
     // ================================================================
@@ -114,6 +119,7 @@ public class Soul : MonoBehaviour
     public void StartAttract(Transform playerTransform, PlayerInventory inventory)
     {
         if (isAttracted || collected || playerTransform == null) return;
+        if (attractDelayTimer > 0f) return;   // still exploding outward — not collectible yet
         isAttracted = true;
         attractTarget = playerTransform;
         targetInventory = inventory;
@@ -143,6 +149,8 @@ public class Soul : MonoBehaviour
     public void Tick(float dt)
     {
         if (collected) return;
+
+        if (attractDelayTimer > 0f) attractDelayTimer -= dt;
 
         if (isAttracted)
         {

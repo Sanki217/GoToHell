@@ -34,6 +34,8 @@ public class Chest : MonoBehaviour
     public float orbLuckMultiplier = 0.5f;
     public float minEjectForce = 3f;
     public float maxEjectForce = 8f;
+    [Tooltip("Seconds before the burst souls become collectible — lets the explosion play out.")]
+    public float soulAttractDelay = 0.5f;
 
     [Header("Visual (optional)")]
     [Tooltip("Assign the chest's Renderer to grey it out after opening")]
@@ -123,7 +125,8 @@ public class Chest : MonoBehaviour
         int level = PlayerRefs.I?.LevelSystem != null ? PlayerRefs.I.LevelSystem.CurrentLevel : 1;
         int count = Mathf.Max(1, Mathf.RoundToInt(baseOrbs * (orbLuckMultiplier * luck) + level));
 
-        // Same burst pattern as Vase.Break()
+        // Upward explosion fan; souls stay uncollectible for soulAttractDelay
+        // so the burst plays out before the Looter reels them in.
         Vector3 pos = transform.position;
         for (int i = 0; i < count; i++)
         {
@@ -131,9 +134,9 @@ public class Chest : MonoBehaviour
             Soul soul = s.GetComponent<Soul>();
             if (soul != null)
             {
-                float angle = Random.Range(-80f, 80f) * Mathf.Deg2Rad;
+                float angle = Random.Range(20f, 160f) * Mathf.Deg2Rad;
                 Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f).normalized;
-                soul.Initialize(dir, Random.Range(minEjectForce, maxEjectForce));
+                soul.Initialize(dir, Random.Range(minEjectForce, maxEjectForce), soulAttractDelay);
             }
         }
     }
