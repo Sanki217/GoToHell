@@ -82,8 +82,8 @@ GameObject:
   - component: {fileID: 1041990607757972644}
   - component: {fileID: -8232553747361180095}
   - component: {fileID: 9052951736665903648}
-  - component: {fileID: 6029398872816002744}
   - component: {fileID: 5491602415611997120}
+  - component: {fileID: 6029398872816002744}
   m_Layer: 0
   m_Name: Enemy Jumper
   m_TagString: Enemy
@@ -135,6 +135,8 @@ MeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -156,9 +158,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!54 &1041990607757972644
 Rigidbody:
@@ -167,10 +171,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5456285349514001431}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -234,27 +238,7 @@ MonoBehaviour:
     m_Bits: 0
   wallCheckHalfExtents: {x: 0.4, y: 0.4, z: 0.1}
   knockbackBounceDamping: 0.4
---- !u!114 &6029398872816002744
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5456285349514001431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 109d1d6547a71134db76269c9a9ec16d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  yOffset: 0.7
-  barWidth: 1.2
-  barHeight: 0.12
-  colorBackground: {r: 0.1, g: 0.1, b: 0.1, a: 0.85}
-  colorFull: {r: 0.15, g: 0.85, b: 0.15, a: 1}
-  colorMid: {r: 0.95, g: 0.75, b: 0.05, a: 1}
-  colorLow: {r: 0.9, g: 0.15, b: 0.1, a: 1}
-  midThreshold: 0.5
-  lowThreshold: 0.25
+  alwaysDepenetrate: 0
 --- !u!114 &5491602415611997120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -289,3 +273,24 @@ MonoBehaviour:
   bounceDamping: 0.55
   speedMultiplier: 1
   climbAccelerationTime: 0.12
+--- !u!114 &6029398872816002744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5456285349514001431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 109d1d6547a71134db76269c9a9ec16d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  yOffset: 0.7
+  barWidth: 1.2
+  barHeight: 0.12
+  colorBackground: {r: 0.1, g: 0.1, b: 0.1, a: 0.85}
+  colorFull: {r: 0.15, g: 0.85, b: 0.15, a: 1}
+  colorMid: {r: 0.95, g: 0.75, b: 0.05, a: 1}
+  colorLow: {r: 0.9, g: 0.15, b: 0.1, a: 1}
+  midThreshold: 0.5
+  lowThreshold: 0.25

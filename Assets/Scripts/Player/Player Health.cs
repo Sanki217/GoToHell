@@ -132,6 +132,7 @@ public class PlayerHealth : MonoBehaviour
 
         playerStats?.RecordDamageTaken(amount);
         upgradeManager?.DamageTaken(amount);
+        HitStopManager.NotifyPlayerHurt(amount, maxHP);
 
         CameraFollow cam = PlayerRefs.CamFollow;   // cached — this runs on every hit
         if (currentHP > 0)

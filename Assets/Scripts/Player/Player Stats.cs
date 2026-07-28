@@ -474,7 +474,11 @@ public class PlayerStats : MonoBehaviour
     public void RecordArrowHitDestructible() => arrowsHitDestructible++;
     public void RecordArrowPickedUp() => arrowsPickedUp++;
     public void RecordChargeCancelled() => chargesCancelledByEnergy++;
-    public void RecordEnemyKilled() => enemiesKilled++;
+    public void RecordEnemyKilled()
+    {
+        enemiesKilled++;
+        HitStopManager.NotifyKill();
+    }
     public void RecordCritLanded() => critsLanded++;
     public void RecordLayerCompleted() => layersCompleted++;
     public void RecordHPRestored(int amount) => hpRestored += amount;
@@ -503,6 +507,8 @@ public class PlayerStats : MonoBehaviour
 
     public void RecordDamageDealt(float amount, DamageSource source, GameObject target = null)
     {
+        HitStopManager.NotifyDamageDealt(amount, source);
+
         totalDamageDealt += amount;
         switch (source)
         {
