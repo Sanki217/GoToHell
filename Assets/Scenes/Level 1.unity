@@ -428,6 +428,62 @@ Transform:
   - {fileID: 1434236165}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &30390266
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 30390267}
+  - component: {fileID: 30390268}
+  m_Layer: 0
+  m_Name: Enemy Stalker Spawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &30390267
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 30390266}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 177737229}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &30390268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 30390266}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: baea712764d6a944c9d8ef8e85702623, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyStalkerSpawner
+  meleeStalkerPrefab: {fileID: 5456285349514001431, guid: 39865a85fc734c5429c42cf2f49dac0f, type: 3}
+  shooterStalkerPrefab: {fileID: 0}
+  shooterChance: 0.4
+  checkInterval: 4
+  spawnChance: 0.25
+  spawnCooldown: 12
+  maxAlive: 3
+  spawnZMin: -6
+  spawnZMax: -12
+  spawnYRange: 4
+  noSpawnXHalfWidth: 8
+  spawnXExtra: 5
 --- !u!1 &33107570
 GameObject:
   m_ObjectHideFlags: 0
@@ -2449,6 +2505,7 @@ Transform:
   - {fileID: 1744291262}
   - {fileID: 1419095552}
   - {fileID: 373047251}
+  - {fileID: 30390267}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &186470282
@@ -5559,6 +5616,7 @@ Transform:
   - {fileID: 519840846}
   - {fileID: 856732436}
   - {fileID: 152339239}
+  - {fileID: 1750535752}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &544325365
@@ -16016,6 +16074,64 @@ Transform:
   m_Children: []
   m_Father: {fileID: 177737229}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1750535751
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1750535752}
+  - component: {fileID: 1750535753}
+  m_Layer: 0
+  m_Name: HitStopManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1750535752
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1750535751}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 526545873}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1750535753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1750535751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd6b8af3b4a4e0840bfc0bec83e311e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitStopManager
+  stopTimeScale: 0.05
+  stopOnDamageDealt: 1
+  dealtMinDuration: 0.02
+  dealtMaxDuration: 0.12
+  includeStatusDamage: 0
+  includeExplosionDamage: 1
+  damageRefMin: 1
+  damageRefMax: 25
+  autoCalibrate: 1
+  stopOnKill: 1
+  killDuration: 0.15
+  stopOnPlayerHurt: 1
+  hurtMinDuration: 0.05
+  hurtMaxDuration: 0.18
 --- !u!1 &1756990263
 GameObject:
   m_ObjectHideFlags: 0
