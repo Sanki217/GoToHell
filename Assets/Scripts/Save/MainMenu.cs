@@ -4,16 +4,15 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Main menu controller. Put on a manager object in the Main Menu scene.
-/// Wire the 4 buttons in the Inspector.
 ///
-/// Play     → starts a run at Level 1 with the default loadout. There is no
-///            character creation anymore — the name prompt lives in the
-///            Level 1 scene (see NamePromptUI).
-/// Settings → toggles the settings panel (kept as-is for now)
+/// Play       → Character Select (8 slots) → [Create Character] → Pact Select → run
+/// Meta Shop  → MetaShopUI — permanent upgrades for meta currency (optional)
+/// Settings   → toggles the settings panel
 /// Collection → Collection scene
-/// Pacts    → PactSelectUI (optional) — chosen pacts are applied on Play
-/// Meta Shop→ MetaShopUI (optional) — permanent upgrades for meta currency
-/// Exit     → quits the game
+/// Exit       → quits the game
+///
+/// Build the character/pact/meta panels with Tools → Go To Hell → Characters →
+/// Build Main Menu Flow UI (wires the fields below automatically).
 /// </summary>
 public class MainMenu : MonoBehaviour
 {
@@ -23,9 +22,10 @@ public class MainMenu : MonoBehaviour
     public Button collectionButton;
     public Button exitButton;
 
-    [Header("Progression (optional)")]
-    public Button pactsButton;
-    public PactSelectUI pactSelect;
+    [Header("Run Flow")]
+    public CharacterSelectUI characterSelect;
+
+    [Header("Meta Shop (optional)")]
     public Button metaShopButton;
     public MetaShopUI metaShop;
     [Tooltip("Shows the meta currency balance.")]
@@ -35,33 +35,30 @@ public class MainMenu : MonoBehaviour
     public GameObject settingsPanel;
     public Button settingsBackButton;
 
-    [Header("Default Loadout")]
-    [Tooltip("Class whose prefab and stat preset every run uses now that there is no class selection.")]
-    public string defaultClassId = "rogue";
-    [Tooltip("Written to RunConfig so weapon-gated upgrades (e.g. bow upgrades) stay available. " +
-             "All weapon components are enabled regardless — see RunConfigApplier.")]
-    public string defaultWeaponId = "bow";
-
     private void Start()
     {
-        // Starting a fresh run from the menu wipes any leftover run config
+        // Back in the menu = no run in progress
         if (RunConfig.I != null) RunConfig.I.Reset();
 
-        if (playButton != null)       playButton.onClick.AddListener(OnPlay);
-        if (settingsButton != null)   settingsButton.onClick.AddListener(OnSettings);
-        if (collectionButton != null) collectionButton.onClick.AddListener(OnCollection);
-        if (exitButton != null)       exitButton.onClick.AddListener(OnExit);
+        if (playButton != null)         playButton.onClick.AddListener(OnPlay);
+        if (settingsButton != null)     settingsButton.onClick.AddListener(OnSettings);
+        if (collectionButton != null)   collectionButton.onClick.AddListener(OnCollection);
+        if (exitButton != null)         exitButton.onClick.AddListener(OnExit);
         if (settingsBackButton != null) settingsBackButton.onClick.AddListener(CloseSettings);
-        if (pactsButton != null && pactSelect != null)   pactsButton.onClick.AddListener(pactSelect.Open);
-        if (metaShopButton != null && metaShop != null)  metaShopButton.onClick.AddListener(metaShop.Open);
+        if (metaShopButton != null && metaShop != null) metaShopButton.onClick.AddListener(metaShop.Open);
+        if (characterSelect != null)    characterSelect.OnStartRun += StartRun;
+
+        if (settingsPanel != null) settingsPanel.SetActive(false);
 
         MetaProgression.OnChanged += RefreshCurrency;
         RefreshCurrency();
-
-        if (settingsPanel != null) settingsPanel.SetActive(false);
     }
 
-    private void OnDestroy() => MetaProgression.OnChanged -= RefreshCurrency;
+    private void OnDestroy()
+    {
+        MetaProgression.OnChanged -= RefreshCurrency;
+        if (characterSelect != null) characterSelect.OnStartRun -= StartRun;
+    }
 
     private void RefreshCurrency()
     {
@@ -71,11 +68,8 @@ public class MainMenu : MonoBehaviour
 
     private void OnPlay()
     {
-        EnsureRunConfig();
-        RunConfig.I.Reset();
-        ApplyDefaultLoadout(RunConfig.I);
-        RunConfig.I.SetPacts(PactSelectUI.SavedSelection());
-        SceneFlow.StartRunAtLevel1();
+        if (characterSelect != null) characterSelect.Open();
+        else Debug.LogWarning("[MainMenu] No CharacterSelectUI wired — run Tools → Go To Hell → Characters → Build Main Menu Flow UI.");
     }
 
     private void OnCollection() => SceneFlow.GoToCollection();
@@ -91,42 +85,13 @@ public class MainMenu : MonoBehaviour
         if (settingsPanel != null) settingsPanel.SetActive(false);
     }
 
-    // ================================================================
-    //  RUN SETUP
-    // ================================================================
-
-    private void EnsureRunConfig()
+    /// <summary>Character + pact chosen → configure the run and load Level 1.</summary>
+    private void StartRun(CharacterData character, PactDefinition pact)
     {
-        if (RunConfig.I == null)
-        {
-            GameObject go = new GameObject("RunConfig");
-            go.AddComponent<RunConfig>();
-        }
-    }
+        if (character == null || !character.CanPlay) return;
 
-    /// <summary>
-    /// Every run uses the same loadout: the default class's prefab + stat
-    /// preset (spawned via PlayerSpawner) and the full weapon kit.
-    /// </summary>
-    private void ApplyDefaultLoadout(RunConfig cfg)
-    {
-        cfg.selectedWeaponId = defaultWeaponId;
-
-        ClassDefinition def = Content.Classes.Get(defaultClassId);
-
-        if (def == null)
-        {
-            Debug.LogWarning($"[MainMenu] No ClassDefinition '{defaultClassId}' in Resources/Classes — prefab defaults will apply.");
-            return;
-        }
-
-        cfg.selectedClassId = def.classId;
-        cfg.agility      = def.agility;
-        cfg.attackDamage = def.attackDamage;
-        cfg.luck         = def.luck;
-        cfg.psyche       = def.psyche;
-        cfg.health       = def.health;
-        cfg.size         = def.size;
-        cfg.cooldown     = def.cooldown;
+        if (RunConfig.I == null) new GameObject("RunConfig").AddComponent<RunConfig>();
+        RunConfig.I.SetupRun(character, pact);
+        SceneFlow.StartRunAtLevel1();
     }
 }

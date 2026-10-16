@@ -111,7 +111,7 @@ public static class SaveManager
         if (d.lifetimeTotals == null)          d.lifetimeTotals = new RunStats();
         if (d.lastPlayerName == null)          d.lastPlayerName = "";
         if (d.metaRanks == null)               d.metaRanks = new List<MetaRank>();
-        if (d.lastPactIds == null)             d.lastPactIds = new List<string>();
+        if (d.characters == null)              d.characters = new List<CharacterData>();
         if (d.discoveredUpgradeIds == null)    d.discoveredUpgradeIds = new List<string>();
         if (d.metaCurrency < 0)                d.metaCurrency = 0;
     }

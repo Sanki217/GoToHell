@@ -29,8 +29,9 @@ public abstract class PlayerUpgrade : MonoBehaviour
     [Header("Availability (empty = common pool)")]
     [Tooltip("If set, offered only when this weapon is equipped (WeaponDefinition.weaponId, e.g. \"bow\").")]
     public string requiredWeaponId = "";
-    [Tooltip("If set, offered only to this class (ClassDefinition.classId, e.g. \"rogue\").")]
-    public string requiredClassId = "";
+    [Tooltip("If set, offered only when this pact (RMB skill) is taken, e.g. \"pact_dash\".")]
+    [UnityEngine.Serialization.FormerlySerializedAs("requiredClassId")]
+    public string requiredPactId = "";
 
     [Header("Stat Bonus Count per Rarity")]
     [Tooltip("How many primary stat bonuses are rolled when offered at each rarity.")]
@@ -51,7 +52,7 @@ public abstract class PlayerUpgrade : MonoBehaviour
         RunConfig cfg = RunConfig.I;
         if (cfg == null) return true;
         if (!string.IsNullOrEmpty(requiredWeaponId) && requiredWeaponId != cfg.selectedWeaponId) return false;
-        if (!string.IsNullOrEmpty(requiredClassId) && requiredClassId != cfg.selectedClassId) return false;
+        if (!string.IsNullOrEmpty(requiredPactId) && requiredPactId != cfg.selectedPactId) return false;
         return true;
     }
 

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -39,6 +39,15 @@ public class NamePromptUI : MonoBehaviour
 
     private void Start()
     {
+        // Runs started from Character Select already have a name — skip the prompt.
+        // (The prompt only remains for testing Level 1 directly.)
+        if (RunConfig.I != null && !string.IsNullOrEmpty(RunConfig.I.characterId))
+        {
+            if (panel != null) panel.SetActive(false);
+            HandOver();
+            return;
+        }
+
         // Freeze the player for the whole prompt — GameStartSequence would
         // normally do this in its Start, which is deferred while disabled.
         if (PlayerRefs.I != null && PlayerRefs.I.StateCtrl != null)
@@ -72,8 +81,12 @@ public class NamePromptUI : MonoBehaviour
         SaveManager.SetLastPlayerName(chosen);
 
         if (panel != null) panel.SetActive(false);
+        HandOver();
+    }
 
-        // Hand over to the any-key start gate
+    /// <summary>Hand over to the any-key start gate.</summary>
+    private void HandOver()
+    {
         if (startSequence != null)
         {
             if (startSequence.pressAnyButtonText != null)

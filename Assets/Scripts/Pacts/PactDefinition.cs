@@ -1,23 +1,22 @@
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 /// <summary>
-/// A pact: a run modifier chosen in the main menu before a run. Usually a
-/// trade — harder enemies for more souls, no healing for more damage — but
-/// it can be anything RunModifierSet + RunEffects can express.
+/// A pact = the RMB skill a character takes into a run (Dash, Shield, …).
+/// Not tied to any class — any character can take any unlocked pact, and
+/// pick a different one each run (Pact Select screen before the run).
 ///
-/// DATA-ONLY: a new pact is a new asset. Fill in Modifiers for numeric
-/// changes; add Custom Effects (type dropdown) for logic.
-///
-/// HEAT is the pact's difficulty score. Active pacts' heat is summed, shown
-/// in the menu, stored on the run record, and boosts meta-currency rewards
-/// (MetaProgressionConfig.currencyPercentPerHeat).
+/// The skill itself is a component on every class's player prefab, found by
+/// type name (skillComponentName). RunConfigApplier enables the chosen one
+/// and disables the others. Adding a pact:
+///   1. Write the skill component (e.g. GrappleAbility) and add it to one
+///      class prefab.
+///   2. Tools → Go To Hell → Characters → Sync Pact Skills Into Class Prefabs
+///      (copies it, disabled, into every other class prefab).
+///   3. Create this asset in Assets/Resources/Pacts/.
 ///
 /// Unlocking: unlockedByDefault, or an AchievementDefinition's pactToUnlock.
 ///
 /// Create via: Assets → Create → GoToHell → Pact
-/// Store in:   Assets/Resources/Pacts/
 /// </summary>
 [CreateAssetMenu(menuName = "GoToHell/Pact")]
 public class PactDefinition : ScriptableObject
@@ -32,36 +31,15 @@ public class PactDefinition : ScriptableObject
 
     public Sprite icon;
 
-    [Tooltip("Unlocked without any save-data entry (the player's starting pact).")]
+    [Tooltip("Available without unlocking (starting pacts).")]
     public bool unlockedByDefault;
 
-    [Header("Difficulty")]
-    [Tooltip("Difficulty score. Summed across active pacts; raises meta-currency rewards.")]
-    [Range(0, 10)] public int heat = 1;
+    [Header("RMB Skill")]
+    [Tooltip("Exact component type name on the player prefab, e.g. \"DashAbility\".")]
+    public string skillComponentName;
 
-    [Header("Modifiers")]
-    public RunModifierSet modifiers = new RunModifierSet();
-
-    [Header("Custom Effects")]
-    [SerializeReference, SubclassSelector]
-    public List<RunEffect> effects = new List<RunEffect>();
+    [Tooltip("Lower = earlier in the pact list.")]
+    public int sortOrder;
 
     public bool IsUnlocked => unlockedByDefault || SaveManager.IsPactUnlocked(pactId);
-
-    /// <summary>Description + every modifier and effect, one per line.</summary>
-    public string BuildSummary()
-    {
-        var sb = new StringBuilder();
-        if (!string.IsNullOrEmpty(description)) sb.Append(description);
-
-        string mods = modifiers != null ? modifiers.Describe() : "";
-        if (mods.Length > 0) { if (sb.Length > 0) sb.Append("\n\n"); sb.Append(mods); }
-
-        if (effects != null)
-            foreach (RunEffect e in effects)
-                if (e != null) { if (sb.Length > 0) sb.Append('\n'); sb.Append(e.Describe(1)); }
-
-        if (heat > 0) sb.Append($"\n\n<color=#FF6A3D>Heat {heat}</color>");
-        return sb.ToString();
-    }
 }

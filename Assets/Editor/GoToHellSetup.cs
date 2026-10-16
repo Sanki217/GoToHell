@@ -39,7 +39,7 @@ public static partial class GoToHellSetup
     //  1. DEFAULT ASSETS
     // ================================================================
 
-    [MenuItem("Tools/Go To Hell/1. Create Default Assets")]
+    [MenuItem("Tools/Go To Hell/1. Create Default Assets (classes, weapons, pacts)")]
     public static void CreateDefaultAssets()
     {
         EnsureFolder("Assets/Resources/Classes");
@@ -54,11 +54,6 @@ public static partial class GoToHellSetup
             rogue.displayName        = "Rogue";
             rogue.description        = "A nimble sinner who trusts speed over armour.";
             rogue.unlockedByDefault  = true;
-            rogue.skillComponentName = "DashAbility";
-            rogue.skillDisplayName   = "Dash";
-            rogue.skillDescription   = "Spend energy to dash toward the cursor, damaging enemies in your path.";
-            rogue.agility = 3; rogue.attackDamage = 2; rogue.luck = 1; rogue.psyche = 2;
-            rogue.health = 1;  rogue.size = 0;         rogue.cooldown = 1;
             AssetDatabase.CreateAsset(rogue, roguePath);
             Debug.Log("[GoToHellSetup] Created Rogue class (assign its sprite in the Inspector).");
         }
@@ -71,12 +66,7 @@ public static partial class GoToHellSetup
             warrior.classId            = "warrior";
             warrior.displayName        = "Warrior";
             warrior.description        = "A bulwark of muscle and spite. Slower, but very hard to put down.";
-            warrior.unlockedByDefault  = false;   // unlocked by the "die once" achievement
-            warrior.skillComponentName = "ShieldAbility";
-            warrior.skillDisplayName   = "Shield";
-            warrior.skillDescription   = "Hold RMB to raise a shield toward the cursor, blocking damage from that direction. Drains energy per second. Size widens the arc.";
-            warrior.agility = 1; warrior.attackDamage = 2; warrior.luck = 0; warrior.psyche = 1;
-            warrior.health = 4;  warrior.size = 1;         warrior.cooldown = 1;
+            warrior.unlockedByDefault  = false;   // unlocked by finishing Level 1
             AssetDatabase.CreateAsset(warrior, warriorPath);
             Debug.Log("[GoToHellSetup] Created Warrior class (assign its sprite in the Inspector).");
         }
@@ -125,7 +115,7 @@ public static partial class GoToHellSetup
         {
             warriorDef.unlockedByDefault = false;
             EditorUtility.SetDirty(warriorDef);
-            Debug.Log("[GoToHellSetup] Warrior locked (achievement: die once).");
+            Debug.Log("[GoToHellSetup] Warrior locked (achievement: finish Level 1).");
         }
         WeaponDefinition swordDef = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(swordPath);
         if (swordDef != null && swordDef.unlockedByDefault)
@@ -134,22 +124,22 @@ public static partial class GoToHellSetup
             EditorUtility.SetDirty(swordDef);
             Debug.Log("[GoToHellSetup] Sword locked (achievement: finish Level 1).");
         }
-        foreach (PactDefinition p in Resources.LoadAll<PactDefinition>("Pacts"))
-        {
-            if (p != null && p.unlockedByDefault)
-            {
-                p.unlockedByDefault = false;
-                EditorUtility.SetDirty(p);
-                Debug.Log($"[GoToHellSetup] Pact '{p.name}' locked (not in demo).");
-            }
-        }
+        // Classes = weapon kits (LMB weapon + Shift+LMB alt). RMB is the pact.
+        ClassDefinition rogueDef = AssetDatabase.LoadAssetAtPath<ClassDefinition>(roguePath);
+        ConfigureClassKit(rogueDef, bowDef, "PlayerSlash", "Kick");
+        ConfigureClassKit(warriorDef, swordDef, "", "");
+
+        // Pacts = RMB skills (replaces the old class skills and the old modifier pacts)
+        SetupPactSkills();
 
         // Unlock achievements
         EnsureFolder("Assets/Resources/Achievements");
+        // First death → Shield pact.  First Level 1 clear → Warrior class.
+        PactDefinition shieldPact = LoadAllAssets<PactDefinition>().FirstOrDefault(p => p.pactId == "pact_shield");
         EnsureUnlockAchievement("ach_first_death", "Death Is Just The Beginning",
-            "Die for the first time.", "player_died", warriorDef, null);
+            "Die for the first time.", "player_died", null, null, shieldPact);
         EnsureUnlockAchievement("ach_limbo_cleared", "Limbo Cleared",
-            "Finish Level 1 for the first time.", "level_1_complete", null, swordDef);
+            "Finish Level 1 for the first time.", "level_1_complete", warriorDef, null, null);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -177,7 +167,7 @@ public static partial class GoToHellSetup
             "UpgradeSoulArrow", "UpgradeNewSharpSet", "UpgradeDeadMansHand",
             "UpgradeBloodArrow"
         };
-        // Rogue-only upgrades (dash mechanics)
+        // Dash-pact upgrades (dash mechanics)
         var rogueUpgrades = new System.Collections.Generic.HashSet<string>
         {
             "UpgradePredator", "UpgradePhantomStep"
@@ -192,11 +182,11 @@ public static partial class GoToHellSetup
 
             string typeName = u.GetType().Name;
             string weapon = bowUpgrades.Contains(typeName) ? "bow" : "";
-            string cls = rogueUpgrades.Contains(typeName) ? "rogue" : "";
+            string pact = rogueUpgrades.Contains(typeName) ? "pact_dash" : "";
 
             bool dirty = false;
             if (u.requiredWeaponId != weapon) { u.requiredWeaponId = weapon; dirty = true; }
-            if (u.requiredClassId != cls) { u.requiredClassId = cls; dirty = true; }
+            if (u.requiredPactId != pact) { u.requiredPactId = pact; dirty = true; }
 
             // Burning Arrow → Burning Weapon display rebrand (same prefab/GUID)
             if (typeName == "UpgradeBurningWeapon" && u.displayName != "Burning Weapon")
@@ -210,7 +200,7 @@ public static partial class GoToHellSetup
             {
                 EditorUtility.SetDirty(u);
                 tagged++;
-                Debug.Log($"[GoToHellSetup] Tagged {typeName}: weapon='{weapon}' class='{cls}'.");
+                Debug.Log($"[GoToHellSetup] Tagged {typeName}: weapon='{weapon}' pact='{pact}'.");
             }
         }
 
@@ -219,16 +209,17 @@ public static partial class GoToHellSetup
     }
 
     private static void EnsureUnlockAchievement(string id, string displayName, string description,
-        string eventId, ClassDefinition classUnlock, WeaponDefinition weaponUnlock)
+        string eventId, ClassDefinition classUnlock, WeaponDefinition weaponUnlock, PactDefinition pactUnlock)
     {
         string path = $"Assets/Resources/Achievements/{id}.asset";
         AchievementDefinition existing = AssetDatabase.LoadAssetAtPath<AchievementDefinition>(path);
         if (existing != null)
         {
-            bool dirty = false;
-            if (existing.classToUnlock == null && classUnlock != null) { existing.classToUnlock = classUnlock; dirty = true; }
-            if (existing.weaponToUnlock == null && weaponUnlock != null) { existing.weaponToUnlock = weaponUnlock; dirty = true; }
-            if (dirty) EditorUtility.SetDirty(existing);
+            // Rewards are authoritative here — re-running the menu applies design changes
+            existing.classToUnlock = classUnlock;
+            existing.weaponToUnlock = weaponUnlock;
+            existing.pactToUnlock = pactUnlock;
+            EditorUtility.SetDirty(existing);
             return;
         }
 
@@ -240,6 +231,7 @@ public static partial class GoToHellSetup
         a.eventId = eventId;
         a.classToUnlock = classUnlock;
         a.weaponToUnlock = weaponUnlock;
+        a.pactToUnlock = pactUnlock;
         AssetDatabase.CreateAsset(a, path);
         Debug.Log($"[GoToHellSetup] Created achievement '{id}' ({eventId}).");
     }

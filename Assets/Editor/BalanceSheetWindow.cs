@@ -15,7 +15,7 @@ using UnityEngine;
 ///     warnings (untagged, not in pool, missing icon, duplicate names).
 ///     CSV export/import for spreadsheet balancing.
 ///   • Enemies  — every EnemyDefinition with a per-layer preview.
-///   • Pacts    — heat, unlock state, full modifier summary.
+///   • Pacts    — RMB skill component, unlock state and source.
 ///   • Meta     — rank costs, total cost to max, and "how many runs to buy
 ///     everything" from a sample run's payout.
 ///
@@ -36,13 +36,13 @@ public class BalanceSheetWindow : EditorWindow
     private UpgradeTag tagFilter;
     private readonly HashSet<string> expanded = new HashSet<string>();
     private List<UpgradeRow> upgradeRows;
-    private string[] weaponIds = new string[0], classIds = new string[0];
+    private string[] weaponIds = new string[0], pactIds = new string[0];
 
     // Enemies
     private int previewLayer = 1;
 
     // Meta economy preview
-    private int sampleKills = 60, sampleLayer = 2, sampleLayersDone = 1, sampleLevel = 8, sampleMinutes = 12, sampleHeat;
+    private int sampleKills = 60, sampleLayer = 2, sampleLayersDone = 1, sampleLevel = 8, sampleMinutes = 12;
     private bool sampleVictory;
 
     private class UpgradeRow
@@ -233,9 +233,9 @@ public class BalanceSheetWindow : EditorWindow
         DrawUpgradeSummary(rows);
 
         Header(("Pool", 34), ("Name", 150), ("Type", 160), ("Rarity", 85), ("Category", 85), ("Tags", 150),
-               ("Weapon", 80), ("Class", 80), ("Common", 55), ("Rare", 55), ("Epic", 55), ("Legendary", 70), ("", 0));
+               ("Weapon", 80), ("Pact", 90), ("Common", 55), ("Rare", 55), ("Epic", 55), ("Legendary", 70), ("", 0));
         weaponIds = Ids<WeaponDefinition>(d => d.weaponId);
-        classIds = Ids<ClassDefinition>(d => d.classId);
+        pactIds = Ids<PactDefinition>(d => d.pactId);
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
         foreach (UpgradeRow r in rows)
@@ -270,7 +270,7 @@ public class BalanceSheetWindow : EditorWindow
             Prop(r.so, "tags", 150);
             GUI.backgroundColor = old;
             IdPopup(r.so, "requiredWeaponId", weaponIds, 80);
-            IdPopup(r.so, "requiredClassId", classIds, 80);
+            IdPopup(r.so, "requiredPactId", pactIds, 90);
             Prop(r.so, "statCountCommon", 55);
             Prop(r.so, "statCountRare", 55);
             Prop(r.so, "statCountEpic", 55);
@@ -550,7 +550,7 @@ public class BalanceSheetWindow : EditorWindow
         if (pacts.Any(p => !AssetDatabase.GetAssetPath(p).Contains("/Resources/Pacts/")))
             EditorGUILayout.HelpBox("Some pacts are outside Assets/Resources/Pacts/ — the game won't find them.", MessageType.Warning);
 
-        Header(("Id", 120), ("Name", 140), ("Heat", 45), ("Default", 55), ("Unlock", 110), ("Effect summary", 0));
+        Header(("Id", 120), ("Name", 140), ("Skill component", 150), ("Order", 45), ("Default", 55), ("Unlock", 110), ("Description", 0));
         scroll = EditorGUILayout.BeginScrollView(scroll);
         foreach (PactDefinition p in pacts)
         {
@@ -561,11 +561,12 @@ public class BalanceSheetWindow : EditorWindow
             {
                 Prop(so, "pactId", 120);
                 Prop(so, "displayName", 140);
-                Prop(so, "heat", 45);
+                Prop(so, "skillComponentName", 150);
+                Prop(so, "sortOrder", 45);
                 Prop(so, "unlockedByDefault", 55);
                 string unlock = p.unlockedByDefault ? "default" : unlockSources.Contains(p) ? "achievement" : "⚠ NONE";
                 GUILayout.Label(unlock, GUILayout.Width(110));
-                GUILayout.Label(p.BuildSummary().Replace("\n", "  ·  "), EditorStyles.wordWrappedMiniLabel);
+                GUILayout.Label(p.description ?? "", EditorStyles.wordWrappedMiniLabel);
                 if (GUILayout.Button("Edit", GUILayout.Width(40))) Selection.activeObject = p;
             }
             if (so.ApplyModifiedProperties()) EditorUtility.SetDirty(p);
@@ -601,7 +602,6 @@ public class BalanceSheetWindow : EditorWindow
             {
                 sampleLevel = EditorGUILayout.IntField("Player level", sampleLevel);
                 sampleMinutes = EditorGUILayout.IntField("Minutes", sampleMinutes);
-                sampleHeat = EditorGUILayout.IntField("Heat", sampleHeat);
                 sampleVictory = EditorGUILayout.Toggle("Victory", sampleVictory);
             }
 
@@ -609,9 +609,9 @@ public class BalanceSheetWindow : EditorWindow
             var run = new RunStats
             {
                 enemiesKilled = sampleKills, deepestLayer = sampleLayer, layersCompleted = sampleLayersDone,
-                finalLevel = sampleLevel, runDurationSeconds = sampleMinutes * 60f, victory = sampleVictory, heat = sampleHeat
+                finalLevel = sampleLevel, runDurationSeconds = sampleMinutes * 60f, victory = sampleVictory
             };
-            float payout = c.BasePayout(run) * (1f + sampleHeat * c.currencyPercentPerHeat / 100f);
+            float payout = c.BasePayout(run);
             int total = metas.Sum(m => m.TotalCost());
             EditorGUILayout.LabelField($"Payout ≈ {payout:0} {c.currencyName}   ·   Everything maxed costs {total}   ·   " +
                                        $"≈ {(payout > 0 ? Mathf.CeilToInt(total / payout) : 0)} such runs to buy it all",

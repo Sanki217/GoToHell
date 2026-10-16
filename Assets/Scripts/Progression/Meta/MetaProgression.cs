@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 /// <summary>
@@ -122,12 +122,11 @@ public static class MetaProgression
     //  CURRENCY
     // ================================================================
 
-    /// <summary>What a finished run pays, including heat and meta-currency modifiers.</summary>
+    /// <summary>What a finished run pays, including meta-currency modifiers.</summary>
     public static int ComputePayout(RunStats run)
     {
         if (run == null) return 0;
-        float heatMult = 1f + run.heat * Config.currencyPercentPerHeat / 100f;
-        return Mathf.Max(0, Mathf.RoundToInt(Config.BasePayout(run) * heatMult * RunModifiers.MetaCurrencyMult));
+        return Mathf.Max(0, Mathf.RoundToInt(Config.BasePayout(run) * RunModifiers.MetaCurrencyMult));
     }
 
     /// <summary>Adds currency. Pass save:false when the caller saves right after (RunManager).</summary>

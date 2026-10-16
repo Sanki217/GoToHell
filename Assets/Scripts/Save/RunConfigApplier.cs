@@ -1,20 +1,19 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Applies the current RunConfig to the player when a gameplay scene loads.
 /// Lives on every player prefab.
 ///
-/// 1. Adds the run's stat preset to PlayerStats.
-/// 2. Enables every weapon component on the player — there is no weapon
-///    choice anymore: bow on LMB, sword on Shift+LMB or empty quiver
-///    (PlayerSlash legacy mode). The class RMB skill lives on the prefab.
+/// 1. Character stats (class base + creation points) → PlayerStats.
+/// 2. Kit: the class's LMB weapon + Shift+LMB alt attack are enabled, every
+///    other class's are disabled; the run's pact (RMB skill) is enabled and
+///    every other pact skill disabled. Components are found by type name, so
+///    a new class / pact is data, not code here.
+/// 3. RunModifiers — owned meta upgrades (stats, max HP, starting souls, effects).
 ///
-/// 3. Applies RunModifiers — active pacts + owned meta upgrades (stats,
-///    max HP, starting souls, custom RunEffects).
-///
-/// If no RunConfig exists (e.g. testing the gameplay scene directly), the
-/// class preset is skipped but meta upgrades still apply, so balance testing
-/// in a single scene matches a real run.
+/// No RunConfig (testing a scene directly): prefab defaults are kept, meta
+/// upgrades still apply.
 /// </summary>
 [RequireComponent(typeof(PlayerStats))]
 public class RunConfigApplier : MonoBehaviour
@@ -23,7 +22,7 @@ public class RunConfigApplier : MonoBehaviour
     {
         RunConfig cfg = RunConfig.I;
 
-        if (cfg != null)
+        if (cfg != null && !string.IsNullOrEmpty(cfg.characterId))
         {
             PlayerStats stats = GetComponent<PlayerStats>();
             stats.AddPrimary(PrimaryStat.Agility,      cfg.agility);
@@ -34,10 +33,10 @@ public class RunConfigApplier : MonoBehaviour
             stats.AddPrimary(PrimaryStat.Size,         cfg.size);
             stats.AddPrimary(PrimaryStat.Cooldown,     cfg.cooldown);
 
-            EnableAllWeaponComponents();
+            ApplyKit(Content.Classes.Get(cfg.selectedClassId), Content.Pacts.Get(cfg.selectedPactId));
         }
 
-        // Pacts + meta upgrades. One-time bonuses (starting souls, extra life) on Layer 1 only.
+        // Meta upgrades. One-time bonuses (starting souls, extra life) on Layer 1 only.
         bool isRunStart = cfg == null || cfg.currentLayer <= 1;
         RunModifiers.ApplyToPlayer(gameObject, isRunStart);
 
@@ -45,20 +44,49 @@ public class RunConfigApplier : MonoBehaviour
         if (TryGetComponent(out PlayerHealth health)) health.SetHP(health.MaxHP);
     }
 
-    /// <summary>
-    /// Enables every weapon component listed by any WeaponDefinition, so the
-    /// full kit works regardless of how the prefab was saved.
-    /// </summary>
-    private void EnableAllWeaponComponents()
+    private void ApplyKit(ClassDefinition cls, PactDefinition pact)
     {
-        foreach (WeaponDefinition d in Content.Weapons.All)
+        // Everything any class or pact could own starts OFF…
+        var all = new HashSet<string>();
+        foreach (ClassDefinition c in Content.Classes.All)
         {
-            if (d == null || d.weaponComponentNames == null) continue;
-            foreach (string n in d.weaponComponentNames)
+            if (c.weapon != null && c.weapon.weaponComponentNames != null) all.UnionWith(c.weapon.weaponComponentNames);
+            if (!string.IsNullOrEmpty(c.altAttackComponentName)) all.Add(c.altAttackComponentName);
+        }
+        foreach (PactDefinition p in Content.Pacts.All)
+            if (!string.IsNullOrEmpty(p.skillComponentName)) all.Add(p.skillComponentName);
+        foreach (string n in all) SetEnabled(n, false);
+
+        // …then this run's kit goes ON.
+        if (cls != null)
+        {
+            if (cls.weapon != null && cls.weapon.weaponComponentNames != null)
+                foreach (string n in cls.weapon.weaponComponentNames)
+                {
+                    SetEnabled(n, true);
+                    if (GetComponent(n) is IAltAttack a) a.SetAltAttackMode(false);
+                }
+
+            if (!string.IsNullOrEmpty(cls.altAttackComponentName))
             {
-                if (string.IsNullOrEmpty(n)) continue;
-                if (GetComponent(n) is Behaviour comp) comp.enabled = true;
+                SetEnabled(cls.altAttackComponentName, true);
+                if (GetComponent(cls.altAttackComponentName) is IAltAttack alt) alt.SetAltAttackMode(true);
             }
         }
+        else Debug.LogWarning("[RunConfigApplier] Unknown class — weapon kit not applied.");
+
+        if (pact != null && !string.IsNullOrEmpty(pact.skillComponentName))
+        {
+            if (GetComponent(pact.skillComponentName) == null)
+                Debug.LogError($"[RunConfigApplier] Pact '{pact.pactId}' needs component '{pact.skillComponentName}' on the " +
+                               "player prefab. Run Tools → Go To Hell → Characters → Sync Pact Skills Into Class Prefabs.");
+            SetEnabled(pact.skillComponentName, true);
+        }
+    }
+
+    private void SetEnabled(string componentName, bool on)
+    {
+        if (string.IsNullOrEmpty(componentName)) return;
+        if (GetComponent(componentName) is Behaviour b) b.enabled = on;
     }
 }

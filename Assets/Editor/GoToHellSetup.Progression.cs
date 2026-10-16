@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TMPro;
@@ -14,8 +14,9 @@ using UnityEngine.UI;
 ///
 ///   Data/Auto-Tag Upgrades                     fills empty UpgradeTag fields
 ///   Data/Create Enemy Definitions              one EnemyDefinition per enemy prefab
-///   Data/Create Starter Progression Content    config + example meta upgrades + pacts
-///   Progression/Build Pact + Meta Shop UI      Main Menu scene
+///   Data/Create Starter Progression Content    meta config + example meta upgrades
+///   Characters/Build Main Menu Flow UI         Main Menu scene (slots, creation, pacts, meta shop)
+///   Characters/Sync Pact Skills Into Class Prefabs
 ///   UI/Make Canvases Responsive                open scenes + all prefabs
 ///   UI/Convert EventSystems To Input System    open scenes + all prefabs
 ///   Mobile/Build Mobile Controls               gameplay scene
@@ -154,7 +155,6 @@ public static partial class GoToHellSetup
     public static void CreateStarterProgression()
     {
         EnsureFolder("Assets/Resources/Meta");
-        EnsureFolder("Assets/Resources/Pacts");
         int made = 0;
 
         if (Resources.Load<MetaProgressionConfig>("MetaProgressionConfig") == null)
@@ -203,49 +203,176 @@ public static partial class GoToHellSetup
             EditorUtility.SetDirty(wind);
         }
 
-        var existingPacts = new HashSet<string>(LoadAllAssets<PactDefinition>().Select(p => p.pactId));
-        PactDefinition Pact(string id, string name, string desc, int heat, System.Action<RunModifierSet> setup)
-        {
-            if (existingPacts.Contains(id)) return null;
-            var p = ScriptableObject.CreateInstance<PactDefinition>();
-            p.pactId = id; p.displayName = name; p.description = desc; p.heat = heat;
-            p.unlockedByDefault = true;   // starter pacts: switch to achievement unlocks when ready
-            setup?.Invoke(p.modifiers);
-            AssetDatabase.CreateAsset(p, $"Assets/Resources/Pacts/{name}.asset");
-            made++;
-            return p;
-        }
-
-        Pact("pact_wrath", "Pact of Wrath", "The damned grow strong. So do their souls.", 2,
-             s => { s.enemyHealthPercent = 40; s.soulGainPercent = 25; });
-        Pact("pact_frailty", "Pact of Frailty", "Bleed more, learn more.", 2,
-             s => { s.damageTakenPercent = 50; s.xpGainPercent = 25; });
-        Pact("pact_haste", "Pact of Haste", "Everything below moves faster.", 1,
-             s => { s.enemySpeedPercent = 25; s.metaCurrencyPercent = 15; });
-        PactDefinition embers = Pact("pact_embers", "Pact of Embers", "Burn bright. Fire upgrades find you.", 0,
-             s => { s.favouredTags = UpgradeTag.Fire; s.favouredTagWeightPercent = 150; s.damageTakenPercent = 10; });
-        if (embers != null)
-        {
-            PlayerUpgradePool pool = Resources.Load<PlayerUpgradePool>("UpgradePool");
-            GameObject burning = pool != null
-                ? pool.upgradePrefabs.FirstOrDefault(p => p != null && p.GetComponent<UpgradeBurningWeapon>() != null)
-                : null;
-            if (burning != null) embers.effects.Add(new GrantUpgradeEffect { upgradePrefab = burning });
-            EditorUtility.SetDirty(embers);
-        }
-
         AssetDatabase.SaveAssets();
         Content.InvalidateAll();
-        Debug.Log($"[GoToHellSetup] Starter progression: {made} asset(s) created (Resources/Meta, Resources/Pacts, " +
+        Debug.Log($"[GoToHellSetup] Starter progression: {made} asset(s) created (Resources/Meta, " +
                   "Resources/MetaProgressionConfig). Tune them in Tools → Go To Hell → Balance Sheet.");
     }
 
     // ================================================================
-    //  PROGRESSION — PACT + META SHOP UI (Main Menu)
+    //  CHARACTERS — CLASS KITS, PACT SKILLS, PREFAB SYNC
     // ================================================================
 
-    [MenuItem("Tools/Go To Hell/Progression/Build Pact + Meta Shop UI (Main Menu)")]
-    public static void BuildProgressionUI()
+    private static readonly HashSet<string> RetiredPactIds = new HashSet<string>
+    {
+        "pact_wrath", "pact_frailty", "pact_haste", "pact_embers"
+    };
+
+    private static void ConfigureClassKit(ClassDefinition cls, WeaponDefinition weapon, string altComponent, string altName)
+    {
+        if (cls == null) return;
+        cls.weapon = weapon;
+        cls.altAttackComponentName = altComponent;
+        cls.altAttackDisplayName = altName;
+        EditorUtility.SetDirty(cls);
+    }
+
+    /// <summary>
+    /// Pacts become RMB skills: removes the old modifier pacts, creates Dash +
+    /// Shield, moves Dash-only upgrades from the Rogue class to the Dash pact,
+    /// then syncs the skill components into every class prefab.
+    /// </summary>
+    [MenuItem("Tools/Go To Hell/Characters/Setup Pact Skills (Dash, Shield)")]
+    public static void SetupPactSkills()
+    {
+        EnsureFolder("Assets/Resources/Pacts");
+
+        foreach (PactDefinition p in LoadAllAssets<PactDefinition>())
+        {
+            bool retired = RetiredPactIds.Contains(p.pactId)
+                           || (string.IsNullOrEmpty(p.skillComponentName) && string.IsNullOrEmpty(p.pactId));
+            if (!retired) continue;
+            string path = AssetDatabase.GetAssetPath(p);
+            Debug.Log($"[GoToHellSetup] Removed old pact asset {path}");
+            AssetDatabase.DeleteAsset(path);
+        }
+
+        EnsurePact("pact_dash", "Dash", "DashAbility", 0, true,
+                   "Spend energy to dash toward the cursor, damaging enemies in your path.");
+        EnsurePact("pact_shield", "Shield", "ShieldAbility", 1, false,   // unlocked by first death
+                   "Hold RMB to raise a shield toward the cursor, blocking damage from that side. " +
+                   "Drains energy while held. Size widens the arc.");
+
+        // Upgrades that used to require a class skill now require the pact
+        int moved = 0;
+        foreach (string guid in AssetDatabase.FindAssets("t:Prefab"))
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+            PlayerUpgrade u = prefab != null ? prefab.GetComponent<PlayerUpgrade>() : null;
+            if (u == null) continue;
+            string mapped = u.requiredPactId == "rogue" ? "pact_dash" : u.requiredPactId == "warrior" ? "pact_shield" : null;
+            if (mapped == null) continue;
+            u.requiredPactId = mapped;
+            EditorUtility.SetDirty(u);
+            moved++;
+        }
+
+        AssetDatabase.SaveAssets();
+        Content.InvalidateAll();
+        SyncPactSkillsIntoClassPrefabs();
+        Debug.Log($"[GoToHellSetup] Pact skills ready (Dash, Shield). {moved} upgrade(s) moved from class to pact requirement.");
+    }
+
+    private static void EnsurePact(string id, string name, string component, int order, bool unlockedByDefault, string description)
+    {
+        PactDefinition p = LoadAllAssets<PactDefinition>().FirstOrDefault(x => x.pactId == id);
+        if (p == null)
+        {
+            p = ScriptableObject.CreateInstance<PactDefinition>();
+            p.pactId = id;
+            AssetDatabase.CreateAsset(p, $"Assets/Resources/Pacts/{name}.asset");
+        }
+        p.displayName = name;
+        p.skillComponentName = component;
+        p.sortOrder = order;
+        p.unlockedByDefault = unlockedByDefault;
+        if (string.IsNullOrEmpty(p.description)) p.description = description;
+        EditorUtility.SetDirty(p);
+    }
+
+    /// <summary>
+    /// Every class prefab must carry every pact skill (disabled — RunConfigApplier
+    /// enables the chosen one). Copies missing skill components from a prefab
+    /// that has them, remapping references to children by hierarchy path.
+    /// </summary>
+    [MenuItem("Tools/Go To Hell/Characters/Sync Pact Skills Into Class Prefabs")]
+    public static void SyncPactSkillsIntoClassPrefabs()
+    {
+        List<GameObject> prefabs = LoadAllAssets<ClassDefinition>()
+            .Where(c => c.playerPrefab != null).Select(c => c.playerPrefab).Distinct().ToList();
+        if (prefabs.Count == 0) { Debug.LogWarning("[GoToHellSetup] No class has a playerPrefab."); return; }
+
+        var skillTypes = new List<System.Type>();
+        foreach (PactDefinition p in LoadAllAssets<PactDefinition>())
+        {
+            if (string.IsNullOrEmpty(p.skillComponentName)) continue;
+            System.Type t = TypeCache.GetTypesDerivedFrom<MonoBehaviour>().FirstOrDefault(x => x.Name == p.skillComponentName);
+            if (t == null) Debug.LogWarning($"[GoToHellSetup] Pact '{p.pactId}': no component type '{p.skillComponentName}'.");
+            else if (!skillTypes.Contains(t)) skillTypes.Add(t);
+        }
+
+        int added = 0;
+        foreach (System.Type type in skillTypes)
+        {
+            GameObject source = prefabs.FirstOrDefault(pf => pf.GetComponent(type) != null);
+            if (source == null)
+            {
+                Debug.LogWarning($"[GoToHellSetup] No class prefab has {type.Name} yet — add it to one prefab, then run this again.");
+                continue;
+            }
+
+            foreach (GameObject target in prefabs)
+            {
+                if (target == source || target.GetComponent(type) != null) continue;
+
+                using (var scope = new PrefabUtility.EditPrefabContentsScope(AssetDatabase.GetAssetPath(target)))
+                {
+                    GameObject root = scope.prefabContentsRoot;
+                    Component src = source.GetComponent(type);
+                    Component dst = root.AddComponent(type);
+                    EditorUtility.CopySerialized(src, dst);
+                    RemapReferences(dst, source.transform, root.transform);
+                    if (dst is Behaviour b) b.enabled = false;
+                }
+                added++;
+                Debug.Log($"[GoToHellSetup] Added {type.Name} (disabled) to {target.name}.");
+            }
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[GoToHellSetup] Pact skill sync done — {added} component(s) added.");
+    }
+
+    /// <summary>Points copied references at the same-path objects in the new prefab.</summary>
+    private static void RemapReferences(Component comp, Transform sourceRoot, Transform targetRoot)
+    {
+        var so = new SerializedObject(comp);
+        SerializedProperty it = so.GetIterator();
+        while (it.Next(true))
+        {
+            if (it.propertyType != SerializedPropertyType.ObjectReference || it.objectReferenceValue == null) continue;
+            if (it.name == "m_Script") continue;
+
+            Object obj = it.objectReferenceValue;
+            Transform t = obj is Component c ? c.transform : obj is GameObject g ? g.transform : null;
+            if (t == null || t.root != sourceRoot) continue;   // assets / outside refs stay as they are
+
+            string path = AnimationUtility.CalculateTransformPath(t, sourceRoot);
+            Transform match = string.IsNullOrEmpty(path) ? targetRoot : targetRoot.Find(path);
+            Object mapped = null;
+            if (match != null) mapped = obj is GameObject ? (Object)match.gameObject : match.GetComponent(obj.GetType());
+            if (mapped == null)
+                Debug.LogWarning($"[GoToHellSetup] {comp.GetType().Name}.{it.propertyPath}: '{path}' not found in {targetRoot.name} — assign it by hand.");
+            it.objectReferenceValue = mapped;
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    // ================================================================
+    //  CHARACTERS — MAIN MENU FLOW UI
+    // ================================================================
+
+    [MenuItem("Tools/Go To Hell/Characters/Build Main Menu Flow UI (Main Menu)")]
+    public static void BuildMainMenuFlowUI()
     {
         MainMenu menu = Object.FindFirstObjectByType<MainMenu>(FindObjectsInactive.Include);
         if (menu == null)
@@ -253,18 +380,17 @@ public static partial class GoToHellSetup
             Debug.LogWarning("[GoToHellSetup] Open the Main Menu scene first (no MainMenu component found).");
             return;
         }
-        if (GameObject.Find("ProgressionCanvas") != null)
-        {
-            Debug.LogWarning("[GoToHellSetup] 'ProgressionCanvas' already exists — delete it first to rebuild.");
-            return;
-        }
+        foreach (string old in new[] { "ProgressionCanvas", "MenuFlowCanvas" })
+            if (GameObject.Find(old) != null)
+            {
+                Debug.LogWarning($"[GoToHellSetup] Delete '{old}' first, then run this again.");
+                return;
+            }
 
-        Canvas canvas = CreateCanvas("ProgressionCanvas", 100);
+        Canvas canvas = CreateCanvas("MenuFlowCanvas", 100);
         Transform root = canvas.transform;
 
-        // Menu buttons + currency (bottom-right / top-right)
-        Button pactsBtn = CreateButton(root, "PactsButton", "PACTS", Vector2.zero, new Vector2(300, 80), 30);
-        Anchor(pactsBtn.gameObject, new Vector2(1, 0), new Vector2(-190, 230));
+        // Meta shop button + currency
         Button metaBtn = CreateButton(root, "MetaShopButton", "META SHOP", Vector2.zero, new Vector2(300, 80), 30);
         Anchor(metaBtn.gameObject, new Vector2(1, 0), new Vector2(-190, 130));
         TMP_Text currency = CreateText(root, "Currency", "0 Brimstone", 34, Vector2.zero, new Vector2(500, 60),
@@ -272,41 +398,114 @@ public static partial class GoToHellSetup
         Anchor(currency.gameObject, new Vector2(1, 1), new Vector2(-280, -60));
         currency.color = new Color(1f, 0.7f, 0.3f);
 
-        // Pact panel
+        // ---- Character select ----
+        CharacterSelectUI select = canvas.gameObject.AddComponent<CharacterSelectUI>();
+        select.panel = CreateModal(root, "CharacterSelectPanel", out Transform sw);
+        CreateText(sw, "Header", "CHOOSE YOUR SINNER", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
+        select.content = CreateScrollList(sw, new Vector2(-330, 0), new Vector2(760, 720));
+        select.detailText = CreateText(sw, "Detail", "", 28, new Vector2(430, 80), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
+        select.playButton = CreateButton(sw, "Play", "PLAY", new Vector2(430, -290), new Vector2(420, 90), 36);
+        select.createButton = CreateButton(sw, "Create", "CREATE NEW", new Vector2(-560, -420), new Vector2(280, 64), 24);
+        select.deleteButton = CreateButton(sw, "Delete", "DELETE", new Vector2(-250, -420), new Vector2(280, 64), 24);
+        select.deleteButtonLabel = select.deleteButton.GetComponentInChildren<TMP_Text>();
+        select.backButton = CreateButton(sw, "Back", "BACK", new Vector2(600, -420), new Vector2(220, 64), 24);
+
+        // ---- Character create ----
+        CharacterCreateUI create = canvas.gameObject.AddComponent<CharacterCreateUI>();
+        create.panel = CreateModal(root, "CharacterCreatePanel", out Transform cw);
+        CreateText(cw, "Header", "NEW CHARACTER", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
+        create.nameInput = CreateInputField(cw, "NameInput", CharacterRoster.DefaultName, new Vector2(-330, 300), new Vector2(760, 76));
+        create.classContent = CreateScrollList(cw, new Vector2(-330, 90), new Vector2(760, 300));
+        create.classDetailText = CreateText(cw, "ClassDetail", "", 26, new Vector2(-330, -210), new Vector2(760, 260), TextAlignmentOptions.TopLeft);
+        create.statsContent = CreateStack(cw, new Vector2(430, 110), new Vector2(620, 460));
+        create.pointsText = CreateText(cw, "Points", "", 30, new Vector2(350, -160), new Vector2(460, 50), TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
+        create.autoButton = CreateButton(cw, "Auto", "AUTO", new Vector2(665, -160), new Vector2(150, 50), 24);
+        create.hardcoreToggle = CreateToggle(cw, "Hardcore", "Hardcore — death is permanent", new Vector2(430, -240), new Vector2(620, 50));
+        create.createButton = CreateButton(cw, "Create", "CREATE", new Vector2(430, -340), new Vector2(360, 80), 32);
+        create.cancelButton = CreateButton(cw, "Cancel", "CANCEL", new Vector2(600, -420), new Vector2(220, 64), 24);
+
+        // ---- Pact select ----
         PactSelectUI pacts = canvas.gameObject.AddComponent<PactSelectUI>();
-        GameObject pactPanel = CreateModal(root, "PactPanel", out Transform pactWin);
-        pacts.panel = pactPanel;
-        pacts.headerText = CreateText(pactWin, "Header", "PACTS", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
-        pacts.content = CreateScrollList(pactWin, new Vector2(-330, -10), new Vector2(760, 700));
-        pacts.detailText = CreateText(pactWin, "Detail", "Pick a pact to see what it does.", 28, new Vector2(430, -10), new Vector2(620, 700), TextAlignmentOptions.TopLeft);
-        pacts.closeButton = CreateButton(pactWin, "Close", "DONE", new Vector2(0, -420), new Vector2(260, 70), 28);
+        pacts.panel = CreateModal(root, "PactSelectPanel", out Transform pw);
+        pacts.headerText = CreateText(pw, "Header", "CHOOSE A PACT", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
+        pacts.content = CreateScrollList(pw, new Vector2(-330, 0), new Vector2(760, 720));
+        pacts.detailText = CreateText(pw, "Detail", "", 28, new Vector2(430, 80), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
+        pacts.startButton = CreateButton(pw, "Descend", "DESCEND", new Vector2(430, -290), new Vector2(420, 90), 36);
+        pacts.backButton = CreateButton(pw, "Back", "BACK", new Vector2(600, -420), new Vector2(220, 64), 24);
 
-        // Meta shop panel
+        select.createUI = create;
+        select.pactSelect = pacts;
+
+        // ---- Meta shop ----
         MetaShopUI shop = canvas.gameObject.AddComponent<MetaShopUI>();
-        GameObject shopPanel = CreateModal(root, "MetaShopPanel", out Transform shopWin);
-        shop.panel = shopPanel;
-        CreateText(shopWin, "Header", "META SHOP", 48, new Vector2(-300, 400), new Vector2(800, 70), TextAlignmentOptions.Left, FontStyles.Bold);
-        shop.currencyText = CreateText(shopWin, "Currency", "0", 36, new Vector2(400, 400), new Vector2(600, 70), TextAlignmentOptions.Right, FontStyles.Bold);
+        shop.panel = CreateModal(root, "MetaShopPanel", out Transform mw);
+        CreateText(mw, "Header", "META SHOP", 48, new Vector2(-300, 400), new Vector2(800, 70), TextAlignmentOptions.Left, FontStyles.Bold);
+        shop.currencyText = CreateText(mw, "Currency", "0", 36, new Vector2(400, 400), new Vector2(600, 70), TextAlignmentOptions.Right, FontStyles.Bold);
         shop.currencyText.color = new Color(1f, 0.7f, 0.3f);
-        shop.content = CreateScrollList(shopWin, new Vector2(-330, -10), new Vector2(760, 700));
-        shop.detailText = CreateText(shopWin, "Detail", "", 28, new Vector2(430, 60), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
-        shop.buyButton = CreateButton(shopWin, "Buy", "BUY", new Vector2(430, -300), new Vector2(420, 80), 30);
+        shop.content = CreateScrollList(mw, new Vector2(-330, -10), new Vector2(760, 700));
+        shop.detailText = CreateText(mw, "Detail", "", 28, new Vector2(430, 60), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
+        shop.buyButton = CreateButton(mw, "Buy", "BUY", new Vector2(430, -300), new Vector2(420, 80), 30);
         shop.buyButtonLabel = shop.buyButton.GetComponentInChildren<TMP_Text>();
-        shop.refundButton = CreateButton(shopWin, "Refund", "REFUND ALL", new Vector2(-560, -420), new Vector2(260, 60), 22);
-        shop.closeButton = CreateButton(shopWin, "Close", "DONE", new Vector2(0, -420), new Vector2(260, 70), 28);
+        shop.refundButton = CreateButton(mw, "Refund", "REFUND ALL", new Vector2(-560, -420), new Vector2(260, 60), 22);
+        shop.closeButton = CreateButton(mw, "Close", "DONE", new Vector2(600, -420), new Vector2(220, 64), 24);
 
-        pactPanel.SetActive(false);
-        shopPanel.SetActive(false);
+        select.panel.SetActive(false);
+        create.panel.SetActive(false);
+        pacts.panel.SetActive(false);
+        shop.panel.SetActive(false);
 
-        Undo.RecordObject(menu, "Wire progression UI");
-        menu.pactsButton = pactsBtn;
-        menu.pactSelect = pacts;
+        Undo.RecordObject(menu, "Wire main menu flow");
+        menu.characterSelect = select;
         menu.metaShopButton = metaBtn;
         menu.metaShop = shop;
         menu.currencyText = currency;
         EditorUtility.SetDirty(menu);
 
-        FinishScene(canvas.gameObject, "Pact + Meta Shop UI built and wired to MainMenu.");
+        FinishScene(canvas.gameObject, "Main menu flow built: Play → Character Select → Create → Pact → run.");
+    }
+
+    private static RectTransform CreateStack(Transform parent, Vector2 pos, Vector2 size)
+    {
+        GameObject go = CreateUIObject(parent, "Stats");
+        CenterRect(go, pos, size);
+        VerticalLayoutGroup v = go.AddComponent<VerticalLayoutGroup>();
+        v.spacing = 8;
+        v.childControlHeight = true;
+        v.childControlWidth = true;
+        v.childForceExpandHeight = false;
+        v.childForceExpandWidth = true;
+        return go.GetComponent<RectTransform>();
+    }
+
+    private static Toggle CreateToggle(Transform parent, string name, string label, Vector2 pos, Vector2 size)
+    {
+        GameObject go = CreateUIObject(parent, name);
+        CenterRect(go, pos, size);
+        Toggle toggle = go.AddComponent<Toggle>();
+
+        GameObject box = CreateUIObject(go.transform, "Box");
+        RectTransform brt = box.GetComponent<RectTransform>();
+        brt.anchorMin = brt.anchorMax = new Vector2(0, 0.5f);
+        brt.sizeDelta = new Vector2(40, 40);
+        brt.anchoredPosition = new Vector2(30, 0);
+        Image bg = box.AddComponent<Image>();
+        bg.color = new Color(0.2f, 0.19f, 0.24f, 1f);
+
+        GameObject check = CreateUIObject(box.transform, "Check");
+        StretchRect(check);
+        check.GetComponent<RectTransform>().offsetMin = new Vector2(8, 8);
+        check.GetComponent<RectTransform>().offsetMax = new Vector2(-8, -8);
+        Image ck = check.AddComponent<Image>();
+        ck.color = new Color(0.9f, 0.25f, 0.2f, 1f);
+
+        toggle.targetGraphic = bg;
+        toggle.graphic = ck;
+        toggle.isOn = false;
+
+        TextMeshProUGUI text = CreateText(go.transform, "Label", label, 26, Vector2.zero, size, TextAlignmentOptions.MidlineLeft);
+        StretchRect(text.gameObject);
+        text.rectTransform.offsetMin = new Vector2(64, 0);
+        return toggle;
     }
 
     private static GameObject CreateModal(Transform parent, string name, out Transform window)

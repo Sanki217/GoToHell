@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Carries the current run's setup choices from the Character Creator scene
@@ -25,10 +24,9 @@ public class RunConfig : MonoBehaviour
     // Empty string = nothing selected (e.g. gameplay scene tested directly)
     public string selectedClassId  = "";
     public string selectedWeaponId = "";
-
-    // Active pacts for this run (PactDefinition.pactId). Change through
-    // SetPacts so RunModifiers rebuilds.
-    public List<string> selectedPactIds = new List<string>();
+    public string selectedPactId   = "";   // RMB skill (PactDefinition.pactId)
+    public string characterId      = "";   // CharacterData.id ("" = testing a scene directly)
+    public bool   hardcore;
 
     // Starting primary stats — copied from the selected class's preset
     public int agility;
@@ -76,7 +74,9 @@ public class RunConfig : MonoBehaviour
         playerName       = "Sinner";
         selectedClassId  = "";
         selectedWeaponId = "";
-        selectedPactIds.Clear();
+        selectedPactId   = "";
+        characterId      = "";
+        hardcore         = false;
         agility          = 0;
         attackDamage     = 0;
         luck             = 0;
@@ -90,17 +90,30 @@ public class RunConfig : MonoBehaviour
         RunModifiers.MarkDirty();
     }
 
-    /// <summary>Replace the active pacts (unknown or locked ids are dropped).</summary>
-    public void SetPacts(IEnumerable<string> pactIds)
+    /// <summary>
+    /// Sets the run up from a saved character + the pact chosen for this run:
+    /// name, class (weapon), final stats (class base + allocated points), RMB skill.
+    /// </summary>
+    public void SetupRun(CharacterData c, PactDefinition pact)
     {
-        selectedPactIds.Clear();
-        if (pactIds != null)
-            foreach (string id in pactIds)
-            {
-                PactDefinition p = Content.Pacts.Get(id);
-                if (p != null && p.IsUnlocked && !selectedPactIds.Contains(id)) selectedPactIds.Add(id);
-            }
-        RunModifiers.MarkDirty();
+        Reset();
+        if (c == null) return;
+
+        ClassDefinition cls = Content.Classes.Get(c.classId);
+        characterId      = c.id;
+        playerName       = c.name;
+        hardcore         = c.hardcore;
+        selectedClassId  = c.classId;
+        selectedWeaponId = cls != null && cls.weapon != null ? cls.weapon.weaponId : "";
+        selectedPactId   = pact != null ? pact.pactId : "";
+
+        agility      = c.FinalStat(PrimaryStat.Agility);
+        attackDamage = c.FinalStat(PrimaryStat.AttackDamage);
+        luck         = c.FinalStat(PrimaryStat.Luck);
+        psyche       = c.FinalStat(PrimaryStat.Psyche);
+        health       = c.FinalStat(PrimaryStat.Health);
+        size         = c.FinalStat(PrimaryStat.Size);
+        cooldown     = c.FinalStat(PrimaryStat.Cooldown);
     }
 
     /// <summary>Marks the moment gameplay begins, for run-duration tracking.</summary>

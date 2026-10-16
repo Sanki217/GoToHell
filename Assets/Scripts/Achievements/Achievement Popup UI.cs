@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
@@ -39,9 +39,27 @@ public class AchievementPopupUI : MonoBehaviour
         if (panel != null) panel.gameObject.SetActive(false);
     }
 
+    [Header("Placement")]
+    [Tooltip("Gap from the bottom-right screen corner (reference pixels).")]
+    public Vector2 margin = new Vector2(40f, 40f);
+
     private void Start()
     {
-        if (panel != null) panel.gameObject.SetActive(false);
+        if (panel == null) return;
+
+        // Always on top of every other UI: own canvas with the highest sort order
+        Canvas c = panel.GetComponent<Canvas>();
+        if (c == null) c = panel.gameObject.AddComponent<Canvas>();
+        c.overrideSorting = true;
+        c.sortingOrder = short.MaxValue;
+
+        // Always bottom-right, sliding in from off-screen right
+        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(1f, 0f);
+        shownX = -margin.x;
+        hiddenX = panel.rect.width + margin.x;
+        panel.anchoredPosition = new Vector2(hiddenX, margin.y);
+
+        panel.gameObject.SetActive(false);
     }
 
     private void Enqueue(AchievementDefinition a)

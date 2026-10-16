@@ -696,12 +696,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52e0809a871dc4246a25d259df24a285, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 512
-  destructiblesLayer:
-    serializedVersion: 2
-    m_Bits: 4096
 --- !u!33 &5579213274233722201
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -789,6 +783,7 @@ GameObject:
   - component: {fileID: 2272024277720912777}
   - component: {fileID: 1480309002940532566}
   - component: {fileID: 1389196811611447786}
+  - component: {fileID: 4847206013479063095}
   m_Layer: 8
   m_Name: Rogue
   m_TagString: Player
@@ -1118,6 +1113,7 @@ MonoBehaviour:
   shockPerPsyche: 0.005
   baseMaxHP: 100
   hpPerHealth: 1
+  bonusMaxHP: 0
   moveSpeed: 10
   acceleration: 0
   dashDistance: 6
@@ -1154,58 +1150,72 @@ MonoBehaviour:
   _maxArrows: 3
   _currentArrows: 3
   _currentHP: 100
-  distanceMovedLeft: 0
-  distanceMovedRight: 0
-  totalDistance: 0
-  jumpsPerformed: 0
-  timeAirborne: 0
-  timeGrounded: 0
-  wallSlideCount: 0
-  totalWallSlideDuration: 0
-  hoverCount: 0
-  totalHoverDuration: 0
-  energySpentHovering: 0
-  dashCount: 0
-  totalDashDistance: 0
-  energySpentDashing: 0
-  dashesHitEnemy: 0
-  dashesHitWall: 0
-  slashCount: 0
-  slashesHitEnemy: 0
-  weakArrowsFired: 0
-  mediumArrowsFired: 0
-  chargedArrowsFired: 0
-  extraArrowsFired: 0
-  totalArrowsFired: 0
-  arrowsHitEnemy: 0
-  arrowsHitWall: 0
-  arrowsHitDestructible: 0
-  arrowsPickedUp: 0
-  chargesCancelledByEnergy: 0
-  enemiesKilled: 0
-  totalDamageDealt: 0
-  damageByArrow: 0
-  damageByDash: 0
-  damageByStatus: 0
-  damageByExplosion: 0
-  damageBySlash: 0
-  critsLanded: 0
-  burnApplied: 0
-  freezeApplied: 0
-  holyApplied: 0
-  shockApplied: 0
-  soulsCollected: 0
-  xpGained: 0
-  energyGainedTotal: 0
-  energyFromKills: 0
-  energyFromFalling: 0
-  energyFromLava: 0
-  energyFromWallSlide: 0
-  energySpentCharging: 0
-  damageTaken: 0
-  timesHit: 0
-  hpRestored: 0
-  layersCompleted: 0
+  history:
+    playerName: 
+    dateUtc: 
+    classId: 
+    weaponId: 
+    deepestLayer: 0
+    finalLevel: 0
+    runDurationSeconds: 0
+    victory: 0
+    characterId: 
+    hardcore: 0
+    pactId: 
+    metaCurrencyEarned: 0
+    maxDepthReached: 0
+    distanceMovedLeft: 0
+    distanceMovedRight: 0
+    totalDistance: 0
+    jumpsPerformed: 0
+    timeAirborne: 0
+    timeGrounded: 0
+    wallSlideCount: 0
+    totalWallSlideDuration: 0
+    hoverCount: 0
+    totalHoverDuration: 0
+    energySpentHovering: 0
+    dashCount: 0
+    totalDashDistance: 0
+    energySpentDashing: 0
+    dashesHitEnemy: 0
+    dashesHitWall: 0
+    slashCount: 0
+    slashesHitEnemy: 0
+    weakArrowsFired: 0
+    mediumArrowsFired: 0
+    chargedArrowsFired: 0
+    extraArrowsFired: 0
+    totalArrowsFired: 0
+    arrowsHitEnemy: 0
+    arrowsHitWall: 0
+    arrowsHitDestructible: 0
+    arrowsPickedUp: 0
+    chargesCancelledByEnergy: 0
+    enemiesKilled: 0
+    totalDamageDealt: 0
+    damageByArrow: 0
+    damageByDash: 0
+    damageByStatus: 0
+    damageByExplosion: 0
+    damageBySlash: 0
+    critsLanded: 0
+    burnApplied: 0
+    freezeApplied: 0
+    holyApplied: 0
+    shockApplied: 0
+    soulsCollected: 0
+    xpGained: 0
+    energyGainedTotal: 0
+    energyFromKills: 0
+    energyFromFalling: 0
+    energyFromLava: 0
+    energyFromWallSlide: 0
+    energySpentCharging: 0
+    damageTaken: 0
+    timesHit: 0
+    hpRestored: 0
+    layersCompleted: 0
 --- !u!114 &8711277418234906036
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1287,9 +1297,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 192
   dashDamageCollider: {fileID: 1364964159066448925}
-  mainCamera: {fileID: 0}
   lineRenderer: {fileID: 4750414600653838217}
   shootOrigin: {fileID: 1449953048924960210}
+  teleportClearanceRadius: 0.4
   isDashing: 0
   isTeleportDash: 0
 --- !u!114 &5824944521191279029
@@ -1455,7 +1465,6 @@ MonoBehaviour:
   - 750
   - 850
   - 1000
-  currentLayer: 1
   currentLevel: 1
   currentXP: 0
   xpToNextLevel: 10
@@ -1478,6 +1487,7 @@ MonoBehaviour:
   baseWidth: 0.8
   baseCooldown: 0.3
   slashActiveDuration: 0.15
+  kickDamageMultiplier: 0.25
   sizeScalePerPoint: 0.05
   cooldownReductionPerPoint: 0.05
   minCooldown: 0.01
@@ -1554,6 +1564,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArrowRegenerator
   secondsPerArrow: 5
+--- !u!114 &4847206013479063095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5885043042379458451}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 314ddeee8446bdd40b0231edb3ed51ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShieldAbility
+  energyPerSecond: 10
+  baseArcDegrees: 180
+  arcDegreesPerSizePoint: 5
+  maxArcDegrees: 360
+  reflectEnergyCost: 5
+  contactDamageMultiplier: 0.4
+  shieldVisual: {fileID: 0}
 --- !u!1 &7010740102580621068
 GameObject:
   m_ObjectHideFlags: 0

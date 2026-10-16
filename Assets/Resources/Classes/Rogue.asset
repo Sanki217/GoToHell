@@ -18,14 +18,6 @@ MonoBehaviour:
   sprite: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
   unlockedByDefault: 1
   playerPrefab: {fileID: 5885043042379458451, guid: 21d835b4a0831244d8d04a75018f0dcb, type: 3}
-  skillComponentName: DashAbility
-  skillDisplayName: Dash
-  skillDescription: Spend energy to dash toward the cursor, damaging enemies in your
-    path, while avoiding damage
-  agility: 2
-  attackDamage: 2
-  luck: 3
-  psyche: 1
-  health: 0
-  size: 1
-  cooldown: 1
+  weapon: {fileID: 11400000, guid: 206cac2f3844a1743ad539f4a6e42009, type: 2}
+  altAttackComponentName: PlayerSlash
+  altAttackDisplayName: Kick

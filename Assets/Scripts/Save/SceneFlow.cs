@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -59,7 +59,14 @@ public static class SceneFlow
     /// same loadout (pause-menu Restart). Goes through RunManager so run-scoped
     /// state (extra life, pity, earned achievements) never leaks into the new run.
     /// </summary>
-    public static void RestartRun() => StartRunAtLevel1();
+    public static void RestartRun()
+    {
+        // A fallen hardcore character can't start another run
+        RunConfig cfg = RunConfig.I;
+        CharacterData c = cfg != null ? CharacterRoster.Get(cfg.characterId) : null;
+        if (c != null && !c.CanPlay) { GoToMainMenu(); return; }
+        StartRunAtLevel1();
+    }
 
     /// <summary>
     /// Reloads the active scene as a fresh run (death fallback when testing a

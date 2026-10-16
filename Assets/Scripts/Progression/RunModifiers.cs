@@ -3,8 +3,8 @@ using System.Text;
 using UnityEngine;
 
 /// <summary>
-/// The run's combined modifiers from every source — active pacts (RunConfig)
-/// and owned meta-upgrade ranks (SaveData) — flattened into plain numbers
+/// The run's combined modifiers from every source — currently owned
+/// meta-upgrade ranks (SaveData) — flattened into plain numbers
 /// that gameplay reads:
 ///
 ///   PlayerInventory.AddSouls    × SoulGainMult
@@ -16,8 +16,7 @@ using UnityEngine;
 ///   PlayerUpgradePool           FavouredTags / BannedTags
 ///   RunConfigApplier            ApplyToPlayer (stats, max HP, souls, RunEffects)
 ///
-/// Rebuilt lazily whenever a source changes (pact picked, meta rank bought,
-/// run started). Gameplay never needs to know WHERE a modifier came from —
+/// Rebuilt lazily whenever a source changes (meta rank bought, run started). Gameplay never needs to know WHERE a modifier came from —
 /// a new source (relics, curses, difficulty modes) is one more loop in
 /// Rebuild().
 /// </summary>
@@ -29,11 +28,11 @@ public static class RunModifiers
     private static float soulGain, xpGain, shopPrice, metaCurrency, damageTaken;
     private static float enemyHealth, enemyDamage, enemySpeed;
     private static float rarityLuck, favouredWeight, bonusMaxHP;
-    private static int startingSouls, heat;
+    private static int startingSouls;
     private static UpgradeTag favouredTags, bannedTags;
     private static readonly float[] primary = new float[System.Enum.GetValues(typeof(PrimaryStat)).Length];
 
-    // A source = one pact or one owned meta upgrade, with its stack count
+    // A source = one owned meta upgrade, with its stack count
     private struct Source
     {
         public RunModifierSet set;
@@ -59,8 +58,6 @@ public static class RunModifiers
     public static float FavouredTagMult  { get { Ensure(); return Mult(favouredWeight); } }
     public static int StartingSouls      { get { Ensure(); return startingSouls; } }
     public static float BonusMaxHP       { get { Ensure(); return bonusMaxHP; } }
-    /// <summary>Summed heat of the active pacts.</summary>
-    public static int TotalHeat          { get { Ensure(); return heat; } }
 
     public static float PrimaryBonus(PrimaryStat stat)
     {
@@ -74,20 +71,6 @@ public static class RunModifiers
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void InitStatics() => dirty = true;
-
-    // ---- Active pacts ----------------------------------------------------
-
-    /// <summary>Active pact definitions (resolved from RunConfig.selectedPactIds).</summary>
-    public static IEnumerable<PactDefinition> ActivePacts()
-    {
-        RunConfig cfg = RunConfig.I;
-        if (cfg == null || cfg.selectedPactIds == null) yield break;
-        foreach (string id in cfg.selectedPactIds)
-        {
-            PactDefinition p = Content.Pacts.Get(id);
-            if (p != null) yield return p;
-        }
-    }
 
     // ---- Apply to the player -------------------------------------------
 
@@ -149,13 +132,6 @@ public static class RunModifiers
     {
         dirty = false;
         sources.Clear();
-        heat = 0;
-
-        foreach (PactDefinition p in ActivePacts())
-        {
-            sources.Add(new Source { set = p.modifiers, effects = p.effects, stacks = 1 });
-            heat += p.heat;
-        }
 
         foreach (MetaUpgradeDefinition m in Content.MetaUpgrades.All)
         {

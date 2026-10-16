@@ -12,10 +12,9 @@ public struct PrimaryStatAmount
 }
 
 /// <summary>
-/// A bundle of NUMERIC run modifiers — the shared vocabulary of pacts and
-/// meta upgrades. Designers fill these in the Inspector; no code per pact.
+/// A bundle of NUMERIC run modifiers, used by meta upgrades (and any future
+/// source: relics, difficulty modes…). Filled in the Inspector; no code.
 ///
-///   Pact "Pact of Wrath":  enemyHealthPercent +50, soulGainPercent +25
 ///   Meta "Thick Skin" ×3:  bonusMaxHP 5 per rank → +15 max HP
 ///
 /// Percent fields are ADDITIVE across all sources and turned into one

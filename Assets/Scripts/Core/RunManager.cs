@@ -24,12 +24,7 @@ public static class RunManager
     public static void BeginRun()
     {
         ResetRunScopedState();
-        if (RunConfig.I != null)
-        {
-            RunConfig.I.MarkRunStart();
-            // Remember the pact loadout for next time
-            SaveManager.Data.lastPactIds = new System.Collections.Generic.List<string>(RunConfig.I.selectedPactIds);
-        }
+        if (RunConfig.I != null) RunConfig.I.MarkRunStart();
         RunModifiers.MarkDirty();
     }
 
@@ -53,8 +48,9 @@ public static class RunManager
         RunStats run = RunStatsBuilder.Build(stats, playerName, deepestLayer, duration, victory);
         run.classId  = cfg != null ? cfg.selectedClassId  : "";
         run.weaponId = cfg != null ? cfg.selectedWeaponId : "";
-        run.pactIds  = cfg != null ? string.Join(",", cfg.selectedPactIds) : "";
-        run.heat     = RunModifiers.TotalHeat;
+        run.pactId      = cfg != null ? cfg.selectedPactId : "";
+        run.characterId = cfg != null ? cfg.characterId : "";
+        run.hardcore    = cfg != null && cfg.hardcore;
 
         // Max depth = banked layers + this layer's live tracker
         DepthTracker tracker = stats.GetComponent<DepthTracker>();
@@ -65,6 +61,7 @@ public static class RunManager
         // Meta currency: computed from the finished run, saved together with it
         run.metaCurrencyEarned = MetaProgression.ComputePayout(run);
         MetaProgression.AddCurrency(run.metaCurrencyEarned, save: false);
+        CharacterRoster.RecordRun(run, victory);   // hardcore death happens here
 
         SaveManager.RecordRun(run);   // saves
         Achievements.CheckCumulative();

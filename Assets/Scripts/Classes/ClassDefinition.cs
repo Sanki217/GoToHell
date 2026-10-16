@@ -1,14 +1,18 @@
 using UnityEngine;
 
 /// <summary>
-/// A playable class: predefined starting stats, a 2D sprite, and an RMB skill.
-/// The skill is referenced by component type name (e.g. "DashAbility") — the
-/// player prefab carries every class-skill component, and RunConfigApplier
-/// enables only the selected class's one. Matches the upgrade convention of
-/// identity-by-type-name.
+/// A playable class = the character's weapon kit.
+///   LMB       → weapon (WeaponDefinition: Rogue = Bow, Warrior = Sword)
+///   Shift+LMB → a small alt attack (Rogue = kick for vases when out of arrows)
+///   RMB       → NOT the class: chosen per run as a Pact (Dash, Shield…)
+///
+/// Characters pick a class at creation; stats are the same for every class
+/// (all start at 1 + free points — see CharacterRoster).
+/// RunConfigApplier enables this class's weapon/alt components on the player
+/// and disables every other class's.
 ///
 /// Create via: Assets → Create → GoToHell → Class
-/// Store in: Resources/Classes/ (Collection + RunConfigApplier load from there)
+/// Store in:   Assets/Resources/Classes/
 /// </summary>
 [CreateAssetMenu(menuName = "GoToHell/Class")]
 public class ClassDefinition : ScriptableObject
@@ -21,30 +25,25 @@ public class ClassDefinition : ScriptableObject
     [TextArea(2, 5)]
     public string description;
 
-    [Tooltip("2D sprite shown in the creator carousel and Collection.")]
+    [Tooltip("2D sprite shown in character creation and the Collection.")]
     public Sprite sprite;
 
-    [Tooltip("Unlocked without any save-data entry (e.g. Rogue).")]
+    [Tooltip("Selectable in character creation without unlocking.")]
     public bool unlockedByDefault;
 
     [Header("Player Prefab")]
-    [Tooltip("The class-specific player prefab spawned by PlayerSpawner at run start. " +
-             "Carries ONLY this class's skill components.")]
+    [Tooltip("Spawned by PlayerSpawner. Must carry this class's weapon components AND every pact skill " +
+             "(Tools → Go To Hell → Characters → Sync Pact Skills Into Class Prefabs).")]
     public GameObject playerPrefab;
 
-    [Header("RMB Skill")]
-    [Tooltip("Exact component type name on the player prefab, e.g. \"DashAbility\".")]
-    public string skillComponentName;
-    public string skillDisplayName;
-    [TextArea(2, 4)]
-    public string skillDescription;
+    [Header("LMB Weapon")]
+    public WeaponDefinition weapon;
 
-    [Header("Starting Primary Stats")]
-    public int agility;
-    public int attackDamage;
-    public int luck;
-    public int psyche;
-    public int health;
-    public int size;
-    public int cooldown;
+    [Header("Shift + LMB")]
+    [Tooltip("Component type name of the alt attack (e.g. \"PlayerSlash\" in kick mode). Empty = none.")]
+    public string altAttackComponentName;
+    public string altAttackDisplayName;
+
+    public bool IsUnlocked => unlockedByDefault || SaveManager.IsClassUnlocked(classId);
+
 }

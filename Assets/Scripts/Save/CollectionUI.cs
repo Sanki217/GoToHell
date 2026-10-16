@@ -112,9 +112,8 @@ public class CollectionUI : MonoBehaviour
             PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
             if (upgrade == null) continue;
 
-            // Only upgrades the player has picked up at least once
-            if (!SaveManager.IsUpgradeDiscovered(upgrade.UpgradeId)) continue;
-            Spawn(upgrade.icon, upgrade.displayName, true);
+            // Upgrades never picked up show as locked (same as locked classes/weapons)
+            Spawn(upgrade.icon, upgrade.displayName, SaveManager.IsUpgradeDiscovered(upgrade.UpgradeId));
         }
     }
 

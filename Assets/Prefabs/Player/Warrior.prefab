@@ -851,6 +851,7 @@ GameObject:
   - component: {fileID: 3190560730296326408}
   - component: {fileID: 896580749835130994}
   - component: {fileID: 3067490915115003354}
+  - component: {fileID: 5049061815432663026}
   m_Layer: 8
   m_Name: Warrior
   m_TagString: Player
@@ -1180,6 +1181,7 @@ MonoBehaviour:
   shockPerPsyche: 0.005
   baseMaxHP: 100
   hpPerHealth: 1
+  bonusMaxHP: 0
   moveSpeed: 10
   acceleration: 0
   dashDistance: 6
@@ -1216,58 +1218,72 @@ MonoBehaviour:
   _maxArrows: 3
   _currentArrows: 3
   _currentHP: 100
-  distanceMovedLeft: 0
-  distanceMovedRight: 0
-  totalDistance: 0
-  jumpsPerformed: 0
-  timeAirborne: 0
-  timeGrounded: 0
-  wallSlideCount: 0
-  totalWallSlideDuration: 0
-  hoverCount: 0
-  totalHoverDuration: 0
-  energySpentHovering: 0
-  dashCount: 0
-  totalDashDistance: 0
-  energySpentDashing: 0
-  dashesHitEnemy: 0
-  dashesHitWall: 0
-  slashCount: 0
-  slashesHitEnemy: 0
-  weakArrowsFired: 0
-  mediumArrowsFired: 0
-  chargedArrowsFired: 0
-  extraArrowsFired: 0
-  totalArrowsFired: 0
-  arrowsHitEnemy: 0
-  arrowsHitWall: 0
-  arrowsHitDestructible: 0
-  arrowsPickedUp: 0
-  chargesCancelledByEnergy: 0
-  enemiesKilled: 0
-  totalDamageDealt: 0
-  damageByArrow: 0
-  damageByDash: 0
-  damageByStatus: 0
-  damageByExplosion: 0
-  damageBySlash: 0
-  critsLanded: 0
-  burnApplied: 0
-  freezeApplied: 0
-  holyApplied: 0
-  shockApplied: 0
-  soulsCollected: 0
-  xpGained: 0
-  energyGainedTotal: 0
-  energyFromKills: 0
-  energyFromFalling: 0
-  energyFromLava: 0
-  energyFromWallSlide: 0
-  energySpentCharging: 0
-  damageTaken: 0
-  timesHit: 0
-  hpRestored: 0
-  layersCompleted: 0
+  history:
+    playerName: 
+    dateUtc: 
+    classId: 
+    weaponId: 
+    deepestLayer: 0
+    finalLevel: 0
+    runDurationSeconds: 0
+    victory: 0
+    characterId: 
+    hardcore: 0
+    pactId: 
+    metaCurrencyEarned: 0
+    maxDepthReached: 0
+    distanceMovedLeft: 0
+    distanceMovedRight: 0
+    totalDistance: 0
+    jumpsPerformed: 0
+    timeAirborne: 0
+    timeGrounded: 0
+    wallSlideCount: 0
+    totalWallSlideDuration: 0
+    hoverCount: 0
+    totalHoverDuration: 0
+    energySpentHovering: 0
+    dashCount: 0
+    totalDashDistance: 0
+    energySpentDashing: 0
+    dashesHitEnemy: 0
+    dashesHitWall: 0
+    slashCount: 0
+    slashesHitEnemy: 0
+    weakArrowsFired: 0
+    mediumArrowsFired: 0
+    chargedArrowsFired: 0
+    extraArrowsFired: 0
+    totalArrowsFired: 0
+    arrowsHitEnemy: 0
+    arrowsHitWall: 0
+    arrowsHitDestructible: 0
+    arrowsPickedUp: 0
+    chargesCancelledByEnergy: 0
+    enemiesKilled: 0
+    totalDamageDealt: 0
+    damageByArrow: 0
+    damageByDash: 0
+    damageByStatus: 0
+    damageByExplosion: 0
+    damageBySlash: 0
+    critsLanded: 0
+    burnApplied: 0
+    freezeApplied: 0
+    holyApplied: 0
+    shockApplied: 0
+    soulsCollected: 0
+    xpGained: 0
+    energyGainedTotal: 0
+    energyFromKills: 0
+    energyFromFalling: 0
+    energyFromLava: 0
+    energyFromWallSlide: 0
+    energySpentCharging: 0
+    damageTaken: 0
+    timesHit: 0
+    hpRestored: 0
+    layersCompleted: 0
 --- !u!114 &4638660652062513187
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1491,7 +1507,6 @@ MonoBehaviour:
   - 750
   - 850
   - 1000
-  currentLayer: 1
   currentLevel: 1
   currentXP: 0
   xpToNextLevel: 10
@@ -1514,6 +1529,7 @@ MonoBehaviour:
   baseWidth: 0.8
   baseCooldown: 0.3
   slashActiveDuration: 0.15
+  kickDamageMultiplier: 0.25
   sizeScalePerPoint: 0.05
   cooldownReductionPerPoint: 0.05
   minCooldown: 0.01
@@ -1609,6 +1625,32 @@ MonoBehaviour:
   reflectEnergyCost: 5
   contactDamageMultiplier: 0.4
   shieldVisual: {fileID: 1680516157501685916}
+--- !u!114 &5049061815432663026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7728477047858160054}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9282afe83ba25a54bb793a618a784b16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dashCost: 15
+  maxDashRange: 5
+  dashDuration: 0.1
+  postDashMomentum: 10
+  dashDamage: 1
+  dashCollisionLayers:
+    serializedVersion: 2
+    m_Bits: 192
+  dashDamageCollider: {fileID: 3548385133136323869}
+  lineRenderer: {fileID: 5445705853933791039}
+  shootOrigin: {fileID: 5395874879794268947}
+  teleportClearanceRadius: 0.4
+  isDashing: 0
+  isTeleportDash: 0
 --- !u!1 &8174353867238334254
 GameObject:
   m_ObjectHideFlags: 0
@@ -1893,12 +1935,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52e0809a871dc4246a25d259df24a285, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 512
-  destructiblesLayer:
-    serializedVersion: 2
-    m_Bits: 4096
 --- !u!33 &6284147164428678698
 MeshFilter:
   m_ObjectHideFlags: 0

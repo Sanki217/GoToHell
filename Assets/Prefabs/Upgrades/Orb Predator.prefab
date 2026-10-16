@@ -119,11 +119,11 @@ MonoBehaviour:
   displayName: Predator
   description: Killing with dash refunds it's cost
   icon: {fileID: 0}
-  category: 0
+  category: 1
   rarity: 2
   tags: 16388
   requiredWeaponId: 
-  requiredClassId: rogue
+  requiredPactId: pact_dash
   statCountCommon: 1
   statCountRare: 1
   statCountEpic: 1

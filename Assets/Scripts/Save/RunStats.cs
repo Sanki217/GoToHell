@@ -26,8 +26,9 @@ public class RunStats
     public int    finalLevel;       // player level at death
     public float  runDurationSeconds;
     public bool   victory;          // reached the end vs died
-    public string pactIds;          // active pacts, comma-separated
-    public int    heat;             // summed pact heat
+    public string characterId;      // CharacterData.id
+    public bool   hardcore;
+    public string pactId;           // RMB skill taken into the run
     public int    metaCurrencyEarned;
 
     // Max depth reached (world units below the layer start, summed across
@@ -103,7 +104,7 @@ public class RunStats
     // (they are tracked as maxima in bestRun instead).
     private static readonly HashSet<string> NotSummed = new HashSet<string>
     {
-        nameof(deepestLayer), nameof(finalLevel), nameof(maxDepthReached), nameof(heat)
+        nameof(deepestLayer), nameof(finalLevel), nameof(maxDepthReached)
     };
 
     private static FieldInfo[] numericFields;

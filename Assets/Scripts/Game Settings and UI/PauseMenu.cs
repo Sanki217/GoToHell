@@ -17,6 +17,9 @@ public class PauseMenu : MonoBehaviour
     [Header("Buttons")]
     public Button resumeButton;
     public Button restartButton;
+    [Tooltip("Abandons the run and returns to the main menu (nothing is recorded, the character " +
+             "doesn't die). Created at runtime under Restart if left empty.")]
+    public Button quitToMenuButton;
     public Button settingsButton;
     public Button settingsBackButton;
 
@@ -48,6 +51,8 @@ public class PauseMenu : MonoBehaviour
 
         if (resumeButton != null) resumeButton.onClick.AddListener(Resume);
         if (restartButton != null) restartButton.onClick.AddListener(Restart);
+        if (quitToMenuButton == null) quitToMenuButton = CreateQuitButton();
+        if (quitToMenuButton != null) quitToMenuButton.onClick.AddListener(QuitToMenu);
         if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
         if (settingsBackButton != null) settingsBackButton.onClick.AddListener(CloseSettings);
 
@@ -136,6 +141,41 @@ public class PauseMenu : MonoBehaviour
     public void Restart()
     {
         SceneFlow.RestartRun();
+    }
+
+    /// <summary>
+    /// Leave the run: no run record, no meta currency, no achievements checked,
+    /// and a hardcore character survives (abandoning isn't dying).
+    /// </summary>
+    public void QuitToMenu()
+    {
+        Resume();
+        SceneFlow.GoToMainMenu();
+    }
+
+    /// <summary>Fallback for scenes built before the button existed: a copy of Restart placed below it.</summary>
+    private Button CreateQuitButton()
+    {
+        if (restartButton == null) return null;
+        GameObject go = Instantiate(restartButton.gameObject, restartButton.transform.parent);
+        go.name = "QuitToMenuButton";
+        go.transform.SetSiblingIndex(restartButton.transform.GetSiblingIndex() + 1);
+        Button b = go.GetComponent<Button>();
+        b.onClick = new Button.ButtonClickedEvent();
+
+        // Inside a layout group the copy places itself; otherwise put it under Restart
+        if (go.transform.parent.GetComponent<LayoutGroup>() == null)
+        {
+            RectTransform src = (RectTransform)restartButton.transform;
+            RectTransform rt = (RectTransform)go.transform;
+            rt.anchoredPosition = src.anchoredPosition - new Vector2(0f, src.rect.height + 16f);
+        }
+
+        TMPro.TMP_Text tmp = go.GetComponentInChildren<TMPro.TMP_Text>();
+        if (tmp != null) tmp.text = "Quit to Menu";
+        Text legacy = go.GetComponentInChildren<Text>();
+        if (legacy != null) legacy.text = "Quit to Menu";
+        return b;
     }
 
     public void OpenSettings()

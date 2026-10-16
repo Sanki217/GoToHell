@@ -1,19 +1,15 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Main-menu pact picker. Lists every PactDefinition in Resources/Pacts:
-/// unlocked ones toggle on/off (up to MetaProgressionConfig.maxActivePacts),
-/// locked ones show as "???" until their achievement is earned.
-///
-/// The selection is remembered in the save (SaveData.lastPactIds) and
-/// MainMenu copies it into RunConfig when Play is pressed — so the next run
-/// starts with the same pacts until the player changes them.
-///
-/// Build a default panel: Tools → Go To Hell → Progression → Build Pact + Meta Shop UI
-/// (Main Menu scene). Every visual is replaceable; only the references matter.
+/// Pact Select — the last screen before a run: pick the RMB skill this
+/// character takes down (Dash, Shield…). Lists every PactDefinition; unlocked
+/// ones are selectable, locked ones show as "???". The character's last pact
+/// is pre-selected. Opened by CharacterSelectUI; "Descend" calls back with
+/// the chosen pact.
 /// </summary>
 public class PactSelectUI : MonoBehaviour
 {
@@ -23,24 +19,41 @@ public class PactSelectUI : MonoBehaviour
     public RectTransform content;
     [Tooltip("Optional styled row prefab (Button + TMP_Text). Empty = plain rows.")]
     public GameObject rowTemplate;
-    public TMP_Text detailText;
     public TMP_Text headerText;
-    public Button closeButton;
+    public TMP_Text detailText;
+    public Button startButton;
+    public Button backButton;
 
     private readonly List<(PactDefinition def, Button button, TMP_Text label)> rows =
         new List<(PactDefinition, Button, TMP_Text)>();
+    private PactDefinition selected;
+    private Action<PactDefinition> onStart;
 
     public bool IsOpen => panel != null && panel.activeSelf;
 
     private void Awake()
     {
-        if (closeButton != null) closeButton.onClick.AddListener(Close);
+        if (backButton != null) backButton.onClick.AddListener(Close);
+        if (startButton != null) startButton.onClick.AddListener(Confirm);
         if (rowTemplate != null) rowTemplate.SetActive(false);
         if (panel != null) panel.SetActive(false);
     }
 
-    public void Open()
+    /// <summary>Show the picker for a character. <paramref name="start"/> runs on "Descend".</summary>
+    public void Open(CharacterData character, Action<PactDefinition> start)
     {
+        onStart = start;
+        selected = null;
+
+        PactDefinition last = character != null ? Content.Pacts.Get(character.lastPactId) : null;
+        if (last != null && last.IsUnlocked) selected = last;
+        if (selected == null)
+            foreach (PactDefinition p in Content.Pacts.All)
+                if (p.IsUnlocked) { selected = p; break; }
+
+        if (headerText != null)
+            headerText.text = character != null ? $"CHOOSE A PACT — {character.name}" : "CHOOSE A PACT";
+
         if (panel != null) panel.SetActive(true);
         Rebuild();
     }
@@ -50,17 +63,11 @@ public class PactSelectUI : MonoBehaviour
         if (panel != null) panel.SetActive(false);
     }
 
-    /// <summary>The saved selection, filtered to pacts that still exist and are unlocked.</summary>
-    public static List<string> SavedSelection()
+    private void Confirm()
     {
-        var result = new List<string>();
-        int max = MetaProgression.Config.maxActivePacts;
-        foreach (string id in SaveManager.Data.lastPactIds)
-        {
-            PactDefinition p = Content.Pacts.Get(id);
-            if (p != null && p.IsUnlocked && !result.Contains(id) && result.Count < max) result.Add(id);
-        }
-        return result;
+        if (selected == null || !selected.IsUnlocked) return;
+        Close();
+        onStart?.Invoke(selected);
     }
 
     private void Rebuild()
@@ -72,62 +79,38 @@ public class PactSelectUI : MonoBehaviour
         {
             var (button, label) = UIRowFactory.Create(content, rowTemplate);
             PactDefinition captured = def;
-            if (button != null) button.onClick.AddListener(() => Toggle(captured));
+            if (button != null) button.onClick.AddListener(() => Select(captured));
             rows.Add((def, button, label));
         }
-
-        if (rows.Count == 0 && detailText != null)
-            detailText.text = "No pacts yet.\nCreate PactDefinition assets in Assets/Resources/Pacts.";
         Refresh();
     }
 
-    private void Toggle(PactDefinition def)
+    private void Select(PactDefinition def)
     {
-        if (def == null) return;
-        if (detailText != null) detailText.text = def.IsUnlocked ? def.BuildSummary() : LockedText();
-        if (!def.IsUnlocked) return;
-
-        List<string> sel = SavedSelection();
-        int max = MetaProgression.Config.maxActivePacts;
-
-        if (sel.Contains(def.pactId)) sel.Remove(def.pactId);
-        else if (max > 0)
-        {
-            if (sel.Count >= max) sel.RemoveAt(0);   // replace the oldest pick
-            sel.Add(def.pactId);
-        }
-
-        SaveManager.Data.lastPactIds = sel;
-        SaveManager.Save();
-        Refresh();
+        if (def != null && def.IsUnlocked) selected = def;
+        Refresh(def);
     }
 
-    private void Refresh()
+    private void Refresh(PactDefinition shown = null)
     {
-        List<string> sel = SavedSelection();
-        int heat = 0;
+        shown ??= selected;
 
         foreach (var (def, button, label) in rows)
         {
             bool unlocked = def.IsUnlocked;
-            bool on = sel.Contains(def.pactId);
-            if (on) heat += def.heat;
-
             if (label != null)
-                label.text = unlocked
-                    ? $"<b>{def.displayName}</b>   <color=#FF6A3D>Heat {def.heat}</color>{(on ? "   <color=#FFD700>ACTIVE</color>" : "")}"
-                    : "<color=#777777>??? — locked</color>";
-
+                label.text = unlocked ? $"<b>{def.displayName}</b>" : "<color=#777777>??? — locked</color>";
             UIRowFactory.SetColor(button, !unlocked ? UIRowFactory.DisabledColor
-                                         : on ? UIRowFactory.SelectedColor : UIRowFactory.RowColor);
+                                         : def == selected ? UIRowFactory.SelectedColor : UIRowFactory.RowColor);
         }
 
-        if (headerText != null)
-        {
-            int max = MetaProgression.Config.maxActivePacts;
-            headerText.text = $"PACTS   {sel.Count}/{max}   Heat {heat}";
-        }
+        if (detailText != null)
+            detailText.text = shown == null
+                ? "No pacts unlocked.\nCreate PactDefinition assets in Assets/Resources/Pacts."
+                : shown.IsUnlocked
+                    ? $"<b>{shown.displayName}</b>\n<color=#AAAAAA>RMB skill</color>\n\n{shown.description}"
+                    : "Locked.\nComplete achievements to unlock new pacts.";
+
+        if (startButton != null) startButton.interactable = selected != null;
     }
-
-    private static string LockedText() => "Locked.\nComplete achievements to unlock new pacts.";
 }

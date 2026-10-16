@@ -162,7 +162,11 @@ public class EnemyProjectile : MonoBehaviour
         if (other.CompareTag("Enemy"))
         {
             Enemy enemy = other.GetComponentInParent<Enemy>();
-            if (enemy != null && (owner == null || !enemy.transform.IsChildOf(owner)))
+            // Enemy shots never hit non-combatants (level-exit target, portal keys);
+            // shield-reflected shots (player-owned) still can.
+            bool playerOwned = owner != null && owner.GetComponentInParent<PlayerHealth>() != null;
+            if (enemy != null && (enemy.IsCombatant || playerOwned)
+                && (owner == null || !enemy.transform.IsChildOf(owner)))
                 enemy.TakeDamage(damage, transform.position, Vector3.zero, 0f,
                                  false, FloatingTextManager.HitType.Normal);
 

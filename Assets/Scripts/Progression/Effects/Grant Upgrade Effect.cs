@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Starts the player with an upgrade already owned — e.g. "Pact of Embers:
+/// Starts the player with an upgrade already owned — e.g. a meta perk "Ember Heart:
 /// begin every run with Burning Weapon". Uses the normal upgrade orb prefab
 /// from the pool, so the upgrade behaves exactly as if it had been picked.
 ///

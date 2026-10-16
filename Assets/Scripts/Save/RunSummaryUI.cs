@@ -98,7 +98,7 @@ public class RunSummaryUI : MonoBehaviour
             $"Arrows fired:  {r.totalArrowsFired}\n\n" +
             $"Souls collected:  {r.soulsCollected}\n" +
             $"Damage taken:  {r.damageTaken:F0}" +
-            (r.heat > 0 ? $"\n\nHeat:  {r.heat}" : "") +
+            (r.hardcore && !r.victory ? "\n\n<color=#FF4444><b>HARDCORE — this character is gone.</b></color>" : "") +
             $"\n\n<color=#FFB347><b>+{r.metaCurrencyEarned} {MetaProgression.CurrencyName}</b></color>";
     }
 

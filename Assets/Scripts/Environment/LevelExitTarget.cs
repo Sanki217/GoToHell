@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// End-of-level target: the FIRST point of damage from the player ends the
@@ -29,6 +29,17 @@ public class LevelExitTarget : Enemy
                                     bool isCrit, FloatingTextManager.HitType hitType)
     {
         if (used) return false;
+
+        // Only a hit while the player is actually playing counts. Anything
+        // that touches the target before the run starts (spawn-time physics,
+        // stray projectiles, explosions) is ignored and logged with its source.
+        PlayerStateController ctrl = PlayerRefs.I != null ? PlayerRefs.I.StateCtrl : null;
+        if (ctrl == null || !ctrl.HasControl())
+        {
+            Debug.LogWarning($"[LevelExitTarget] Ignored {amount} damage while the player had no control. Source:\n" +
+                             System.Environment.StackTrace);
+            return false;
+        }
         used = true;
 
         CameraFollow cam = PlayerRefs.CamFollow;

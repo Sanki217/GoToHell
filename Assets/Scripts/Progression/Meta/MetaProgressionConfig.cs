@@ -1,8 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Global meta-progression tuning: what the meta currency is called, how much
-/// a run pays out, and how many pacts can be active at once.
+/// a run pays out.
 ///
 /// Create via: Assets → Create → GoToHell → Meta Progression Config
 /// Store as:   Assets/Resources/MetaProgressionConfig.asset (exact name)
@@ -22,11 +22,6 @@ public class MetaProgressionConfig : ScriptableObject
     public float perPlayerLevel = 2f;
     public float perMinuteSurvived = 1f;
     public int victoryBonus = 100;
-    [Tooltip("Payout bonus per point of pact heat (+10 = +10% per heat).")]
-    public float currencyPercentPerHeat = 10f;
-
-    [Header("Pacts")]
-    [Min(0)] public int maxActivePacts = 1;
 
     /// <summary>Payout for a finished run, before RunModifiers' meta-currency bonus.</summary>
     public float BasePayout(RunStats run)

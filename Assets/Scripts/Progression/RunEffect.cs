@@ -2,11 +2,11 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Custom logic attached to a pact or meta upgrade — the escape hatch for
+/// Custom logic attached to a meta upgrade — the escape hatch for
 /// anything RunModifierSet's numbers can't express.
 ///
 /// One class per effect, one file per class (same rule as upgrades). Effects
-/// are plain serializable classes stored INSIDE the pact / meta asset with
+/// are plain serializable classes stored INSIDE the meta-upgrade asset with
 /// [SerializeReference, SubclassSelector], so the Inspector shows a type
 /// dropdown and the effect's own fields. No extra assets, no prefabs.
 ///
@@ -38,7 +38,7 @@ public readonly struct RunEffectContext
 {
     /// <summary>The freshly spawned player.</summary>
     public readonly GameObject player;
-    /// <summary>Meta upgrade rank (1 for pacts).</summary>
+    /// <summary>Meta upgrade rank.</summary>
     public readonly int stacks;
     /// <summary>True on the first layer of a run (one-time bonuses go here).</summary>
     public readonly bool isRunStart;

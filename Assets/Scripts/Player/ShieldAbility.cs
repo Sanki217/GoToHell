@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Warrior RMB skill — directional block.
@@ -8,8 +8,8 @@ using UnityEngine;
 ///
 /// Arc: baseArcDegrees (180°) + arcDegreesPerSizePoint × Size, capped at max.
 ///
-/// Disabled by default on the player prefab — enabled by RunConfigApplier when
-/// the selected class's skillComponentName is "ShieldAbility".
+/// A PACT skill: enabled by RunConfigApplier when the run's pact has
+/// skillComponentName "ShieldAbility" (any class can take it).
 /// Skill upgrades (bash, reflect, ...) come later via the upgrade event bus.
 /// </summary>
 public class ShieldAbility : MonoBehaviour

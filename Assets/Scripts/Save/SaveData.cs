@@ -51,8 +51,8 @@ public class SaveData
     // Owned rank per MetaUpgradeDefinition.metaId
     public List<MetaRank> metaRanks = new List<MetaRank>();
 
-    // Pacts active on the last run — pre-selected in the pact picker
-    public List<string> lastPactIds = new List<string>();
+    // Character slots (Character Select screen), in slot order
+    public List<CharacterData> characters = new List<CharacterData>();
 
     // Upgrades the player has picked up at least once (Collection shows only these)
     public List<string> discoveredUpgradeIds = new List<string>();

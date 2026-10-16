@@ -18,14 +18,6 @@ MonoBehaviour:
   sprite: {fileID: 10917, guid: 0000000000000000f000000000000000, type: 0}
   unlockedByDefault: 0
   playerPrefab: {fileID: 7728477047858160054, guid: 208525a8fc9edde4bbfb3733925fc8d1, type: 3}
-  skillComponentName: ShieldAbility
-  skillDisplayName: Shield
-  skillDescription: Hold RMB to raise a shield toward the cursor, blocking damage
-    from that direction. Drains energy per second. Size widens the arc.
-  agility: 1
-  attackDamage: 2
-  luck: 0
-  psyche: 1
-  health: 4
-  size: 1
-  cooldown: 1
+  weapon: {fileID: 11400000, guid: edd6aed5d3807904590db75d755fccef, type: 2}
+  altAttackComponentName: 
+  altAttackDisplayName: 

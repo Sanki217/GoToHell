@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -77,7 +77,7 @@ public static class Content
 {
     public static readonly DefinitionCache<PactDefinition> Pacts =
         new DefinitionCache<PactDefinition>("Pacts", d => d.pactId,
-            (a, b) => a.heat != b.heat ? a.heat.CompareTo(b.heat) : string.CompareOrdinal(a.displayName, b.displayName));
+            (a, b) => a.sortOrder != b.sortOrder ? a.sortOrder.CompareTo(b.sortOrder) : string.CompareOrdinal(a.displayName, b.displayName));
 
     public static readonly DefinitionCache<MetaUpgradeDefinition> MetaUpgrades =
         new DefinitionCache<MetaUpgradeDefinition>("Meta", d => d.metaId,

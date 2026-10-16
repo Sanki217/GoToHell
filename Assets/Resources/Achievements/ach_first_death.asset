@@ -20,6 +20,6 @@ MonoBehaviour:
   statField: 0
   threshold: 100
   eventId: player_died
-  pactToUnlock: {fileID: 0}
-  classToUnlock: {fileID: 11400000, guid: dbb381ddcddf5db459c83a0788078c08, type: 2}
+  pactToUnlock: {fileID: 11400000, guid: ebf5c5c29219e33409ce47eeb515ee8a, type: 2}
+  classToUnlock: {fileID: 0}
   weaponToUnlock: {fileID: 0}

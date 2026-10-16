@@ -120,7 +120,7 @@ MonoBehaviour:
   description: Your weapon hits set enemies on fire. Works with arrows, slashes,
     and dashes.
   icon: {fileID: 0}
-  category: 0
+  category: 2
   rarity: 2
   tags: 16
   requiredWeaponId: 
