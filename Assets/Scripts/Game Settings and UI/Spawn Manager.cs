@@ -65,7 +65,6 @@ public class SpawnManager : MonoBehaviour
         // Single global registry — all spawners share it
         var registry = new List<SpawnRecord>();
 
-        Debug.Log($"[SpawnManager] Starting sequential spawn ({sorted.Count} areas)");
 
         foreach (var area in sorted)
         {
@@ -74,7 +73,6 @@ public class SpawnManager : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
-        Debug.Log($"[SpawnManager] Done. {registry.Count} objects registered.");
     }
 
     private void OnDestroy()

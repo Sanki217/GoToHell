@@ -12,6 +12,9 @@ public class DashDamageCollider : MonoBehaviour
     private PlayerStats playerStats;
     private PlayerUpgradeManager upgradeManager;
 
+    private readonly System.Collections.Generic.HashSet<int> hitThisDash = new System.Collections.Generic.HashSet<int>();
+    private int dashSerialSeen = -1;
+
     private void Start()
     {
         // Walk up to the player root to find components
@@ -27,8 +30,16 @@ public class DashDamageCollider : MonoBehaviour
         if (dashAbility == null || !dashAbility.isDashing) return;
         if (!other.CompareTag("Enemy")) return;
 
-        Enemy enemy = other.GetComponent<Enemy>();
-        if (enemy == null) return;
+        Enemy enemy = other.GetComponentInParent<Enemy>();
+        if (enemy == null || enemy.IsDead) return;
+
+        // One hit per enemy per dash, however many colliders it has
+        if (dashSerialSeen != dashAbility.DashSerial)
+        {
+            dashSerialSeen = dashAbility.DashSerial;
+            hitThisDash.Clear();
+        }
+        if (!hitThisDash.Add(enemy.GetInstanceID())) return;
 
         float baseDamage = dashAbility != null
             ? (playerStats != null ? playerStats.dashDamage : 1f)
@@ -38,13 +49,10 @@ public class DashDamageCollider : MonoBehaviour
         bool isCrit;
 
         if (playerStats != null)
-            (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, other.gameObject);
+            (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, enemy.gameObject);
         else { finalDamage = baseDamage; isCrit = false; }
 
-        // Zero Z before normalizing — prevents 3D direction errors
-        Vector3 rawDir = other.transform.position - transform.root.position;
-        rawDir.z = 0f;
-        Vector3 kbDir = rawDir.magnitude > 0.001f ? rawDir.normalized : Vector3.right;
+        Vector3 kbDir = CombatQuery.PlanarDirection(transform.root.position, enemy.transform.position, Vector3.right);
 
         float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
 
@@ -57,8 +65,8 @@ public class DashDamageCollider : MonoBehaviour
             isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal
         );
 
-        playerStats?.RecordDashHitEnemy();
-        playerStats?.RecordDamageDealt(finalDamage, DamageSource.Dash, other.gameObject);
-        upgradeManager?.DashHitEnemy(other.gameObject);
+        if (playerStats != null) playerStats.RecordDashHitEnemy();
+        if (playerStats != null) playerStats.RecordDamageDealt(finalDamage, DamageSource.Dash, enemy.gameObject);
+        if (upgradeManager != null) upgradeManager.DashHitEnemy(enemy.gameObject);
     }
 }

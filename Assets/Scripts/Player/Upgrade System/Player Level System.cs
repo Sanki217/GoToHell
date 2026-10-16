@@ -6,6 +6,7 @@
 ///
 /// XP Sources:
 ///   1. Souls collected  — 1 XP per soul × xpMultiplier
+///      (bonus souls from upgrades: 1 XP each, unmultiplied)
 ///   2. Falling downward — 1 XP per FallXpUnits units × xpMultiplier
 ///
 /// Per-level XP requirements are editable in the Inspector via xpPerLevel[].
@@ -47,8 +48,8 @@ public class PlayerLevelSystem : MonoBehaviour
         // 14–19 filled by formula if left empty
     };
 
-    [Header("Current Layer (set by level manager when transitioning)")]
-    public int currentLayer = 1;
+    /// <summary>Current Hell layer (1–9), from the run config. Drives level-up rarity.</summary>
+    public int CurrentLayer => RunConfig.I != null ? Mathf.Max(1, RunConfig.I.currentLayer) : 1;
 
     // ================================================================
     //  LIVE STATS — visible in Inspector, readable by TAB panel
@@ -83,7 +84,6 @@ public class PlayerLevelSystem : MonoBehaviour
     private PlayerInventory inventory;
     private PlayerStats playerStats;
     private PlayerUpgradeManager upgradeManager;
-    private int lastSoulCount = 0;
     private float previousY;
     private float fallXpAccumulator = 0f;
 
@@ -105,13 +105,13 @@ public class PlayerLevelSystem : MonoBehaviour
         previousY = transform.position.y;
 
         if (inventory != null)
-            inventory.OnSoulsChanged += OnSoulsChanged;
+            inventory.OnSoulsGained += OnSoulsGained;
     }
 
     private void OnDestroy()
     {
         if (inventory != null)
-            inventory.OnSoulsChanged -= OnSoulsChanged;
+            inventory.OnSoulsGained -= OnSoulsGained;
     }
 
     // ================================================================
@@ -140,12 +140,10 @@ public class PlayerLevelSystem : MonoBehaviour
     //  SOUL XP
     // ================================================================
 
-    private void OnSoulsChanged(int totalSouls)
+    private void OnSoulsGained(int amount, bool isBonus)
     {
-        int gained = totalSouls - lastSoulCount;
-        lastSoulCount = totalSouls;
-        if (gained > 0)
-            AddXP(gained);
+        if (isBonus) AddXPDirect(amount);   // bonus souls are already a computed reward
+        else AddXP(amount);
     }
 
     // ================================================================
@@ -156,34 +154,18 @@ public class PlayerLevelSystem : MonoBehaviour
     /// Add XP, applying the xpMultiplier.
     /// Triggers level-up automatically if threshold is crossed.
     /// </summary>
-    public void AddXP(float baseAmount)
-    {
-        if (currentLevel >= MaxLevel) return;
-
-        float amount = baseAmount * xpMultiplier;
-        currentXP += amount;
-
-        while (currentXP >= xpToNextLevel && currentLevel < MaxLevel)
-        {
-            currentXP -= xpToNextLevel;
-            currentLevel++;
-            xpToNextLevel = GetXpRequired(currentLevel);
-            OnLevelUp();
-        }
-
-        if (currentLevel >= MaxLevel)
-            currentXP = 0f;
-    }
+    public void AddXP(float baseAmount) => AddXPDirect(baseAmount * xpMultiplier * RunModifiers.XpMult);
 
     /// <summary>
-    /// Add XP directly, bypassing xpMultiplier.
-    /// Used by SoulBonus to avoid double-multiplying bonus souls.
+    /// Add XP directly, bypassing xpMultiplier (bonus souls are already a
+    /// computed reward). Triggers level-ups as thresholds are crossed.
     /// </summary>
     public void AddXPDirect(float amount)
     {
-        if (currentLevel >= MaxLevel) return;
+        if (amount <= 0f || currentLevel >= MaxLevel) return;
 
         currentXP += amount;
+        if (playerStats != null) playerStats.RecordXpGained(amount);
 
         while (currentXP >= xpToNextLevel && currentLevel < MaxLevel)
         {
@@ -199,13 +181,11 @@ public class PlayerLevelSystem : MonoBehaviour
 
     private void OnLevelUp()
     {
-        Debug.Log($"[LevelSystem] Level up! Now level {currentLevel}");
-
-        playerStats?.RecordPlayerLevelUp(currentLevel);
-        upgradeManager?.PlayerLevelUp(currentLevel);
+        if (playerStats != null) playerStats.RecordPlayerLevelUp(currentLevel);
+        if (upgradeManager != null) upgradeManager.PlayerLevelUp(currentLevel);
 
         if (LevelUpUI.Instance != null)
-            LevelUpUI.Instance.Show(currentLayer);
+            LevelUpUI.Instance.QueueLevelUp(CurrentLayer);
         else
             Debug.LogWarning("[LevelSystem] LevelUpUI.Instance not found.");
     }

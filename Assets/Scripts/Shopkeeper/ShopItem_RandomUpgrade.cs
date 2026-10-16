@@ -15,7 +15,8 @@ public class ShopItem_RandomUpgrade : ShopItem
             return;
         }
 
-        float luck = PlayerRefs.I?.Stats != null ? PlayerRefs.I.Stats.luck : 0f;
+        PlayerStats stats = PlayerRefs.I != null ? PlayerRefs.I.Stats : null;
+        float luck = stats != null ? stats.luck : 0f;
         ChestRewardUI.Instance.Show(luck);
     }
 }

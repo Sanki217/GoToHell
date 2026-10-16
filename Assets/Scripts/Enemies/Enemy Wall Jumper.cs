@@ -73,10 +73,6 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
     [Range(0f, 1f)]
     public float bounceDamping = 0.55f;
 
-    [Header("Freeze (set by FreezeEffect)")]
-    [Range(0f, 1f)]
-    public float speedMultiplier = 1f;
-
     [Header("Movement Smoothing")]
     [Tooltip("Time in seconds to reach full climb speed after starting or reversing direction. " +
              "~0.12 gives natural ease-in/out. 0 = instant.")]
@@ -115,8 +111,11 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
     private bool suspended = false;
 
     // Refs
-    private Transform player;
+    private Enemy enemy;
     private Collider[] selfColliders;
+
+    private Transform Player => PlayerRefs.PlayerTransform;
+    private float SpeedMultiplier => enemy != null ? enemy.SpeedMultiplier : 1f;
 
     // Reusable hit buffer — shared across all wall jumpers, avoids per-frame allocation
     private static readonly Collider[] hitBuffer = new Collider[8];
@@ -125,12 +124,28 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
     //  INIT
     // ================================================================
 
+    private void Awake()
+    {
+        enemy = GetComponent<Enemy>();
+    }
+
     private void Start()
     {
         selfColliders = GetComponentsInChildren<Collider>(true);
         pathX = transform.position.x;
-        player = PlayerRefs.I?.T;
         DetectInitialWallSide();
+    }
+
+    private void OnDisable()
+    {
+        // Slept by SceneOptimizer mid-knockback: fall naturally when woken
+        StopAllCoroutines();
+        if (suspended)
+        {
+            suspended = false;
+            vel = Vector3.zero;
+            state = State.Jumping;
+        }
     }
 
     private void DetectInitialWallSide()
@@ -182,7 +197,7 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
         }
 
         // Smooth climb: ease in/out on direction reversals
-        float targetClimbVel = dirY * climbSpeed * speedMultiplier;
+        float targetClimbVel = dirY * climbSpeed * SpeedMultiplier;
         float smoothTime = climbAccelerationTime > 0f ? climbAccelerationTime : 0.001f;
         smoothedClimbVelY = Mathf.SmoothDamp(smoothedClimbVelY, targetClimbVel,
                                               ref climbSmoothDampVel, smoothTime,
@@ -191,6 +206,7 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
         transform.position = new Vector3(pathX, nextY, 0f);
 
         // ── Jump trigger check ────────────────────────────────────────
+        Transform player = Player;
         if (player == null || jumpCooldownTimer > 0f) return;
 
         float dy = Mathf.Abs(player.position.y - transform.position.y);
@@ -245,10 +261,12 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
     {
         float dt = Time.fixedDeltaTime;
 
-        vel.y -= jumpGravity * speedMultiplier * dt;
+        float slow = SpeedMultiplier;
+        vel.y -= jumpGravity * slow * dt;
         vel.z  = 0f;
 
-        Vector3 step = vel * dt;
+        // Slows scale the whole arc (gravity above + travel speed here)
+        Vector3 step = vel * (slow * dt);
 
         // ── Side-wall hit ─────────────────────────────────────────────
         if (Mathf.Abs(step.x) > 0.0001f)
@@ -310,6 +328,7 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
         landTimer -= Time.fixedDeltaTime;
         if (landTimer > 0f) return;
 
+        Transform player = Player;
         if (player != null)
         {
             // Aggroed: always chase player regardless of distance
@@ -334,6 +353,7 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
 
     public void ReceiveKnockback(Vector3 impulse, float duration)
     {
+        if (!isActiveAndEnabled) return;
         StopAllCoroutines();
         StartCoroutine(KnockbackRoutine(impulse, duration));
     }
@@ -384,6 +404,7 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
 
     private bool IsSelf(Collider c)
     {
+        if (selfColliders == null) return false;
         foreach (var sc in selfColliders)
             if (sc == c) return true;
         return false;

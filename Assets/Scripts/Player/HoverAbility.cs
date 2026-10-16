@@ -8,7 +8,7 @@ public class HoverAbility : MonoBehaviour
     public float maxUpwardSpeed = 5f;
     public float minEnergyToHover = 5f;
 
-    [Tooltip("Default � overridden by PlayerStats.hoverDrainRate at runtime")]
+    [Tooltip("Default — overridden by PlayerStats.hoverDrainRate at runtime")]
     public float energyDrainPerSecond = 10f;
 
     private Rigidbody rb;
@@ -37,7 +37,7 @@ public class HoverAbility : MonoBehaviour
 
     void Update()
     {
-        if (!stateCtrl.HasControl())
+        if (stateCtrl != null && !stateCtrl.HasControl())
         {
             if (isHovering) EndHover();
             return;
@@ -46,7 +46,7 @@ public class HoverAbility : MonoBehaviour
         bool hasEnoughEnergy = energySystem.currentEnergy >= minEnergyToHover;
         if (hasEnoughEnergy) wasOutOfEnergy = false;
 
-        bool wantsHover = Input.GetKey(KeyCode.Space) && hasEnoughEnergy
+        bool wantsHover = GameInput.HoverHeld && hasEnoughEnergy
                           && !wasOutOfEnergy && !movement.isGrounded
                           && !movement.justWallJumped   // don't cap wall jump velocity
                           && !movement.justJumped;      // don't cap grounded jump velocity
@@ -54,8 +54,8 @@ public class HoverAbility : MonoBehaviour
         if (wantsHover && !isHovering)
         {
             isHovering = true;
-            playerStats?.RecordHoverStart();
-            upgradeManager?.HoverStart();
+            if (playerStats != null) playerStats.RecordHoverStart();
+            if (upgradeManager != null) upgradeManager.HoverStart();
         }
         else if (!wantsHover && isHovering)
         {
@@ -69,8 +69,8 @@ public class HoverAbility : MonoBehaviour
 
         rb.AddForce(Vector3.up * hoverForce, ForceMode.Acceleration);
 
-        upgradeManager?.HoverTick(Time.fixedDeltaTime);
-        playerStats?.RecordHoverTick(Time.fixedDeltaTime);
+        if (upgradeManager != null) upgradeManager.HoverTick(Time.fixedDeltaTime);
+        if (playerStats != null) playerStats.RecordHoverTick(Time.fixedDeltaTime);
 
         Vector3 velocity = rb.linearVelocity;
         if (velocity.y > maxUpwardSpeed)
@@ -79,7 +79,7 @@ public class HoverAbility : MonoBehaviour
 
         float drain = DrainRate * Time.fixedDeltaTime;
         energySystem.DrainEnergy(drain);
-        playerStats?.RecordEnergySpent(drain, EnergySpentSource.Hover);
+        if (playerStats != null) playerStats.RecordEnergySpent(drain, EnergySpentSource.Hover);
 
         if (energySystem.currentEnergy < minEnergyToHover)
         {
@@ -91,6 +91,11 @@ public class HoverAbility : MonoBehaviour
     private void EndHover()
     {
         isHovering = false;
-        upgradeManager?.HoverEnd();
+        if (upgradeManager != null) upgradeManager.HoverEnd();
+    }
+
+    private void OnDisable()
+    {
+        if (isHovering) EndHover();
     }
 }

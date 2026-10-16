@@ -1,7 +1,13 @@
-using UnityEngine;
-using UnityEngine.SceneManagement;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Esc pause menu with a settings sub-panel (camera shake, VSync).
+///
+/// Pausing is an owned GameTime pause + PlayerStateController blocker, so it
+/// stacks safely on top of the level-up picker or chest roll: closing either
+/// one never un-pauses the other.
+/// </summary>
 public class PauseMenu : MonoBehaviour
 {
     [Header("Panels")]
@@ -14,20 +20,26 @@ public class PauseMenu : MonoBehaviour
     public Button settingsButton;
     public Button settingsBackButton;
 
-    [Header("Settings � Camera Shake")]
+    [Header("Settings — Camera Shake")]
     public Toggle cameraShakeToggle;
-    [Tooltip("Slider controlling shake intensity (0�2). Assign a UI Slider.")]
+    [Tooltip("Slider controlling shake intensity (0–2). Assign a UI Slider.")]
     public Slider shakeIntensitySlider;
 
-    [Header("Settings � VSync")]
+    [Header("Settings — VSync")]
     [Tooltip("Toggle to enable/disable VSync (QualitySettings.vSyncCount).")]
     public Toggle vSyncToggle;
+
+    [Header("Settings — UI Scale")]
+    [Tooltip("Optional slider for the player's UI scale (75–150%). Persisted.")]
+    public Slider uiScaleSlider;
 
     [Header("Player Reference")]
     public PlayerStateController playerState;
 
     private bool isPaused = false;
     private CameraFollow cameraFollow;
+
+    public bool IsPaused => isPaused;
 
     private void Start()
     {
@@ -39,10 +51,10 @@ public class PauseMenu : MonoBehaviour
         if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
         if (settingsBackButton != null) settingsBackButton.onClick.AddListener(CloseSettings);
 
-        if (playerState == null)
-            playerState = PlayerRefs.I?.StateCtrl;
+        if (playerState == null && PlayerRefs.I != null)
+            playerState = PlayerRefs.I.StateCtrl;
 
-        cameraFollow = Camera.main?.GetComponent<CameraFollow>();
+        cameraFollow = PlayerRefs.CamFollow;
 
         // Camera shake toggle
         if (cameraShakeToggle != null && cameraFollow != null)
@@ -60,6 +72,15 @@ public class PauseMenu : MonoBehaviour
             shakeIntensitySlider.onValueChanged.AddListener(val => cameraFollow.shakeIntensity = val);
         }
 
+        // UI scale (UIScaleManager applies it to every canvas immediately)
+        if (uiScaleSlider != null)
+        {
+            uiScaleSlider.minValue = UIScaleManager.MinUserScale;
+            uiScaleSlider.maxValue = UIScaleManager.MaxUserScale;
+            uiScaleSlider.value = UIScaleManager.UserScale;
+            uiScaleSlider.onValueChanged.AddListener(val => UIScaleManager.UserScale = val);
+        }
+
         // VSync toggle — on = vSyncCount 1, off = 0. Persisted; default OFF
         // (applied at boot by GameSettingsBootstrap).
         if (vSyncToggle != null)
@@ -74,42 +95,47 @@ public class PauseMenu : MonoBehaviour
         }
     }
 
+    private void OnDisable()
+    {
+        // Never leave the game frozen if this menu disappears while open
+        if (isPaused) Resume();
+    }
+
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            if (settingsPanel != null && settingsPanel.activeSelf)
-            {
-                CloseSettings();
-                return;
-            }
+        if (!GameInput.PausePressed) return;
 
-            if (isPaused) Resume();
-            else Pause();
+        if (settingsPanel != null && settingsPanel.activeSelf)
+        {
+            CloseSettings();
+            return;
         }
+
+        if (isPaused) Resume();
+        else Pause();
     }
 
     public void Resume()
     {
         isPaused = false;
-        GameTime.Resume();
+        GameTime.Unpause(this);
         if (pausePanel != null) pausePanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
-        playerState?.EnableControl();
+        if (playerState != null) playerState.RemoveBlocker(this);
     }
 
     public void Pause()
     {
         isPaused = true;
-        GameTime.Pause();
+        GameTime.Pause(this);
         if (pausePanel != null) pausePanel.SetActive(true);
-        playerState?.DisableControl();
+        if (playerState != null) playerState.AddBlocker(this);
     }
 
+    /// <summary>Restart the whole run from Level 1 (roguelite restart, not a scene reload).</summary>
     public void Restart()
     {
-        GameTime.Resume();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        SceneFlow.RestartRun();
     }
 
     public void OpenSettings()
@@ -123,6 +149,4 @@ public class PauseMenu : MonoBehaviour
         if (settingsPanel != null) settingsPanel.SetActive(false);
         if (pausePanel != null) pausePanel.SetActive(true);
     }
-
-    public bool IsPaused => isPaused;
 }

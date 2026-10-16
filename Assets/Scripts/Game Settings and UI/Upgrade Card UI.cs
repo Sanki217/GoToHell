@@ -51,7 +51,7 @@ public class UpgradeCardUI : MonoBehaviour
         onPicked = pickedCallback;
 
         if (playerStats == null)
-            playerStats = PlayerRefs.I?.Stats;
+            playerStats = PlayerRefs.I != null ? PlayerRefs.I.Stats : null;
 
         PlayerUpgrade upgrade = offer.upgrade;
         Color rarityColor = UpgradeRarityRoller.GetRarityColor(offer.rarity);

@@ -9,6 +9,7 @@ using UnityEngine;
 /// transform-driven patrols, knockback, and future flying enemies.
 /// The player, arrows, and souls are unaffected.
 /// </summary>
+[DefaultExecutionOrder(600)]   // after enemy movement and GravityArrowZone (500)
 public class EnemyBarrier : MonoBehaviour
 {
     public enum BarrierMode
@@ -31,7 +32,7 @@ public class EnemyBarrier : MonoBehaviour
         for (int i = 0; i < enemies.Count; i++)
         {
             Enemy enemy = enemies[i];
-            if (enemy == null) continue;
+            if (enemy == null || !enemy.IsCombatant) continue;
 
             Vector3 pos = enemy.transform.position;
 

@@ -1,26 +1,25 @@
 using UnityEngine;
-using System.Collections;
 
 /// <summary>
-/// Vase � destructible world object. Breaks on arrow or dash hit, drops souls and arrows.
+/// Vase — destructible world object (IDestructible). Breaks on arrow, slash,
+/// dash or explosion damage, dropping souls, arrows and health orbs.
 ///
-/// DAMAGE SOURCES:
-///   - Arrows:     Arrow.cs calls TakeDamage() directly via raycast hit
-///   - Dash:       DashDamageCollider triggers OnTriggerEnter on this vase
-///   - Explosions: ExplosiveBarrel or UpgradeEnemyExplosion call TakeDamage()
+/// DAMAGE SOURCES (all through IDestructible.TakeDamage):
+///   - Arrows, slashes, explosions (ExplosiveBarrel, Enemy Explosion upgrade)
+///   - Dash: DashDamageCollider triggers OnTriggerEnter on this vase
 ///
 /// SETUP:
 ///   1. Create a small GameObject (Sphere works as placeholder)
-///   2. Add a Sphere/Box Collider � Is Trigger = FALSE (arrows must stick to it)
-///      Make sure it's on a layer included in Arrow's stickableLayers
+///   2. Add a Sphere/Box Collider (trigger or solid — arrows hit both)
+///      Put it on the Destructibles layer (arrows always sweep that layer)
 ///   3. Add this script
 ///   4. Assign vaseRenderer
 ///   5. Assign soulPrefab (for soul drops)
-///   6. Assign arrowPrefab (your wall-arrow prefab � same one that spawns in walls)
+///   6. Assign arrowPrefab (your wall-arrow prefab — same one that spawns in walls)
 ///   7. Set minSouls/maxSouls and minArrows/maxArrows
 ///   8. No special tag required
 /// </summary>
-public class Vase : MonoBehaviour
+public class Vase : MonoBehaviour, IDestructible
 {
     [Header("Health")]
     public int maxHealth = 10;
@@ -31,7 +30,7 @@ public class Vase : MonoBehaviour
     public int maxSouls = 4;
 
     [Header("Arrow Drops")]
-    [Tooltip("Assign your wall-arrow prefab � the same one that gets spawned in walls")]
+    [Tooltip("Assign your wall-arrow prefab — the same one that gets spawned in walls")]
     public GameObject arrowPrefab;
     public int minArrows = 0;
     public int maxArrows = 2;
@@ -52,20 +51,21 @@ public class Vase : MonoBehaviour
 
     private int currentHealth;
     private bool broken = false;
+    private TintController tint;
 
-    private PlayerStats playerStats;
+    private void Awake()
+    {
+        currentHealth = maxHealth;
+    }
 
     private void Start()
     {
-        currentHealth = maxHealth;
-        if (vaseRenderer == null)
-            vaseRenderer = GetComponentInChildren<Renderer>();
-
-        playerStats = PlayerRefs.I?.Stats;
+        tint = TintController.For(gameObject);
+        if (vaseRenderer != null) tint.SetTargets(vaseRenderer);
     }
 
     // ================================================================
-    //  PUBLIC API � called by Arrow.cs, explosions, etc.
+    //  PUBLIC API — IDestructible
     // ================================================================
 
     public void TakeDamage(int amount)
@@ -73,7 +73,7 @@ public class Vase : MonoBehaviour
         if (broken) return;
 
         currentHealth -= amount;
-        StartCoroutine(HitFlash());
+        if (tint != null) tint.Flash(hitColor, hitFlashDuration);
 
         if (currentHealth <= 0)
             Break();
@@ -86,9 +86,10 @@ public class Vase : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (broken) return;
-        if (other.GetComponent<DashDamageCollider>() != null)
+        if (other.TryGetComponent<DashDamageCollider>(out _))
         {
-            float dashDmg = playerStats != null ? playerStats.dashDamage : 1f;
+            PlayerStats stats = PlayerRefs.I != null ? PlayerRefs.I.Stats : null;
+            float dashDmg = stats != null ? stats.dashDamage : 1f;
             TakeDamage(Mathf.Max(1, Mathf.RoundToInt(dashDmg)));
         }
     }
@@ -104,67 +105,33 @@ public class Vase : MonoBehaviour
 
         Vector3 pos = transform.position;
 
-        // Drop souls
-        int soulCount = Random.Range(minSouls, maxSouls + 1);
-        for (int i = 0; i < soulCount; i++)
-        {
-            if (!soulPrefab) break;
-            GameObject s = Pool.Spawn(soulPrefab, pos, Quaternion.identity);
-            Soul soul = s.GetComponent<Soul>();
-            if (soul != null)
-            {
-                float angle = Random.Range(-80f, 80f) * Mathf.Deg2Rad;
-                Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f).normalized;
-                soul.Initialize(dir, Random.Range(3f, 8f));
-            }
-        }
+        // Souls — angles -80..80 around "right" (original fan)
+        Soul.Burst(soulPrefab, pos, Random.Range(minSouls, maxSouls + 1), -80f, 80f, 3f, 8f);
 
-        // Drop arrows as immediately-collectible pickups
+        // Arrows as immediately-collectible pickups
         int arrowCount = Random.Range(minArrows, maxArrows + 1);
-        for (int i = 0; i < arrowCount; i++)
+        for (int i = 0; i < arrowCount && arrowPrefab != null; i++)
         {
-            if (!arrowPrefab) break;
-
             Vector3 offset = new Vector3(Random.Range(-0.5f, 0.5f), 0f, 0f);
             GameObject arrowGO = Instantiate(arrowPrefab, pos + offset, Quaternion.identity);
 
-            // Immediately collectible
-            ArrowPickup pickup = arrowGO.GetComponent<ArrowPickup>();
-            if (pickup != null) pickup.canPickUp = true;
-
-            // Disable movement so it doesn't fly
-            Arrow arrowScript = arrowGO.GetComponent<Arrow>();
-            if (arrowScript != null) arrowScript.enabled = false;
+            if (arrowGO.TryGetComponent(out ArrowPickup pickup)) pickup.canPickUp = true;
+            if (arrowGO.TryGetComponent(out Arrow arrowScript)) arrowScript.enabled = false;   // don't fly
         }
 
-        // Drop health orbs
+        // Health orbs — upward fan
         int healthOrbCount = Random.Range(minHealthOrbs, maxHealthOrbs + 1);
-        for (int i = 0; i < healthOrbCount; i++)
+        for (int i = 0; i < healthOrbCount && healthOrbPrefab != null; i++)
         {
-            if (!healthOrbPrefab) break;
             GameObject orb = Instantiate(healthOrbPrefab, pos, Quaternion.identity);
-            HealthOrb healthOrb = orb.GetComponent<HealthOrb>();
-            if (healthOrb != null)
+            if (orb.TryGetComponent(out HealthOrb healthOrb))
             {
                 float angle = Random.Range(-80f, 80f) * Mathf.Deg2Rad;
-                Vector3 dir = new Vector3(Mathf.Sin(angle), Mathf.Cos(angle), 0f).normalized;
+                Vector3 dir = new Vector3(Mathf.Sin(angle), Mathf.Cos(angle), 0f);
                 healthOrb.Initialize(dir, Random.Range(3f, 7f));
             }
         }
 
         Destroy(gameObject);
-    }
-
-    // ================================================================
-    //  HELPERS
-    // ================================================================
-
-    private IEnumerator HitFlash()
-    {
-        if (vaseRenderer == null) yield break;
-        Color orig = vaseRenderer.material.color;
-        vaseRenderer.material.color = hitColor;
-        yield return new WaitForSeconds(hitFlashDuration);
-        if (!broken) vaseRenderer.material.color = orig;
     }
 }

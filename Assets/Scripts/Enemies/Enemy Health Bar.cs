@@ -191,7 +191,7 @@ public class EnemyHealthBar : MonoBehaviour
         canvasGO.transform.position = pos;
 
         // Face the camera — required for World Space Canvas
-        Camera cam = Camera.main;
+        Camera cam = PlayerRefs.Cam;
         if (cam != null)
             canvasGO.transform.rotation = cam.transform.rotation;
     }

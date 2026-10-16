@@ -61,30 +61,28 @@ public class UpgradeMirrorArrow : PlayerUpgrade
     // ================================================================
 
     private void OnWeak(Vector3 dir, float speedMult)
-        => SpawnMirror(dir, speedMult, chargeNorm: 0f, ArrowFireType.Weak,
-                       shooting?.lightArrowPrefab ?? shooting?.mainArrowPrefab);
+        => SpawnMirror(dir, speedMult, chargeNorm: 0f, ArrowFireType.Weak);
 
     private void OnMedium(Vector3 dir, float chargeNorm)
     {
         float speedMult = shooting != null
             ? Mathf.Lerp(1f, shooting.maxChargeMultiplier, chargeNorm)
             : chargeNorm;
-        SpawnMirror(dir, speedMult, chargeNorm, ArrowFireType.Medium,
-                    shooting?.mediumArrowPrefab ?? shooting?.mainArrowPrefab);
+        SpawnMirror(dir, speedMult, chargeNorm, ArrowFireType.Medium);
     }
 
     private void OnCharged(Vector3 dir, float speedMult)
-        => SpawnMirror(dir, speedMult, chargeNorm: 1f, ArrowFireType.Charged,
-                       shooting?.strongArrowPrefab ?? shooting?.mainArrowPrefab);
+        => SpawnMirror(dir, speedMult, chargeNorm: 1f, ArrowFireType.Charged);
 
     // ================================================================
     //  MIRROR SPAWN
     // ================================================================
 
-    private void SpawnMirror(Vector3 dir, float speedMult, float chargeNorm,
-                              ArrowFireType fireType, GameObject prefab)
+    private void SpawnMirror(Vector3 dir, float speedMult, float chargeNorm, ArrowFireType fireType)
     {
-        if (shooting == null || prefab == null) return;
+        if (shooting == null) return;
+        GameObject prefab = shooting.GetArrowPrefab(fireType);
+        if (prefab == null) return;
 
         // Reflect X, preserve Y — mirror is purely horizontal
         Vector3 mirrorDir = new Vector3(-dir.x, dir.y, 0f);
@@ -94,8 +92,7 @@ public class UpgradeMirrorArrow : PlayerUpgrade
         // Use the dedicated mirror prefab if assigned, otherwise fall back to the original.
         GameObject spawnPrefab = mirrorArrowPrefab != null ? mirrorArrowPrefab : prefab;
         GameObject arrowGO = Instantiate(spawnPrefab, shooting.shootPoint.position, Quaternion.identity);
-        Arrow arrow = arrowGO.GetComponent<Arrow>();
-        if (arrow == null) { Destroy(arrowGO); return; }
+        if (!arrowGO.TryGetComponent(out Arrow arrow)) { Destroy(arrowGO); return; }
 
         // Mark as chain copy so it doesn't consume nextArrowDamageMultiplier
         // (First Strike bonus stays on the original arrow only)
@@ -115,7 +112,7 @@ public class UpgradeMirrorArrow : PlayerUpgrade
         //  canPickUp stays false. The Destroy ensures they don't linger indefinitely.)
         Destroy(arrowGO, 3f);
 
-        upgradeManager?.FireExtraArrow(mirrorDir, speedMult);
+        if (upgradeManager != null) upgradeManager.FireExtraArrow(mirrorDir, speedMult);
     }
 
     // ================================================================
@@ -125,7 +122,8 @@ public class UpgradeMirrorArrow : PlayerUpgrade
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
         if (stats == null) return description;
-        float dmgPct = (baseDamage + damagePerAP * stats.psyche) * 100f;
+        var s = Simulate(stats, simulatedBonuses);
+        float dmgPct = (baseDamage + damagePerAP * s.psyche) * 100f;
         return $"Every arrow fires a free mirror copy in the X-reflected direction simultaneously.\n" +
                $"Mirror deals {PSY(dmgPct, "F0")}% of the original arrow's damage.\n" +
                $"Scales with <color=#FF66CC>Psyche</color>.";

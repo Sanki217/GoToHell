@@ -45,7 +45,7 @@ public class MerchantZone : MonoBehaviour
 
     private void Start()
     {
-        cameraFollow = Camera.main?.GetComponent<CameraFollow>();
+        cameraFollow = PlayerRefs.CamFollow;
 
         // Guarantee the collider is always a trigger
         var col = GetComponent<BoxCollider>();
@@ -85,8 +85,9 @@ public class MerchantZone : MonoBehaviour
 
         // Cache PlayerShooting from the player
         if (playerShooting == null)
-            playerShooting = other.GetComponent<PlayerShooting>()
-                             ?? other.transform.root.GetComponent<PlayerShooting>();
+            playerShooting = other.GetComponentInParent<PlayerShooting>();
+        if (cameraFollow == null)
+            cameraFollow = PlayerRefs.CamFollow;
 
         if (cameraFollow == null || cameraAnchor == null)
         {
@@ -103,7 +104,7 @@ public class MerchantZone : MonoBehaviour
         playerInside = false;
         arrowRefillTimer = -1f;
 
-        cameraFollow?.Unlock();
+        if (cameraFollow != null) cameraFollow.Unlock();
     }
 
     // ================================================================

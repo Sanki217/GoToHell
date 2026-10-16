@@ -19,16 +19,21 @@ public class UpgradeSoulBonus : PlayerUpgrade
 
     private PlayerStats playerStats;
     private PlayerInventory inventory;
-    private PlayerLevelSystem levelSystem;
+    private PlayerUpgradeManager upgradeManager;
     private bool granting = false;
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
+        upgradeManager = mgr;
         playerStats = mgr.GetComponent<PlayerStats>();
         inventory = mgr.GetComponent<PlayerInventory>();
-        levelSystem = mgr.GetComponent<PlayerLevelSystem>();
 
         mgr.OnSoulCollected += OnSoulCollected;
+    }
+
+    private void OnDestroy()
+    {
+        if (upgradeManager != null) upgradeManager.OnSoulCollected -= OnSoulCollected;
     }
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
@@ -49,8 +54,9 @@ public class UpgradeSoulBonus : PlayerUpgrade
 
         int bonus = Mathf.Max(1, Mathf.RoundToInt(amount * GetBonus()));
         granting = true;
-        inventory.AddBonusSouls(bonus);  // updates UI + stats tab without re-firing upgrade events
-        levelSystem?.AddXPDirect(bonus);
+        // Updates UI + stats, grants XP once (unmultiplied — see PlayerLevelSystem),
+        // and does not re-fire OnSoulCollected
+        inventory.AddBonusSouls(bonus);
         granting = false;
     }
 }

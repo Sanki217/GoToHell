@@ -8,4 +8,7 @@ using UnityEngine;
 public class PooledInstance : MonoBehaviour
 {
     [HideInInspector] public GameObject sourcePrefab;
+
+    /// <summary>True while the instance sits in its pool (guards double despawn).</summary>
+    [HideInInspector] public bool inPool;
 }

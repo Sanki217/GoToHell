@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Applies the current RunConfig to the player when a gameplay scene loads.
@@ -9,32 +9,40 @@ using UnityEngine;
 ///    choice anymore: bow on LMB, sword on Shift+LMB or empty quiver
 ///    (PlayerSlash legacy mode). The class RMB skill lives on the prefab.
 ///
-/// If no RunConfig exists (e.g. testing the gameplay scene directly),
-/// it does nothing and prefab defaults apply.
+/// 3. Applies RunModifiers — active pacts + owned meta upgrades (stats,
+///    max HP, starting souls, custom RunEffects).
+///
+/// If no RunConfig exists (e.g. testing the gameplay scene directly), the
+/// class preset is skipped but meta upgrades still apply, so balance testing
+/// in a single scene matches a real run.
 /// </summary>
 [RequireComponent(typeof(PlayerStats))]
 public class RunConfigApplier : MonoBehaviour
 {
     private void Start()
     {
-        if (RunConfig.I == null) return;   // testing scene directly — use defaults
-
-        PlayerStats stats = GetComponent<PlayerStats>();
         RunConfig cfg = RunConfig.I;
 
-        stats.AddPrimary(PrimaryStat.Agility,      cfg.agility);
-        stats.AddPrimary(PrimaryStat.AttackDamage, cfg.attackDamage);
-        stats.AddPrimary(PrimaryStat.Luck,         cfg.luck);
-        stats.AddPrimary(PrimaryStat.Psyche,       cfg.psyche);
-        stats.AddPrimary(PrimaryStat.Health,       cfg.health);
-        stats.AddPrimary(PrimaryStat.Size,         cfg.size);
-        stats.AddPrimary(PrimaryStat.Cooldown,     cfg.cooldown);
+        if (cfg != null)
+        {
+            PlayerStats stats = GetComponent<PlayerStats>();
+            stats.AddPrimary(PrimaryStat.Agility,      cfg.agility);
+            stats.AddPrimary(PrimaryStat.AttackDamage, cfg.attackDamage);
+            stats.AddPrimary(PrimaryStat.Luck,         cfg.luck);
+            stats.AddPrimary(PrimaryStat.Psyche,       cfg.psyche);
+            stats.AddPrimary(PrimaryStat.Health,       cfg.health);
+            stats.AddPrimary(PrimaryStat.Size,         cfg.size);
+            stats.AddPrimary(PrimaryStat.Cooldown,     cfg.cooldown);
 
-        EnableAllWeaponComponents();
+            EnableAllWeaponComponents();
+        }
+
+        // Pacts + meta upgrades. One-time bonuses (starting souls, extra life) on Layer 1 only.
+        bool isRunStart = cfg == null || cfg.currentLayer <= 1;
+        RunModifiers.ApplyToPlayer(gameObject, isRunStart);
 
         // Refill HP to the new max after Health allocation
-        PlayerHealth health = GetComponent<PlayerHealth>();
-        if (health != null) health.SetHP(health.maxHP);
+        if (TryGetComponent(out PlayerHealth health)) health.SetHP(health.MaxHP);
     }
 
     /// <summary>
@@ -43,10 +51,7 @@ public class RunConfigApplier : MonoBehaviour
     /// </summary>
     private void EnableAllWeaponComponents()
     {
-        WeaponDefinition[] defs = Resources.LoadAll<WeaponDefinition>("Weapons");
-        if (defs == null) return;
-
-        foreach (WeaponDefinition d in defs)
+        foreach (WeaponDefinition d in Content.Weapons.All)
         {
             if (d == null || d.weaponComponentNames == null) continue;
             foreach (string n in d.weaponComponentNames)

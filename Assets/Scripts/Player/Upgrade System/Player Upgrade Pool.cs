@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
@@ -10,6 +10,13 @@ using System.Collections.Generic;
 /// from that tier — fewer than 3 cards when the tier runs short of unowned
 /// upgrades, nearest tier when it has none at all.
 /// Chests roll a luck-only rarity for their single item, same nearest-tier fallback.
+///
+/// BUILD SYNERGY (UpgradeTag): inside the rolled tier, upgrades are picked by
+/// weight instead of uniformly. Each owned upgrade that shares a tag adds
+/// synergyWeightPerOwned (capped at maxSynergyMultiplier), pacts / meta
+/// upgrades can favour tags (RunModifiers.FavouredTags) and banned tags are
+/// never offered. Rarity odds are untouched — only WHICH upgrade of that
+/// rarity shows up.
 /// </summary>
 [CreateAssetMenu(menuName = "Upgrades/Upgrade Pool")]
 public class PlayerUpgradePool : ScriptableObject
@@ -20,6 +27,12 @@ public class PlayerUpgradePool : ScriptableObject
     // ================================================================
     //  PER-STAT BONUS RANGES
     // ================================================================
+
+    [Header("Build Synergy (UpgradeTag)")]
+    [Tooltip("Extra weight per owned upgrade sharing a tag (0.15 = +15% each).")]
+    [Min(0f)] public float synergyWeightPerOwned = 0.15f;
+    [Tooltip("Cap on the synergy weight multiplier.")]
+    [Min(1f)] public float maxSynergyMultiplier = 2f;
 
     [Header("Per-Stat Bonus Ranges")]
     public StatBonusRange[] statRanges;
@@ -103,7 +116,7 @@ public class PlayerUpgradePool : ScriptableObject
 
         while (offers.Count < count && tierPool.Count > 0)
         {
-            int idx = Random.Range(0, tierPool.Count);
+            int idx = WeightedIndex(tierPool, upgradeManager);
             (GameObject prefab, PlayerUpgrade upgrade) = tierPool[idx];
             tierPool.RemoveAt(idx);
             offers.Add(BuildOffer(prefab, upgrade, upgrade.rarity, stats));
@@ -120,7 +133,7 @@ public class PlayerUpgradePool : ScriptableObject
         if (candidates.Count == 0) return null;
 
         UpgradeRarity target = UpgradeRarityRoller.RollWithLuckOnly(luck);
-        int idx = PickCandidateIndex(candidates, target);
+        int idx = PickCandidateIndex(candidates, target, upgradeManager);
         if (idx < 0) return null;
 
         (GameObject prefab, PlayerUpgrade upgrade) = candidates[idx];
@@ -181,6 +194,9 @@ public class PlayerUpgradePool : ScriptableObject
             // Skip upgrades tied to a weapon/class the player isn't running
             if (!upgrade.IsAvailableForCurrentRun()) continue;
 
+            // Skip tags banned by a pact / meta upgrade
+            if ((upgrade.tags & RunModifiers.BannedTags) != 0) continue;
+
             // Skip upgrades picked this session but whose orbs haven't landed yet
             if (extraExcludeIds != null && extraExcludeIds.Contains(upgrade.UpgradeId)) continue;
 
@@ -194,20 +210,65 @@ public class PlayerUpgradePool : ScriptableObject
     /// through the tiers below, then up through the tiers above.
     /// Returns -1 only when there are no candidates at all.
     /// </summary>
-    private static int PickCandidateIndex(
-        List<(GameObject prefab, PlayerUpgrade upgrade)> candidates, UpgradeRarity target)
+    private int PickCandidateIndex(
+        List<(GameObject prefab, PlayerUpgrade upgrade)> candidates, UpgradeRarity target,
+        PlayerUpgradeManager upgradeManager)
     {
-        var matching = new List<int>();
+        var matching = new List<(GameObject prefab, PlayerUpgrade upgrade)>();
+        var indices = new List<int>();
         foreach (UpgradeRarity tier in FallbackOrder(target))
         {
             matching.Clear();
+            indices.Clear();
             for (int i = 0; i < candidates.Count; i++)
-                if (candidates[i].upgrade.rarity == tier) matching.Add(i);
+                if (candidates[i].upgrade.rarity == tier) { matching.Add(candidates[i]); indices.Add(i); }
 
             if (matching.Count > 0)
-                return matching[Random.Range(0, matching.Count)];
+                return indices[WeightedIndex(matching, upgradeManager)];
         }
         return -1;
+    }
+
+    // ================================================================
+    //  PRIVATE — synergy weighting
+    // ================================================================
+
+    /// <summary>
+    /// Offer weight of one upgrade: 1, raised by owned upgrades sharing its
+    /// tags (capped) and by pact / meta favoured tags. Public so the balance
+    /// sheet can preview it.
+    /// </summary>
+    public float OfferWeight(PlayerUpgrade upgrade, PlayerUpgradeManager upgradeManager)
+    {
+        if (upgrade == null) return 0f;
+        float w = 1f;
+
+        if (upgradeManager != null && upgrade.tags != UpgradeTag.None)
+        {
+            int shared = upgradeManager.CountOwnedWithAny(upgrade.tags);
+            w = Mathf.Min(1f + shared * synergyWeightPerOwned, Mathf.Max(1f, maxSynergyMultiplier));
+        }
+
+        if ((upgrade.tags & RunModifiers.FavouredTags) != 0)
+            w *= RunModifiers.FavouredTagMult;
+
+        return w;
+    }
+
+    private int WeightedIndex(List<(GameObject prefab, PlayerUpgrade upgrade)> list,
+                              PlayerUpgradeManager upgradeManager)
+    {
+        float total = 0f;
+        for (int i = 0; i < list.Count; i++) total += OfferWeight(list[i].upgrade, upgradeManager);
+        if (total <= 0f) return Random.Range(0, list.Count);
+
+        float roll = Random.value * total;
+        for (int i = 0; i < list.Count; i++)
+        {
+            roll -= OfferWeight(list[i].upgrade, upgradeManager);
+            if (roll <= 0f) return i;
+        }
+        return list.Count - 1;
     }
 
     private static IEnumerable<UpgradeRarity> FallbackOrder(UpgradeRarity target)

@@ -1,16 +1,31 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
+/// <summary>
+/// A flying arrow. Moves itself (no rigidbody physics), sticks into
+/// stickableLayers, damages enemies and destructibles on the way.
+///
+/// HIT DETECTION is swept: every frame the arrow sphere-casts along the
+/// distance it is about to travel, so fast arrows can't tunnel through small
+/// enemies at low frame rates (50 u/s at 30 fps = 1.7 units per frame — wider
+/// than most enemies). The old trigger callback is kept as a fallback. Each
+/// enemy is hit at most once per arrow, however many colliders it has.
+///
+/// DAMAGE = arrowDamage × charge × killstreak × damageMultiplier × bloodArrow
+///          + flatDamageBonus, then crit (forced for Dead Man's Hand).
+/// </summary>
 public class Arrow : MonoBehaviour
 {
     [Header("Settings")]
     public float speed = 50f;
     public float damageVelocityThreshold = 0.1f;
 
-    [Header("Spawn Safety")]
-    public float armDelay = 0.05f;
-
     [Header("Collision Layers")]
     public LayerMask stickableLayers;
+
+    [Header("Hit Detection")]
+    [Tooltip("Radius of the per-frame enemy sweep. Roughly the arrow head's size.")]
+    public float hitRadius = 0.12f;
 
     [HideInInspector] public ArrowFireType fireType = ArrowFireType.Weak;
     [HideInInspector] public float chargeAmount = 0f;
@@ -25,7 +40,7 @@ public class Arrow : MonoBehaviour
     /// <summary>When true this arrow is a Soul Arrow chain copy and will not trigger further chains.</summary>
     [HideInInspector] public bool isChainCopy = false;
 
-    /// <summary>When true this arrow will force a critical hit on its next impact (Dead Man's Hand).</summary>
+    /// <summary>When true this arrow always crits (Dead Man's Hand).</summary>
     [HideInInspector] public bool isForcedCrit = false;
 
     /// <summary>True once this arrow has stuck to a surface and stopped moving.</summary>
@@ -33,9 +48,14 @@ public class Arrow : MonoBehaviour
 
     private Vector3 direction;
     private bool hasLanded = false;
+    private bool consumed = false;          // destroyed by a hit this frame
     private float currentVelocity;
     private float lifeTime;
     private int piercesUsed = 0;
+
+    private readonly HashSet<int> hitTargets = new HashSet<int>();
+    private static readonly RaycastHit[] sweepBuffer = new RaycastHit[16];
+    private static readonly Collider[] destructibleScratch = new Collider[16];
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
@@ -55,79 +75,237 @@ public class Arrow : MonoBehaviour
             killStreak = refs.Killstreak;
         }
 
+        if (isChainCopy || playerStats == null) return;
+
         // Consume any one-shot damage multiplier primed by upgrades (e.g. New Sharp Set).
         // Chain-copy arrows skip this so the bonus only applies to player-fired shots.
-        if (!isChainCopy && playerStats != null && playerStats.nextArrowDamageMultiplier != 1f)
+        if (playerStats.nextArrowDamageMultiplier != 1f)
         {
             damageMultiplier *= playerStats.nextArrowDamageMultiplier;
             playerStats.nextArrowDamageMultiplier = 1f;
         }
 
         // Track last player-fired arrow reference (Dead Man's Hand fly-back).
-        if (!isChainCopy && playerStats != null)
-            playerStats.lastFiredArrow = this;
+        playerStats.lastFiredArrow = this;
 
         // Consume forced-crit flag (Dead Man's Hand — last arrow in quiver always crits).
-        if (!isChainCopy && playerStats != null && playerStats.nextArrowForceCrit)
+        if (playerStats.nextArrowForceCrit)
         {
             isForcedCrit = true;
             playerStats.nextArrowForceCrit = false;
         }
     }
 
+    // ================================================================
+    //  FLIGHT
+    // ================================================================
+
     private void Update()
     {
         lifeTime += Time.deltaTime;
-        if (hasLanded) { currentVelocity = 0f; return; }
+        if (hasLanded || consumed) { currentVelocity = 0f; return; }
 
-        Vector3 move = direction * speed * Time.deltaTime;
-        currentVelocity = move.magnitude / Time.deltaTime;
-        Vector3 nextPosition = transform.position + move;
-        nextPosition.z = 0f;
+        float dt = Time.deltaTime;
+        if (dt <= 0f) return;   // paused
 
-        if (Physics.Raycast(transform.position, direction, out RaycastHit hit,
-                            move.magnitude, stickableLayers))
+        currentVelocity = speed;
+        float dist = speed * dt;
+        if (dist <= 0f) return;
+
+        Vector3 origin = transform.position;
+        bool hitSolid = Physics.Raycast(origin, direction, out RaycastHit solidHit, dist,
+                                        stickableLayers, QueryTriggerInteraction.Ignore);
+        float travel = hitSolid ? solidHit.distance : dist;
+
+        // Enemies between here and the wall (or the end of this frame's step).
+        // stopAt = where the arrow was used up, so nothing behind that point is hit.
+        bool alive = SweepEnemies(origin, travel, out float stopAt);
+
+        // Vases / barrels are usually TRIGGER colliders on the Destructibles layer,
+        // which the solid raycast ignores — sweep for them separately.
+        SweepDestructibles(origin, stopAt);
+        if (!alive) return;   // arrow consumed
+
+        Vector3 next = origin + direction * dist;
+        next.z = 0f;
+
+        if (!hitSolid)
         {
-            GameObject root = hit.collider.transform.root.gameObject;
-
-            ExplosiveBarrel barrel = root.GetComponent<ExplosiveBarrel>()
-                ?? hit.collider.GetComponent<ExplosiveBarrel>();
-            Vase vase = root.GetComponent<Vase>()
-                ?? hit.collider.GetComponent<Vase>();
-
-            if (barrel != null)
-            {
-                barrel.TakeDamage(ArrowDamage());
-                transform.position = nextPosition;
-                return;
-            }
-
-            if (vase != null)
-            {
-                vase.TakeDamage(ArrowDamage());
-                transform.position = nextPosition;
-                return;
-            }
-
-            StickToSurface(hit.point);
-            playerStats?.RecordArrowHitWall();
-            upgradeManager?.ArrowHitWall(hit.point);
+            transform.position = next;
+            return;
         }
-        else
+
+        // Solid (non-trigger) destructible in the way: damage it and fly on through
+        IDestructible destructible = CombatQuery.DestructibleOf(solidHit.collider);
+        if (destructible != null)
         {
-            transform.position = nextPosition;
+            HitDestructible(destructible);
+            transform.position = next;
+            return;
+        }
+
+        StickToSurface(solidHit.point);
+        if (playerStats != null) playerStats.RecordArrowHitWall();
+        if (upgradeManager != null) upgradeManager.ArrowHitWall(solidHit.point);
+    }
+
+    /// <summary>
+    /// Hits every enemy along the segment, nearest first. Returns false if the
+    /// arrow was consumed; <paramref name="stopAt"/> is how far the arrow got.
+    /// </summary>
+    private bool SweepEnemies(Vector3 origin, float distance, out float stopAt)
+    {
+        stopAt = distance;
+        int count = Physics.SphereCastNonAlloc(origin, hitRadius, direction, sweepBuffer, distance,
+                                               Layers.EnemyMask, QueryTriggerInteraction.Collide);
+        if (count == 0) return true;
+
+        System.Array.Sort(sweepBuffer, 0, count, HitDistanceComparer.Instance);
+
+        for (int i = 0; i < count; i++)
+        {
+            RaycastHit h = sweepBuffer[i];
+            sweepBuffer[i] = default;
+            Collider col = h.collider;
+            if (col == null || !col.CompareTag("Enemy")) continue;
+
+            Enemy enemy = col.GetComponentInParent<Enemy>();
+            if (enemy == null) continue;
+
+            // Initial-overlap hits report distance 0 and no valid point
+            Vector3 point = h.distance > 0f ? h.point : origin;
+            if (!HitEnemy(enemy, point))
+            {
+                stopAt = h.distance;
+                ClearSweep(i + 1, count);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Damages every destructible (vase, barrel…) along the segment once.
+    /// Triggers included; layer = Destructibles or anything in stickableLayers.
+    /// </summary>
+    private void SweepDestructibles(Vector3 origin, float distance)
+    {
+        int mask = stickableLayers | Layers.MaskOf(Layers.Destructibles);
+        int count = Physics.SphereCastNonAlloc(origin, hitRadius, direction, sweepBuffer, distance,
+                                               mask, QueryTriggerInteraction.Collide);
+        if (count == 0) return;
+
+        System.Array.Sort(sweepBuffer, 0, count, HitDistanceComparer.Instance);
+
+        // Copy the colliders out first: a barrel exploding inside TakeDamage can
+        // run other physics queries before this loop is done.
+        int n = Mathf.Min(count, destructibleScratch.Length);
+        for (int i = 0; i < n; i++) destructibleScratch[i] = sweepBuffer[i].collider;
+        ClearSweep(0, count);
+
+        for (int i = 0; i < n; i++)
+        {
+            IDestructible d = CombatQuery.DestructibleOf(destructibleScratch[i]);
+            destructibleScratch[i] = null;
+            if (d != null) HitDestructible(d);
         }
     }
 
-    private int ArrowDamage()
+    private void HitDestructible(IDestructible destructible)
     {
-        float base_dmg = playerStats != null ? playerStats.arrowDamage : 1f;
+        if (!(destructible is Object uo) || uo == null) return;
+        if (!hitTargets.Add(uo.GetInstanceID())) return;
+
+        destructible.TakeDamage(ArrowDamage());
+        if (playerStats != null) playerStats.RecordArrowHitDestructible();
+        if (upgradeManager != null && uo is Component c && c != null)
+            upgradeManager.ArrowHitDestructible(c.gameObject);
+    }
+
+    private static void ClearSweep(int from, int count)
+    {
+        for (int i = from; i < count; i++) sweepBuffer[i] = default;
+    }
+
+    private sealed class HitDistanceComparer : IComparer<RaycastHit>
+    {
+        public static readonly HitDistanceComparer Instance = new HitDistanceComparer();
+        public int Compare(RaycastHit a, RaycastHit b) => a.distance.CompareTo(b.distance);
+    }
+
+    // ================================================================
+    //  DAMAGE
+    // ================================================================
+
+    private float BaseDamage()
+    {
+        float baseArrowDamage = playerStats != null ? playerStats.arrowDamage : 1f;
         float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
         float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
         float bloodMult = playerStats != null ? playerStats.bloodArrowMultiplier : 1f;
-        return Mathf.Max(1, Mathf.RoundToInt(
-            base_dmg * chargeMult * streakMult * damageMultiplier * bloodMult + flatDamageBonus));
+        return baseArrowDamage * chargeMult * streakMult * damageMultiplier * bloodMult + flatDamageBonus;
     }
+
+    private int ArrowDamage() => Mathf.Max(1, Mathf.RoundToInt(BaseDamage()));
+
+    /// <summary>Applies one arrow hit. Returns false when the arrow is used up.</summary>
+    private bool HitEnemy(Enemy enemy, Vector3 hitPoint)
+    {
+        if (enemy.IsDead || !hitTargets.Add(enemy.GetInstanceID())) return true;
+
+        float baseDamage = BaseDamage();
+        float finalDamage;
+        bool isCrit;
+        if (playerStats != null)
+            (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, enemy.gameObject, isForcedCrit);
+        else { finalDamage = baseDamage; isCrit = isForcedCrit; }
+
+        float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
+        Vector3 kbDir = CombatQuery.PlanarDirection(transform.position, enemy.transform.position, direction);
+
+        GameObject enemyGO = enemy.gameObject;
+        bool killed = enemy.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(finalDamage)), hitPoint, kbDir, kbForce,
+            isCrit, isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal);
+
+        if (playerStats != null)
+        {
+            playerStats.RecordArrowHitEnemy();
+            playerStats.RecordDamageDealt(finalDamage, DamageSource.Arrow, enemyGO);
+        }
+        if (upgradeManager != null) upgradeManager.ArrowHitEnemy(enemyGO, chargeAmount, isCrit);
+
+        // Soul Arrow etc. (chain copies excluded to prevent infinite chaining)
+        if (killed)
+        {
+            if (!isChainCopy && upgradeManager != null) upgradeManager.ArrowKill(enemyGO);
+            return true;   // arrow passes through the dying enemy for free
+        }
+
+        int maxPierces = playerStats != null ? playerStats.arrowPierceCount : 0;
+        if (piercesUsed < maxPierces)
+        {
+            piercesUsed++;
+
+            if (playerStats != null && playerStats.pierceDmgAPScaling > 0f && !enemy.IsDead)
+            {
+                float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
+                float pierceDmg = (playerStats.pierceDamageBase
+                                   + playerStats.pierceDmgAPScaling * playerStats.psyche) * streakMult;
+                enemy.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(pierceDmg)), hitPoint, kbDir, 0f, false,
+                                 FloatingTextManager.HitType.Normal);
+                playerStats.RecordDamageDealt(pierceDmg, DamageSource.Arrow, enemyGO);
+            }
+            return true;
+        }
+
+        consumed = true;
+        Destroy(gameObject);
+        return false;
+    }
+
+    // ================================================================
+    //  STICK / TRIGGER FALLBACK
+    // ================================================================
 
     private void StickToSurface(Vector3 point)
     {
@@ -135,83 +313,18 @@ public class Arrow : MonoBehaviour
         direction = Vector3.zero;
         currentVelocity = 0f;
         transform.position = new Vector3(point.x, point.y, 0f);
+
         // Chain-copy arrows (Mirror Arrow, Soul Arrow) are never pickable — skip OnArrowLanded.
-        if (!isChainCopy) GetComponent<ArrowPickup>()?.OnArrowLanded();
+        if (!isChainCopy && TryGetComponent(out ArrowPickup pickup)) pickup.OnArrowLanded();
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        if (consumed || hasLanded) return;
         if (currentVelocity < damageVelocityThreshold) return;
         if (!other.CompareTag("Enemy")) return;
 
-        Enemy enemy = other.GetComponent<Enemy>();
-        if (enemy == null) return;
-
-        float baseArrowDamage = playerStats != null ? playerStats.arrowDamage : 1f;
-        float chargeMult = 1f + chargeAmount * chargeDamageMultiplierPerPercent;
-        float streakMult = killStreak != null ? killStreak.DamageMultiplier : 1f;
-        float bloodMult = playerStats != null ? playerStats.bloodArrowMultiplier : 1f;
-        float baseDamage = baseArrowDamage * chargeMult * streakMult * damageMultiplier * bloodMult
-                           + flatDamageBonus;
-
-        float finalDamage;
-        bool isCrit;
-
-        // Dead Man's Hand: temporarily guarantee a crit for the last-quiver arrow.
-        float savedCritChance = 0f;
-        if (isForcedCrit && playerStats != null)
-        {
-            savedCritChance = playerStats.critChance;
-            playerStats.critChance = 2f; // > 1 guarantees Random.value < critChance
-        }
-
-        if (playerStats != null)
-            (finalDamage, isCrit) = playerStats.RollDamage(baseDamage, enemy.gameObject);
-        else { finalDamage = baseDamage; isCrit = false; }
-
-        if (isForcedCrit && playerStats != null)
-            playerStats.critChance = savedCritChance; // restore original crit chance
-
-        float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
-        Vector3 rawDir = other.transform.position - transform.position;
-        rawDir.z = 0f;
-        Vector3 kbDir = rawDir.magnitude > 0.001f ? rawDir.normalized : Vector3.right;
-
-        int roundedDamage = Mathf.Max(1, Mathf.RoundToInt(finalDamage));
-        bool willKill = enemy.WillDie(roundedDamage);
-
-        enemy.TakeDamage(roundedDamage, transform.position, kbDir, kbForce, isCrit,
-            isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal);
-
-        playerStats?.RecordArrowHitEnemy();
-        playerStats?.RecordDamageDealt(finalDamage, DamageSource.Arrow, enemy.gameObject);
-        upgradeManager?.ArrowHitEnemy(enemy.gameObject, chargeAmount, isCrit);
-
-        // Notify Soul Arrow (chain copies excluded to prevent infinite chaining)
-        if (willKill && !isChainCopy)
-            upgradeManager?.ArrowKill(enemy.gameObject);
-
-        if (!willKill)
-        {
-            int maxPierces = playerStats != null ? playerStats.arrowPierceCount : 0;
-            if (piercesUsed < maxPierces)
-            {
-                piercesUsed++;
-
-                if (playerStats != null && playerStats.pierceDmgAPScaling > 0f)
-                {
-                    float pierceDmg = playerStats.pierceDamageBase
-                                      + playerStats.pierceDmgAPScaling * playerStats.psyche;
-                    pierceDmg *= streakMult;
-                    int pierceRound = Mathf.Max(1, Mathf.RoundToInt(pierceDmg));
-                    enemy.TakeDamage(pierceRound, transform.position, kbDir, 0f, false,
-                        FloatingTextManager.HitType.Normal);
-                    playerStats.RecordDamageDealt(pierceDmg, DamageSource.Arrow, enemy.gameObject);
-                }
-            }
-            else
-                Destroy(gameObject);
-        }
-        // willKill: arrow passes through the dying enemy for free
+        Enemy enemy = other.GetComponentInParent<Enemy>();
+        if (enemy != null) HitEnemy(enemy, transform.position);
     }
 }

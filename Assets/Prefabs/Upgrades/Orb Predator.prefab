@@ -121,6 +121,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   category: 0
   rarity: 2
+  tags: 16388
   requiredWeaponId: 
   requiredClassId: rogue
   statCountCommon: 1

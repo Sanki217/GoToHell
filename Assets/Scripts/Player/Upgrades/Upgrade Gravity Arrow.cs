@@ -94,8 +94,7 @@ public class UpgradeGravityArrow : PlayerUpgrade
             new Vector3(position.x, position.y, 0f),
             Quaternion.identity);
 
-        GravityArrowZone zone = zoneGO.GetComponent<GravityArrowZone>();
-        if (zone == null)
+        if (!zoneGO.TryGetComponent(out GravityArrowZone zone))
         {
             Debug.LogWarning("[UpgradeGravityArrow] Gravity Zone Prefab is missing GravityArrowZone component!", zoneGO);
             return;
@@ -118,14 +117,16 @@ public class UpgradeGravityArrow : PlayerUpgrade
         if (stats == null) return description;
 
         float basePull = 0f;
-        var zone = gravityZonePrefab?.GetComponent<GravityArrowZone>();
+        GravityArrowZone zone = null;
+        if (gravityZonePrefab != null) gravityZonePrefab.TryGetComponent(out zone);
         if (zone != null) basePull = zone.pullSpeed;
 
-        float totalPull  = basePull + pullSpeedPerPsyche * stats.psyche;
-        float totalDPS   = baseDamagePerSecond + damagePerSecondPerPsyche * stats.psyche;
-        float radius     = zone?.pullRadius ?? 4f;
-        float dur        = zone?.duration   ?? 3f;
-        float cd         = Mathf.Max(minCooldown, baseCooldown - cooldownReducPerCooldown * stats.cooldown);
+        var s = Simulate(stats, simulatedBonuses);
+        float totalPull  = basePull + pullSpeedPerPsyche * s.psyche;
+        float totalDPS   = baseDamagePerSecond + damagePerSecondPerPsyche * s.psyche;
+        float radius     = zone != null ? zone.pullRadius : 4f;
+        float dur        = zone != null ? zone.duration : 3f;
+        float cd         = Mathf.Max(minCooldown, baseCooldown - cooldownReducPerCooldown * s.cooldown);
 
         return $"Arrows stuck in surfaces create a pull zone ({radius:F0}m, {dur:F0}s).\n" +
                $"Enemies dragged toward the arrow at {PSY(totalPull, "F1")} u/s " +

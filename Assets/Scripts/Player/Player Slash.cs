@@ -48,7 +48,7 @@ public class PlayerSlash : MonoBehaviour
     private PlayerShooting shooting;
     private PlayerStateController stateController;
     private PlayerUpgradeManager upgradeManager;
-    private Camera mainCam;
+    private Slash_Damage_Collider damageCollider;
 
     // Geometry computed at slash time — read by Slash_Damage_Collider
     [HideInInspector] public Vector3 slashCenter;
@@ -65,10 +65,12 @@ public class PlayerSlash : MonoBehaviour
         shooting = GetComponent<PlayerShooting>();
         stateController = GetComponent<PlayerStateController>();
         upgradeManager = GetComponent<PlayerUpgradeManager>();
-        mainCam = Camera.main;
 
         if (slashColliderObject != null)
+        {
+            damageCollider = slashColliderObject.GetComponent<Slash_Damage_Collider>();
             slashColliderObject.SetActive(false);
+        }
     }
 
     // ================================================================
@@ -89,11 +91,11 @@ public class PlayerSlash : MonoBehaviour
         bool slashIsPrimary = shooting == null || !shooting.enabled;
 
         // Legacy fallback mode (both components enabled): quiver empty or Shift held.
-        bool shiftHeld = Input.GetKey(KeyCode.LeftShift);
+        bool shiftHeld = GameInput.AltAttackHeld;
         bool quiverEmpty = !slashIsPrimary && shooting.CurrentArrows <= 0;
 
         if ((!slashIsPrimary && !quiverEmpty && !shiftHeld) || onCooldown) return;
-        if (!Input.GetMouseButtonDown(0)) return;
+        if (!GameInput.AttackPressed) return;
 
         TrySlash();
     }
@@ -135,13 +137,14 @@ public class PlayerSlash : MonoBehaviour
         }
 
         // Run damage check IMMEDIATELY with explicit geometry — no physics sync needed
-        var damageCollider = slashColliderObject?.GetComponent<Slash_Damage_Collider>();
-        damageCollider?.DoSlash(center, slashHalfExtents, rotation, this);
+        if (damageCollider != null)
+            damageCollider.DoSlash(center, slashHalfExtents, rotation, this);
 
         // Show the visual for slashActiveDuration
+        StopAllCoroutines();
         StartCoroutine(ShowVisual());
 
-        playerStats?.RecordSlashUsed();
+        if (playerStats != null) playerStats.RecordSlashUsed();
     }
 
     private IEnumerator ShowVisual()
@@ -156,10 +159,10 @@ public class PlayerSlash : MonoBehaviour
     //  HIT CALLBACKS (called by Slash_Damage_Collider)
     // ================================================================
 
-    public void OnSlashHitEnemy(GameObject enemyGO)
+    public void OnSlashHitEnemy(Enemy enemy)
     {
-        Enemy enemy = enemyGO.GetComponent<Enemy>();
-        if (enemy == null) return;
+        if (enemy == null || enemy.IsDead) return;
+        GameObject enemyGO = enemy.gameObject;
 
         float damage = playerStats != null ? playerStats.slashDamage : baseDamage;
 
@@ -182,37 +185,29 @@ public class PlayerSlash : MonoBehaviour
             isCrit ? FloatingTextManager.HitType.Critical : FloatingTextManager.HitType.Normal
         );
 
-        playerStats?.RecordSlashHitEnemy();
-        playerStats?.RecordDamageDealt(finalDmg, DamageSource.Slash, enemyGO);
+        if (playerStats != null)
+        {
+            playerStats.RecordSlashHitEnemy();
+            playerStats.RecordDamageDealt(finalDmg, DamageSource.Slash, enemyGO);
+        }
 
         // Upgrade bus — lets weapon-agnostic upgrades (e.g. Burning Weapon) react to slashes
-        upgradeManager?.SlashHitEnemy(enemyGO);
+        if (upgradeManager != null) upgradeManager.SlashHitEnemy(enemyGO);
     }
 
-    public void OnSlashHitDestructible(Vase vase, ExplosiveBarrel barrel)
+    public void OnSlashHitDestructible(IDestructible target)
     {
+        if (target == null) return;
         float damage = playerStats != null ? playerStats.slashDamage : baseDamage;
-        int dmg = Mathf.Max(1, Mathf.RoundToInt(damage));
-
-        vase?.TakeDamage(dmg);
-        barrel?.TakeDamage(dmg);
+        target.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(damage)));
     }
 
     // ================================================================
     //  HELPERS
     // ================================================================
 
-    private Vector3 GetCursorDirection()
-    {
-        if (mainCam == null) return Vector3.right;
-        Vector3 mouse = Input.mousePosition;
-        mouse.z = Mathf.Abs(mainCam.transform.position.z);
-        Vector3 worldMouse = mainCam.ScreenToWorldPoint(mouse);
-        worldMouse.z = 0f;
-        Vector3 dir = worldMouse - transform.position;
-        dir.z = 0f;
-        return dir.magnitude > 0.01f ? dir.normalized : Vector3.right;
-    }
+    private Vector3 GetCursorDirection() =>
+        GameInput.AimDirectionFrom(transform.position, Vector3.right);
 
     private float GetEffectiveCooldown()
     {

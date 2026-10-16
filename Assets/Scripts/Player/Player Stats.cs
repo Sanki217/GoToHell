@@ -1,19 +1,28 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 /// <summary>
 /// Unified player stat system — two-tier architecture.
 ///
-/// PRIMARY STATS (player upgrades these 8):
+/// PRIMARY STATS (player upgrades these 7):
 ///   Agility, AttackDamage, Luck, Psyche, Health, Size, Cooldown
 ///
 /// DERIVED STATS (calculated from primaries — read-only at runtime):
 ///   All specific gameplay values: moveSpeed, arrowDamage, critChance, etc.
-///   RecalculateDerived() is called automatically whenever a primary stat changes.
+///   RecalculateDerived() runs whenever a primary stat changes and raises
+///   OnStatsChanged, so dependants (PlayerHealth max HP, live upgrade values)
+///   react to changes instead of polling every frame.
+///
+/// RULE: upgrades that want a permanent bonus modify a FORMULA input (a base
+/// value or coefficient, e.g. baseBurnStrength) and call RecalculateDerived —
+/// never a derived field directly, which the next recalculation overwrites.
 ///
 /// FORMULAS (all coefficients editable in Inspector under "Derived Formulas"):
 ///   e.g. moveSpeed = baseMoveSpeed + moveSpeedPerAgility * agility
 ///
-/// Run History is unchanged — still records everything.
+/// RUN HISTORY lives in <see cref="history"/> — the same RunStats type that is
+/// saved to disk, so a new tracked stat is ONE field on RunStats plus a Record
+/// call. Snapshot, lifetime totals, best-run and achievements pick it up.
 /// </summary>
 public class PlayerStats : MonoBehaviour
 {
@@ -25,14 +34,19 @@ public class PlayerStats : MonoBehaviour
     private PlayerHealth health;
     private PlayerUpgradeManager upgradeManager;
 
+    /// <summary>Raised after every RecalculateDerived (primary stat or formula change).</summary>
+    public event Action OnStatsChanged;
+
     private void Awake()
     {
         shooting = GetComponent<PlayerShooting>();
         health = GetComponent<PlayerHealth>();
         upgradeManager = GetComponent<PlayerUpgradeManager>();
 
+#if UNITY_EDITOR
         _lastReadArrows = _currentArrows;
         _lastReadHP = _currentHP;
+#endif
 
         RecalculateDerived();
     }
@@ -159,6 +173,9 @@ public class PlayerStats : MonoBehaviour
     public float baseMaxHP = 100f;
     public float hpPerHealth = 1.00f;    // 100% health stat = +1 HP per point
 
+    [Tooltip("Flat max HP from items/upgrades (PlayerHealth.IncreaseMaxHP). Survives recalculation.")]
+    public float bonusMaxHP = 0f;
+
     // ================================================================
     //  DERIVED STATS  (read-only — computed by RecalculateDerived)
     // ================================================================
@@ -221,7 +238,7 @@ public class PlayerStats : MonoBehaviour
 
     /// <summary>
     /// Recomputes all derived stats from current primary stats.
-    /// Call this whenever any primary stat changes.
+    /// Call this whenever any primary stat or formula input changes.
     /// </summary>
     public void RecalculateDerived()
     {
@@ -255,7 +272,9 @@ public class PlayerStats : MonoBehaviour
         shockStrength = baseShockStrength + shockPerPsyche * psyche;
 
         // Health
-        maxHP = Mathf.RoundToInt(baseMaxHP + hpPerHealth * health_stat);
+        maxHP = Mathf.Max(1, Mathf.RoundToInt(baseMaxHP + hpPerHealth * health_stat + bonusMaxHP));
+
+        OnStatsChanged?.Invoke();
     }
 
     // ================================================================
@@ -264,6 +283,7 @@ public class PlayerStats : MonoBehaviour
 
     public void AddPrimary(PrimaryStat stat, float amount)
     {
+        if (amount == 0f) return;
         switch (stat)
         {
             case PrimaryStat.Agility: agility += amount; break;
@@ -274,10 +294,7 @@ public class PlayerStats : MonoBehaviour
             case PrimaryStat.Size: size += amount; break;
             case PrimaryStat.Cooldown: cooldown += amount; break;
         }
-        RecalculateDerived();
-        // Sync HP ceiling if Health changed
-        if (stat == PrimaryStat.Health && health != null)
-            health.IncreaseMaxHP(0); // triggers slider update with new maxHP
+        RecalculateDerived();   // PlayerHealth listens and syncs max HP
     }
 
     public float GetPrimary(PrimaryStat stat) => stat switch
@@ -292,36 +309,58 @@ public class PlayerStats : MonoBehaviour
         _ => 0f
     };
 
+    /// <summary>Permanent flat max-HP bonus (items, upgrades). Survives recalculation.</summary>
+    public void AddBonusMaxHP(float amount)
+    {
+        if (amount == 0f) return;
+        bonusMaxHP += amount;
+        RecalculateDerived();
+    }
+
     // ================================================================
-    //  AMMO  (Inspector-editable, synced to PlayerShooting)
+    //  AMMO / HP — live values come from PlayerShooting / PlayerHealth.
+    //  The serialized fields are an Inspector mirror for live tuning in the
+    //  Editor only; builds skip the per-frame sync entirely.
     // ================================================================
 
-    [Header("--- AMMO ---")]
+    [Header("--- AMMO (Inspector mirror) ---")]
     [SerializeField] private int _maxArrows = 3;
     [SerializeField] private int _currentArrows = 3;
-    private int _lastReadArrows = -1;
-    private int _lastReadHP = -1;
 
     public int MaxArrows
     {
-        get => _maxArrows;
-        set { _maxArrows = value; if (shooting != null) shooting.maxArrows = value; }
+        get => shooting != null ? shooting.maxArrows : _maxArrows;
+        set
+        {
+            _maxArrows = value;
+            if (shooting != null) shooting.SetMaxArrows(value);
+        }
     }
 
     public int CurrentArrows
     {
-        get => _currentArrows;
-        set { _currentArrows = value; if (shooting != null) shooting.SetCurrentArrows(value); }
+        get => shooting != null ? shooting.CurrentArrows : _currentArrows;
+        set
+        {
+            _currentArrows = value;
+            if (shooting != null) shooting.SetCurrentArrows(value);
+        }
     }
 
-    // ── HP sync backing field ──
-    [Header("--- HP ---")]
+    [Header("--- HP (Inspector mirror) ---")]
     [SerializeField] private int _currentHP = 100;
 
     public int CurrentHP
     {
-        get => _currentHP;
-        set { _currentHP = value; _lastReadHP = value; if (health != null) health.SetHP(value); }
+        get => health != null ? health.CurrentHP : _currentHP;
+        set
+        {
+            _currentHP = value;
+#if UNITY_EDITOR
+            _lastReadHP = value;
+#endif
+            if (health != null) health.SetHP(value);
+        }
     }
 
     /// <summary>
@@ -331,65 +370,60 @@ public class PlayerStats : MonoBehaviour
     public void SyncHPMirror(int hp)
     {
         _currentHP = hp;
+#if UNITY_EDITOR
         _lastReadHP = hp;
+#endif
     }
 
+#if UNITY_EDITOR
+    private int _lastReadArrows = -1;
+    private int _lastReadHP = -1;
+
+    // Two-way Inspector sync: edit a mirror field in Play mode and it is pushed
+    // to the live component; otherwise the mirror follows the live value.
     private void Update()
     {
-        // Arrow sync
         if (shooting != null)
         {
-            int live = shooting.CurrentArrows;
             if (_currentArrows != _lastReadArrows)
-            {
                 shooting.SetCurrentArrows(_currentArrows);
-                _lastReadArrows = shooting.CurrentArrows;
-                _currentArrows = _lastReadArrows;
-            }
-            else
-            {
-                _currentArrows = live;
-                _lastReadArrows = live;
-            }
-            if (shooting.maxArrows != _maxArrows) shooting.maxArrows = _maxArrows;
-            else _maxArrows = shooting.maxArrows;
+            _currentArrows = _lastReadArrows = shooting.CurrentArrows;
+
+            // Inspector edit since last frame → push; otherwise follow (shop/upgrade changes)
+            if (_maxArrowsSeen != -1 && _maxArrows != _maxArrowsSeen)
+                shooting.SetMaxArrows(_maxArrows);
+            _maxArrows = _maxArrowsSeen = shooting.maxArrows;
         }
 
-        // HP sync
         if (health != null)
         {
-            int live = health.CurrentHP;
             if (_currentHP != _lastReadHP)
-            {
                 health.SetHP(_currentHP);
-                _lastReadHP = health.CurrentHP;
-                _currentHP = _lastReadHP;
-            }
-            else
-            {
-                _currentHP = live;
-                _lastReadHP = live;
-            }
+            _currentHP = _lastReadHP = health.CurrentHP;
         }
     }
+
+    private int _maxArrowsSeen = -1;
+#endif
 
     // ================================================================
     //  CRIT SYSTEM
     // ================================================================
 
-    public (float damage, bool isCrit) RollDamage(float baseDamage)
+    /// <summary>
+    /// Rolls crit for a hit. <paramref name="forceCrit"/> guarantees a crit
+    /// (Dead Man's Hand) without touching critChance.
+    /// </summary>
+    public (float damage, bool isCrit) RollDamage(float baseDamage, GameObject target = null,
+                                                  bool forceCrit = false)
     {
-        bool isCrit = Random.value < critChance;
+        bool isCrit = forceCrit || UnityEngine.Random.value < critChance;
         float finalDmg = isCrit ? baseDamage * critMultiplier : baseDamage;
-        if (isCrit) { critsLanded++; upgradeManager?.CriticalHit(null, finalDmg); }
-        return (finalDmg, isCrit);
-    }
-
-    public (float damage, bool isCrit) RollDamage(float baseDamage, GameObject enemy)
-    {
-        bool isCrit = Random.value < critChance;
-        float finalDmg = isCrit ? baseDamage * critMultiplier : baseDamage;
-        if (isCrit) { critsLanded++; upgradeManager?.CriticalHit(enemy, finalDmg); }
+        if (isCrit)
+        {
+            history.critsLanded++;
+            if (upgradeManager != null) upgradeManager.CriticalHit(target, finalDmg);
+        }
         return (finalDmg, isCrit);
     }
 
@@ -397,153 +431,109 @@ public class PlayerStats : MonoBehaviour
     //  RUN HISTORY
     // ================================================================
 
-    [Header("--- RUN HISTORY: Movement ---")]
-    public float distanceMovedLeft;
-    public float distanceMovedRight;
-    public float totalDistance;
-    public int jumpsPerformed;
-    public float timeAirborne;
-    public float timeGrounded;
-    public int wallSlideCount;
-    public float totalWallSlideDuration;
-    public int hoverCount;
-    public float totalHoverDuration;
-    public float energySpentHovering;
-    public int dashCount;
-    public float totalDashDistance;
-    public float energySpentDashing;
-    public int dashesHitEnemy;
-    public int dashesHitWall;
-    public int slashCount;
-    public int slashesHitEnemy;
+    [Header("--- RUN HISTORY ---")]
+    [Tooltip("Everything recorded this run. Same type as the saved run snapshot.")]
+    public RunStats history = new RunStats();
 
-    [Header("--- RUN HISTORY: Combat ---")]
-    public int weakArrowsFired;
-    public int mediumArrowsFired;
-    public int chargedArrowsFired;
-    public int extraArrowsFired;
-    public int totalArrowsFired;
-    public int arrowsHitEnemy;
-    public int arrowsHitWall;
-    public int arrowsHitDestructible;
-    public int arrowsPickedUp;
-    public int chargesCancelledByEnergy;
-    public int enemiesKilled;
-    public float totalDamageDealt;
-    public float damageByArrow;
-    public float damageByDash;
-    public float damageByStatus;
-    public float damageByExplosion;
-    public float damageBySlash;
-    public int critsLanded;
-    public int burnApplied;
-    public int freezeApplied;
-    public int holyApplied;
-    public int shockApplied;
-
-    [Header("--- RUN HISTORY: Resources ---")]
-    public int soulsCollected;
-    public float xpGained;
-    public float energyGainedTotal;
-    public float energyFromKills;
-    public float energyFromFalling;
-    public float energyFromLava;
-    public float energyFromWallSlide;
-    public float energySpentCharging;
-
-    [Header("--- RUN HISTORY: Survival ---")]
-    public float damageTaken;
-    public int timesHit;
-    public float hpRestored;
-    public int layersCompleted;
+    // Lifesteal: fractional healing carried between hits so small percentages
+    // still add up instead of each hit healing a rounded-up minimum of 1.
+    private float lifestealCarry;
 
     // ── Record helpers ──
 
-    public void RecordJump() => jumpsPerformed++;
-    public void RecordWallSlideStart() => wallSlideCount++;
-    public void RecordWallSlideTick(float dt) => totalWallSlideDuration += dt;
-    public void RecordHoverStart() => hoverCount++;
-    public void RecordHoverTick(float dt) => totalHoverDuration += dt;
-    public void RecordDash(float dist) { dashCount++; totalDashDistance += dist; }
-    public void RecordDashHitEnemy() => dashesHitEnemy++;
-    public void RecordDashHitWall() => dashesHitWall++;
-    public void RecordSlashUsed() => slashCount++;
-    public void RecordSlashHitEnemy() => slashesHitEnemy++;
-    public void RecordArrowHitEnemy() => arrowsHitEnemy++;
-    public void RecordArrowHitWall() => arrowsHitWall++;
-    public void RecordArrowHitDestructible() => arrowsHitDestructible++;
-    public void RecordArrowPickedUp() => arrowsPickedUp++;
-    public void RecordChargeCancelled() => chargesCancelledByEnergy++;
+    public void RecordJump() => history.jumpsPerformed++;
+    public void RecordWallSlideStart() => history.wallSlideCount++;
+    public void RecordWallSlideTick(float dt) => history.totalWallSlideDuration += dt;
+    public void RecordHoverStart() => history.hoverCount++;
+    public void RecordHoverTick(float dt) => history.totalHoverDuration += dt;
+    public void RecordDash(float dist) { history.dashCount++; history.totalDashDistance += dist; }
+    public void RecordDashHitEnemy() => history.dashesHitEnemy++;
+    public void RecordDashHitWall() => history.dashesHitWall++;
+    public void RecordSlashUsed() => history.slashCount++;
+    public void RecordSlashHitEnemy() => history.slashesHitEnemy++;
+    public void RecordArrowHitEnemy() => history.arrowsHitEnemy++;
+    public void RecordArrowHitWall() => history.arrowsHitWall++;
+    public void RecordArrowHitDestructible() => history.arrowsHitDestructible++;
+    public void RecordArrowPickedUp() => history.arrowsPickedUp++;
+    public void RecordChargeCancelled() => history.chargesCancelledByEnergy++;
+    public void RecordCritLanded() => history.critsLanded++;
+    public void RecordLayerCompleted() => history.layersCompleted++;
+    public void RecordHPRestored(int amount) => history.hpRestored += amount;
+    public void RecordDamageTaken(float amount) { history.damageTaken += amount; history.timesHit++; }
+    public void RecordSoulCollected(int amount) => history.soulsCollected += amount;
+    public void RecordXpGained(float amount) => history.xpGained += amount;
+
     public void RecordEnemyKilled()
     {
-        enemiesKilled++;
+        history.enemiesKilled++;
         HitStopManager.NotifyKill();
     }
-    public void RecordCritLanded() => critsLanded++;
-    public void RecordLayerCompleted() => layersCompleted++;
-    public void RecordHPRestored(int amount) => hpRestored += amount;
-    public void RecordDamageTaken(float amount) { damageTaken += amount; timesHit++; }
-    public void RecordSoulCollected(int amount) { soulsCollected += amount; xpGained += amount; }
 
     public void RecordArrowFired(ArrowFireType type)
     {
-        totalArrowsFired++;
+        history.totalArrowsFired++;
         switch (type)
         {
-            case ArrowFireType.Weak: weakArrowsFired++; break;
-            case ArrowFireType.Medium: mediumArrowsFired++; break;
-            case ArrowFireType.Charged: chargedArrowsFired++; break;
-            case ArrowFireType.Extra: extraArrowsFired++; break;
+            case ArrowFireType.Weak: history.weakArrowsFired++; break;
+            case ArrowFireType.Medium: history.mediumArrowsFired++; break;
+            case ArrowFireType.Charged: history.chargedArrowsFired++; break;
+            case ArrowFireType.Extra: history.extraArrowsFired++; break;
         }
     }
 
     public void RecordMovement(float dx, float dy, float dt, bool grounded, bool airborne)
     {
-        if (dx < 0) distanceMovedLeft += Mathf.Abs(dx); else distanceMovedRight += dx;
-        totalDistance += new Vector2(dx, dy).magnitude;
-        if (grounded) timeGrounded += dt;
-        if (airborne) timeAirborne += dt;
+        if (dx < 0) history.distanceMovedLeft += -dx; else history.distanceMovedRight += dx;
+        history.totalDistance += Mathf.Sqrt(dx * dx + dy * dy);
+        if (grounded) history.timeGrounded += dt;
+        if (airborne) history.timeAirborne += dt;
     }
 
     public void RecordDamageDealt(float amount, DamageSource source, GameObject target = null)
     {
         HitStopManager.NotifyDamageDealt(amount, source);
 
-        totalDamageDealt += amount;
+        history.totalDamageDealt += amount;
         switch (source)
         {
-            case DamageSource.Arrow: damageByArrow += amount; break;
-            case DamageSource.Dash: damageByDash += amount; break;
-            case DamageSource.Status: damageByStatus += amount; break;
-            case DamageSource.Explosion: damageByExplosion += amount; break;
-            case DamageSource.Slash: damageBySlash += amount; break;
+            case DamageSource.Arrow: history.damageByArrow += amount; break;
+            case DamageSource.Dash: history.damageByDash += amount; break;
+            case DamageSource.Status: history.damageByStatus += amount; break;
+            case DamageSource.Explosion: history.damageByExplosion += amount; break;
+            case DamageSource.Slash: history.damageBySlash += amount; break;
         }
+
         // Lifesteal — never procs off the training dummy (infinite-heal exploit)
-        bool isDummy = target != null && target.GetComponentInParent<TrainingDummy>() != null;
-        if (lifeSteal > 0f && health != null && !isDummy)
-            health.RestoreHP(Mathf.Max(1, Mathf.RoundToInt(amount * lifeSteal)));
+        if (lifeSteal <= 0f || health == null || amount <= 0f) return;
+        if (target != null && target.GetComponentInParent<TrainingDummy>() != null) return;
+
+        lifestealCarry += amount * lifeSteal;
+        int heal = Mathf.FloorToInt(lifestealCarry);
+        if (heal <= 0) return;
+        lifestealCarry -= heal;
+        health.RestoreHP(heal);
     }
 
     public void RecordStatusApplied(StatusType type)
     {
         switch (type)
         {
-            case StatusType.Burn: burnApplied++; break;
-            case StatusType.Freeze: freezeApplied++; break;
-            case StatusType.Holy: holyApplied++; break;
-            case StatusType.Shock: shockApplied++; break;
+            case StatusType.Burn: history.burnApplied++; break;
+            case StatusType.Freeze: history.freezeApplied++; break;
+            case StatusType.Holy: history.holyApplied++; break;
+            case StatusType.Shock: history.shockApplied++; break;
         }
     }
 
     public void RecordEnergyGained(float amount, EnergySource source)
     {
-        energyGainedTotal += amount;
+        history.energyGainedTotal += amount;
         switch (source)
         {
-            case EnergySource.Kill: energyFromKills += amount; break;
-            case EnergySource.Falling: energyFromFalling += amount; break;
-            case EnergySource.Lava: energyFromLava += amount; break;
-            case EnergySource.WallSlide: energyFromWallSlide += amount; break;
+            case EnergySource.Kill: history.energyFromKills += amount; break;
+            case EnergySource.Falling: history.energyFromFalling += amount; break;
+            case EnergySource.Lava: history.energyFromLava += amount; break;
+            case EnergySource.WallSlide: history.energyFromWallSlide += amount; break;
         }
     }
 
@@ -551,13 +541,17 @@ public class PlayerStats : MonoBehaviour
     {
         switch (source)
         {
-            case EnergySpentSource.Dash: energySpentDashing += amount; break;
-            case EnergySpentSource.Hover: energySpentHovering += amount; break;
-            case EnergySpentSource.Charging: energySpentCharging += amount; break;
+            case EnergySpentSource.Dash: history.energySpentDashing += amount; break;
+            case EnergySpentSource.Hover: history.energySpentHovering += amount; break;
+            case EnergySpentSource.Charging: history.energySpentCharging += amount; break;
         }
     }
 
-    public void RecordPlayerLevelUp(int newLevel) => currentLevel = newLevel;
+    public void RecordPlayerLevelUp(int newLevel)
+    {
+        currentLevel = newLevel;
+        history.finalLevel = newLevel;
+    }
 }
 
 // ================================================================

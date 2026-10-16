@@ -13,7 +13,7 @@ public class ShopItem_HealthPotion : ShopItem
 
     protected override void OnPurchased()
     {
-        PlayerHealth health = PlayerRefs.I?.Health;
+        PlayerHealth health = PlayerRefs.I != null ? PlayerRefs.I.Health : null;
         if (health == null)
         {
             Debug.LogWarning("[HealthPotion] No player found — no heal applied.");
@@ -21,10 +21,10 @@ public class ShopItem_HealthPotion : ShopItem
         }
 
         int before = health.CurrentHP;
-        int amount = healAmount > 0 ? healAmount : health.maxHP;
+        int amount = healAmount > 0 ? healAmount : health.MaxHP;
         health.RestoreHP(amount);   // RestoreHP clamps at maxHP
 
         Debug.Log($"[HealthPotion] Healed {health.CurrentHP - before} HP " +
-                  $"({before} → {health.CurrentHP} / {health.maxHP}).");
+                  $"({before} → {health.CurrentHP} / {health.MaxHP}).");
     }
 }

@@ -122,7 +122,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1264278434927558330}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c67d71920f78cad48a22b45e670773bd, type: 3}
+  m_Script: {fileID: 11500000, guid: 2d35ce80037de5343ae042f84916cbf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   itemName: Health Potion

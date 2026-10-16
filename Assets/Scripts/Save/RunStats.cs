@@ -1,9 +1,18 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using UnityEngine;
 
 /// <summary>
-/// Serializable snapshot of a single run's statistics.
-/// Mirrors the RUN HISTORY fields in PlayerStats.
-/// Captured on death and stored in SaveData.runHistory.
+/// Serializable statistics for one run. The SAME type is used for:
+///   • the live run (PlayerStats.history — written by the Record* helpers),
+///   • the saved snapshot (SaveData.runHistory),
+///   • best-run maxima and lifetime totals (SaveData.bestRun / lifetimeTotals).
+///
+/// ADDING A STAT: add one public int/float field below and record it in
+/// PlayerStats. Snapshot copy, lifetime summing and best-run maxima are
+/// automatic (reflection over numeric fields), so the four hand-maintained
+/// field lists that used to drift out of sync are gone.
 /// </summary>
 [Serializable]
 public class RunStats
@@ -17,6 +26,9 @@ public class RunStats
     public int    finalLevel;       // player level at death
     public float  runDurationSeconds;
     public bool   victory;          // reached the end vs died
+    public string pactIds;          // active pacts, comma-separated
+    public int    heat;             // summed pact heat
+    public int    metaCurrencyEarned;
 
     // Max depth reached (world units below the layer start, summed across
     // layers). Tracked as lowest-Y-ever by DepthTracker — bouncing back up
@@ -82,4 +94,57 @@ public class RunStats
     public int   timesHit;
     public float hpRestored;
     public int   layersCompleted;
+
+    // ================================================================
+    //  NUMERIC FIELD HELPERS
+    // ================================================================
+
+    // Per-run facts that must never be summed into lifetime totals
+    // (they are tracked as maxima in bestRun instead).
+    private static readonly HashSet<string> NotSummed = new HashSet<string>
+    {
+        nameof(deepestLayer), nameof(finalLevel), nameof(maxDepthReached), nameof(heat)
+    };
+
+    private static FieldInfo[] numericFields;
+
+    private static FieldInfo[] NumericFields
+    {
+        get
+        {
+            if (numericFields != null) return numericFields;
+            var list = new List<FieldInfo>();
+            foreach (FieldInfo f in typeof(RunStats).GetFields(BindingFlags.Public | BindingFlags.Instance))
+                if (f.FieldType == typeof(int) || f.FieldType == typeof(float))
+                    list.Add(f);
+            numericFields = list.ToArray();
+            return numericFields;
+        }
+    }
+
+    /// <summary>Deep copy (all fields, including meta).</summary>
+    public RunStats Clone() => JsonUtility.FromJson<RunStats>(JsonUtility.ToJson(this));
+
+    /// <summary>Adds every summable numeric field of <paramref name="run"/> into this (lifetime totals).</summary>
+    public void AddTotals(RunStats run)
+    {
+        if (run == null) return;
+        foreach (FieldInfo f in NumericFields)
+        {
+            if (NotSummed.Contains(f.Name)) continue;
+            if (f.FieldType == typeof(int)) f.SetValue(this, (int)f.GetValue(this) + (int)f.GetValue(run));
+            else f.SetValue(this, (float)f.GetValue(this) + (float)f.GetValue(run));
+        }
+    }
+
+    /// <summary>Keeps the per-field maximum of this and <paramref name="run"/> (best-in-a-single-run).</summary>
+    public void MaxWith(RunStats run)
+    {
+        if (run == null) return;
+        foreach (FieldInfo f in NumericFields)
+        {
+            if (f.FieldType == typeof(int)) f.SetValue(this, Math.Max((int)f.GetValue(this), (int)f.GetValue(run)));
+            else f.SetValue(this, Math.Max((float)f.GetValue(this), (float)f.GetValue(run)));
+        }
+    }
 }

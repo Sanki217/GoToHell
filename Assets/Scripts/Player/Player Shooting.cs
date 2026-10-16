@@ -1,6 +1,14 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Bow: hold LMB to charge (time slows, camera zooms), release to fire one of
+/// three arrow tiers. Finite quiver with HUD dots.
+///
+/// Charge slow-mo is an owned GameTime request, so it composes with hit stop
+/// and never un-pauses a menu. Losing control mid-charge (menu, level-up,
+/// resurrection) cancels the charge cleanly — no stuck slow-mo or zoom.
+/// </summary>
 [RequireComponent(typeof(PlayerUpgradeManager))]
 public class PlayerShooting : MonoBehaviour
 {
@@ -75,7 +83,6 @@ public class PlayerShooting : MonoBehaviour
     private bool isZoomingIn = false;
     private bool isZoomingOut = false;
 
-    private Camera mainCam;
     private CameraFollow cam;
     private PlayerUpgradeManager upgradeManager;
     private PlayerEnergy playerEnergy;
@@ -102,9 +109,8 @@ public class PlayerShooting : MonoBehaviour
         playerStats = GetComponent<PlayerStats>();
         stateCtrl = GetComponent<PlayerStateController>();
 
-        mainCam = Camera.main;
-        cam = mainCam.GetComponent<CameraFollow>();
-        originalCamZ = cam.transform.position.z;
+        cam = PlayerRefs.CamFollow;
+        if (cam != null) originalCamZ = cam.transform.position.z;
 
         // Spawned-prefab support: pull scene HUD refs not wired on the prefab
         if (HUDRefs.I != null)
@@ -118,8 +124,8 @@ public class PlayerShooting : MonoBehaviour
         CacheArrowDotColors();
         UpdateArrowUI();
 
-        if (!lineRenderer) lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = 2;
+        if (lineRenderer == null) lineRenderer = GetComponent<LineRenderer>();
+        if (lineRenderer != null) lineRenderer.positionCount = 2;
 
         if (chargeSlider != null) chargeSlider.gameObject.SetActive(false);
         if (chargePercentText != null) chargePercentText.gameObject.SetActive(false);
@@ -127,10 +133,22 @@ public class PlayerShooting : MonoBehaviour
 
     void Update()
     {
-        if (!stateCtrl.HasControl()) return;
+        if (stateCtrl != null && !stateCtrl.HasControl())
+        {
+            // Menu / level-up / resurrection took over mid-charge: drop the
+            // charge (no shot) so slow-mo and zoom never get stuck.
+            if (isCharging) CancelCharge();
+            return;
+        }
         UpdateAimingLine();
         HandleChargeInput();
         UpdateCameraZoom();
+    }
+
+    private void OnDisable()
+    {
+        if (isCharging) CancelCharge();
+        GameTime.ClearSlowMo(this);
     }
 
     void HandleChargeInput()
@@ -139,9 +157,9 @@ public class PlayerShooting : MonoBehaviour
         if (currentArrows <= 0) return;
 
         // Shift+LMB routes to PlayerSlash as a forced slash — don't begin a charge
-        if (Input.GetMouseButtonDown(0) && Input.GetKey(KeyCode.LeftShift)) return;
+        if (GameInput.AttackPressed && GameInput.AltAttackHeld) return;
 
-        if (Input.GetMouseButtonDown(0))
+        if (GameInput.AttackPressed)
         {
             isCharging = true;
             isZoomingIn = true;
@@ -151,7 +169,7 @@ public class PlayerShooting : MonoBehaviour
             ShowChargeUI(true);
         }
 
-        if (Input.GetMouseButton(0) && isCharging)
+        if (GameInput.AttackHeld && isCharging)
         {
             ChargeTick();
 
@@ -162,17 +180,17 @@ public class PlayerShooting : MonoBehaviour
             }
             else
             {
-                playerStats?.RecordEnergySpent(energySpentThisCharge, EnergySpentSource.Charging);
-                playerStats?.RecordChargeCancelled();
-                upgradeManager?.ArrowChargeCancelledByEnergy(chargeNormalized);
+                if (playerStats != null) playerStats.RecordEnergySpent(energySpentThisCharge, EnergySpentSource.Charging);
+                if (playerStats != null) playerStats.RecordChargeCancelled();
+                if (upgradeManager != null) upgradeManager.ArrowChargeCancelledByEnergy(chargeNormalized);
                 FireArrow();
                 ResetCharge();
             }
         }
 
-        if (Input.GetMouseButtonUp(0) && isCharging)
+        if (GameInput.AttackReleased && isCharging)
         {
-            playerStats?.RecordEnergySpent(energySpentThisCharge, EnergySpentSource.Charging);
+            if (playerStats != null) playerStats.RecordEnergySpent(energySpentThisCharge, EnergySpentSource.Charging);
             FireArrow();
             ResetCharge();
         }
@@ -186,7 +204,7 @@ public class PlayerShooting : MonoBehaviour
         currentSpeedMultiplier = Mathf.Lerp(1f, maxChargeMultiplier, chargeNormalized);
 
         float slowT = Mathf.Clamp01(chargeTimer / timeSlowDuration);
-        GameTime.SetScale(Mathf.Lerp(1f, minTimeScale, slowT));
+        GameTime.SetSlowMo(this, Mathf.Lerp(1f, minTimeScale, slowT));
 
         UpdateChargeUI();
     }
@@ -194,7 +212,7 @@ public class PlayerShooting : MonoBehaviour
     void UpdateCameraZoom()
     {
         // Don't zoom while the camera is locked to a merchant/zone anchor
-        if (cam != null && cam.IsLocked) return;
+        if (cam == null || cam.IsLocked) return;
 
         if (isZoomingIn)
         {
@@ -229,47 +247,55 @@ public class PlayerShooting : MonoBehaviour
         chargeNormalized = 0f;
         currentSpeedMultiplier = 1f;
         energySpentThisCharge = 0f;
-        GameTime.Resume();
+        GameTime.ClearSlowMo(this);
         ShowChargeUI(false);
+    }
+
+    /// <summary>Abort a charge without firing (control lost). Spent energy is still recorded.</summary>
+    private void CancelCharge()
+    {
+        if (playerStats != null && energySpentThisCharge > 0f)
+            playerStats.RecordEnergySpent(energySpentThisCharge, EnergySpentSource.Charging);
+        ResetCharge();
+    }
+
+    /// <summary>Arrow prefab for a tier, falling back to mainArrowPrefab. Used by upgrades too.</summary>
+    public GameObject GetArrowPrefab(ArrowFireType tier)
+    {
+        GameObject p = tier switch
+        {
+            ArrowFireType.Medium  => mediumArrowPrefab,
+            ArrowFireType.Charged => strongArrowPrefab,
+            _                     => lightArrowPrefab,
+        };
+        return p != null ? p : mainArrowPrefab;
     }
 
     void FireArrow()
     {
-        Vector3 mouseWorld = GetMouseWorld();
-        Vector3 dir = (mouseWorld - shootPoint.position).normalized;
+        Vector3 dir = GameInput.AimDirectionFrom(shootPoint.position, transform.right);
 
-        ArrowFireType fireType;
-        GameObject prefab;
-
-        if (chargeNormalized <= LightMax)
-        {
-            fireType = ArrowFireType.Weak;
-            prefab = lightArrowPrefab != null ? lightArrowPrefab : mainArrowPrefab;
-        }
-        else if (chargeNormalized <= MediumMax)
-        {
-            fireType = ArrowFireType.Medium;
-            prefab = mediumArrowPrefab != null ? mediumArrowPrefab : mainArrowPrefab;
-        }
-        else
-        {
-            fireType = ArrowFireType.Charged;
-            prefab = strongArrowPrefab != null ? strongArrowPrefab : mainArrowPrefab;
-        }
+        ArrowFireType fireType = chargeNormalized <= LightMax  ? ArrowFireType.Weak
+                               : chargeNormalized <= MediumMax ? ArrowFireType.Medium
+                               : ArrowFireType.Charged;
+        GameObject prefab = GetArrowPrefab(fireType);
 
         SpawnArrow(prefab, dir, currentSpeedMultiplier,
                    consumeAmmo: true, fireType: fireType, chargeAmount: chargeNormalized);
 
-        playerStats?.RecordArrowFired(fireType);
+        if (playerStats != null) playerStats.RecordArrowFired(fireType);
 
-        switch (fireType)
+        if (upgradeManager != null)
         {
-            case ArrowFireType.Weak: upgradeManager.FireWeakArrow(dir, currentSpeedMultiplier); break;
-            case ArrowFireType.Medium: upgradeManager.FireMediumArrow(dir, chargeNormalized); break;
-            case ArrowFireType.Charged: upgradeManager.FireChargedArrow(dir, currentSpeedMultiplier); break;
+            switch (fireType)
+            {
+                case ArrowFireType.Weak: upgradeManager.FireWeakArrow(dir, currentSpeedMultiplier); break;
+                case ArrowFireType.Medium: upgradeManager.FireMediumArrow(dir, chargeNormalized); break;
+                case ArrowFireType.Charged: upgradeManager.FireChargedArrow(dir, currentSpeedMultiplier); break;
+            }
         }
 
-        cam.Shake(0.12f, 0.08f);
+        if (cam != null) cam.Shake(0.12f, 0.08f);
     }
 
     public void SpawnArrow(GameObject prefab, Vector3 dir, float speedMultiplier,
@@ -285,7 +311,12 @@ public class PlayerShooting : MonoBehaviour
         }
 
         GameObject arrowGO = Instantiate(prefab, shootPoint.position, Quaternion.identity);
-        Arrow a = arrowGO.GetComponent<Arrow>();
+        if (!arrowGO.TryGetComponent(out Arrow a))
+        {
+            Debug.LogWarning("[PlayerShooting] Arrow prefab has no Arrow component.", prefab);
+            Destroy(arrowGO);
+            return;
+        }
         a.Initialize(dir.normalized, stickableLayers);
         a.speed = baseArrowSpeed * speedMultiplier;
         a.fireType = fireType;
@@ -319,18 +350,10 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
-    Vector3 GetMouseWorld()
-    {
-        Ray ray = mainCam.ScreenPointToRay(Input.mousePosition);
-        Plane plane = new Plane(Vector3.forward, Vector3.zero);
-        plane.Raycast(ray, out float dist);
-        return ray.GetPoint(dist);
-    }
-
     void UpdateAimingLine()
     {
-        Vector3 mouseWorld = GetMouseWorld();
-        Vector3 dir = (mouseWorld - shootPoint.position).normalized;
+        if (lineRenderer == null) return;
+        Vector3 dir = GameInput.AimDirectionFrom(shootPoint.position, transform.right);
         lineRenderer.SetPosition(0, shootPoint.position);
         lineRenderer.SetPosition(1, shootPoint.position + dir * aimLineLength);
     }
@@ -435,6 +458,14 @@ public class PlayerShooting : MonoBehaviour
     public void RestoreArrow()
     {
         currentArrows = Mathf.Clamp(currentArrows + 1, 0, maxArrows);
+        UpdateArrowUI();
+    }
+
+    /// <summary>Change quiver size (shop/upgrades). Grows the HUD dots and clamps the current count.</summary>
+    public void SetMaxArrows(int value)
+    {
+        maxArrows = Mathf.Max(0, value);
+        currentArrows = Mathf.Clamp(currentArrows, 0, maxArrows);
         UpdateArrowUI();
     }
 

@@ -230,19 +230,7 @@ public class KillStreak : MonoBehaviour
 
     private void SpawnStreakSouls(int count)
     {
-        if (soulPrefab == null || count <= 0) return;
-
-        for (int i = 0; i < count; i++)
-        {
-            GameObject s = Pool.Spawn(soulPrefab, transform.position, Quaternion.identity);
-            Soul soul = s.GetComponent<Soul>();
-            if (soul != null)
-            {
-                float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-                Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f).normalized;
-                soul.Initialize(dir, Random.Range(4f, 9f));
-            }
-        }
+        Soul.Burst(soulPrefab, transform.position, count, 0f, 360f, 4f, 9f);
     }
 
     private void UpdateLabel()

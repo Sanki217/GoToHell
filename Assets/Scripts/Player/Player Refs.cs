@@ -81,6 +81,11 @@ public class PlayerRefs : MonoBehaviour
         Inventory   = GetComponent<PlayerInventory>();
         LevelSystem = GetComponent<PlayerLevelSystem>();
         StateCtrl   = GetComponent<PlayerStateController>();
+
+        // Single-run achievement polling travels with the player, so it works in
+        // every gameplay scene without anyone remembering to place a tracker.
+        if (!TryGetComponent<AchievementTracker>(out _))
+            gameObject.AddComponent<AchievementTracker>();
     }
 
     private void OnDestroy()
@@ -98,12 +103,24 @@ public class PlayerRefs : MonoBehaviour
     /// <summary>World position of the player, or Vector3.zero if no player exists.</summary>
     public static Vector3 Position => I != null ? I.T.position : Vector3.zero;
 
+    /// <summary>The player's transform, or null. Use for lazy "who do I chase" lookups —
+    /// the player is spawned at runtime and may not exist yet when an enemy starts.</summary>
+    public static Transform PlayerTransform => I != null ? I.T : null;
+
     // ================================================================
     //  CACHED CAMERA — use these instead of Camera.main in hot paths
     // ================================================================
 
     private static Camera cachedCam;
     private static CameraFollow cachedCamFollow;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void InitStatics()
+    {
+        I = null;
+        cachedCam = null;
+        cachedCamFollow = null;
+    }
 
     /// <summary>Cached main camera. Re-resolves automatically after scene loads.</summary>
     public static Camera Cam

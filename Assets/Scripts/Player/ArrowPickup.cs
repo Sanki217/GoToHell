@@ -103,9 +103,9 @@ public class ArrowPickup : MonoBehaviour
             PlayerStats stats = target.GetComponent<PlayerStats>();
             PlayerUpgradeManager mgr = target.GetComponent<PlayerUpgradeManager>();
 
-            shooting?.RestoreArrow();
-            stats?.RecordArrowPickedUp();
-            mgr?.ArrowPickedUp();
+            if (shooting != null) shooting.RestoreArrow();
+            if (stats != null) stats.RecordArrowPickedUp();
+            if (mgr != null) mgr.ArrowPickedUp();
 
             onArrivedCallback?.Invoke();
             Destroy(gameObject);

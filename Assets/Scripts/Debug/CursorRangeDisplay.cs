@@ -57,7 +57,7 @@ public class CursorRangeDisplay : MonoBehaviour
             ? originTransform.position
             : transform.position;
 
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Ray ray = mainCamera.ScreenPointToRay(GameInput.PointerScreen);
         Plane plane = new Plane(Vector3.forward, origin);
         if (plane.Raycast(ray, out float dist))
         {

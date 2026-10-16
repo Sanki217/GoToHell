@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2488cdd8581f0914d984695189c52fb7, type: 3}
+  m_Name: Enemy Shooter
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: enemy_shooter
+  displayName: Enemy Shooter
+  description: 
+  icon: {fileID: 0}
+  maxHealth: 20
+  contactDamage: 15
+  projectileDamage: 20
+  moveSpeedMultiplier: 1
+  minSouls: 1
+  maxSouls: 2
+  energyOnDeath: 5
+  healthPerLayer: 0.25
+  damagePerLayer: 0.15
+  soulsPerLayer: 0.1

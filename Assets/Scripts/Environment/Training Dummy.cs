@@ -1,6 +1,10 @@
 using UnityEngine;
-using System.Collections;
 
+/// <summary>
+/// Hinged practice target. Never dies: HP regenerates after regenDelay
+/// seconds without hits, and every hit swings it with torque.
+/// Physics-driven (HingeJoint), so it opts out of Enemy's body constraints.
+/// </summary>
 public class TrainingDummy : Enemy
 {
     [Header("Training Dummy")]
@@ -18,12 +22,16 @@ public class TrainingDummy : Enemy
     private float lastHitTime = -999f;
     private bool regenPending = false;
 
-    private new void Start()
+    protected override void Awake()
     {
+        base.Awake();
         rb = GetComponent<Rigidbody>();
         hinge = GetComponent<HingeJoint>();
         currentHP = dummyMaxHealth;
     }
+
+    /// <summary>The dummy swings on its hinge — leave its rigidbody untouched.</summary>
+    protected override void ConfigureBody(Rigidbody body) { }
 
     private void FixedUpdate()
     {
@@ -44,7 +52,8 @@ public class TrainingDummy : Enemy
         }
     }
 
-    public override void TakeDamage (int amount, Vector3 hitPosition, Vector3 knockbackDir, float knockbackForce, bool isCrit, FloatingTextManager.HitType hitType)
+    public override bool TakeDamage(int amount, Vector3 hitPosition, Vector3 knockbackDir,
+                                    float knockbackForce, bool isCrit, FloatingTextManager.HitType hitType)
     {
         currentHP -= amount;
         lastHitTime = Time.time;
@@ -53,7 +62,8 @@ public class TrainingDummy : Enemy
         FloatingTextManager.Show(amount, hitPosition,
             isCrit ? FloatingTextManager.HitType.Critical : hitType);
 
-        PlayerRefs.I?.Killstreak?.RegisterDamageDealt();
+        PlayerRefs refs = PlayerRefs.I;
+        if (refs != null && refs.Killstreak != null) refs.Killstreak.RegisterDamageDealt();
 
         float torqueZ = -knockbackDir.x * amount * torquePerDamage;
         if (Mathf.Approximately(torqueZ, 0f))
@@ -61,5 +71,7 @@ public class TrainingDummy : Enemy
 
         if (rb != null)
             rb.AddTorque(new Vector3(0f, 0f, torqueZ), ForceMode.Impulse);
+
+        return false;   // the dummy never dies
     }
 }

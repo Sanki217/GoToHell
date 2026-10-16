@@ -110,9 +110,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (!stateCtrl.HasControl())
+        if (stateCtrl != null && !stateCtrl.HasControl())
         {
             currentVelocity = rb.linearVelocity;
+            previousPosition = transform.position;   // don't count blocked frames as movement later
             return;
         }
 
@@ -146,21 +147,23 @@ public class PlayerMovement : MonoBehaviour
         if (delta.sqrMagnitude > 0f)
         {
             bool airborne = !isGrounded && !isWallSliding;
-            playerStats?.RecordMovement(delta.x, delta.y, Time.deltaTime, isGrounded, airborne);
+            if (playerStats != null) playerStats.RecordMovement(delta.x, delta.y, Time.deltaTime, isGrounded, airborne);
         }
         previousPosition = transform.position;
 
-        if (isWallSliding && rb.linearVelocity.y < 0f)
-            playerStats?.RecordWallSlideTick(Time.deltaTime);
+        if (isWallSliding && rb.linearVelocity.y < 0f && playerStats != null)
+            playerStats.RecordWallSlideTick(Time.deltaTime);
     }
 
     private void FixedUpdate()
     {
         var state = stateCtrl;
 
-        if (!state.HasControl())
+        if (state != null && !state.HasControl())
         {
-            if (state.AllowKickMovement()) return;
+            // Intro kick, or a menu/overlay blocker (time is paused for menus,
+            // so this only bites during slow-mo overlays like resurrection)
+            if (state.AllowKickMovement() || state.IsBlocked) return;
             rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
         }
@@ -177,7 +180,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!stateCtrl.HasControl()) return;
 
-        if (Input.GetButtonDown("Jump"))
+        if (GameInput.JumpPressed)
         {
             if (isWallSliding)
             {
@@ -191,8 +194,8 @@ public class PlayerMovement : MonoBehaviour
                 justJumped = true;
                 justJumpedTimer = JustJumpedDuration;
                 ResetWallSlide();
-                playerStats?.RecordJump();
-                upgradeManager?.Jump(1);
+                if (playerStats != null) playerStats.RecordJump();
+                if (upgradeManager != null) upgradeManager.Jump(1);
             }
         }
     }
@@ -213,13 +216,13 @@ public class PlayerMovement : MonoBehaviour
         justWallJumped = true;
         justWallJumpedTimer = JustWallJumpedDuration;
         ResetWallSlide();
-        playerStats?.RecordJump();
-        upgradeManager?.Jump(jumpCount);
+        if (playerStats != null) playerStats.RecordJump();
+        if (upgradeManager != null) upgradeManager.Jump(jumpCount);
     }
 
     private void ApplyHorizontalMovement()
     {
-        float input = Input.GetAxisRaw("Horizontal");
+        float input = GameInput.MoveX;
 
         // Only block movement into a wall when airborne and not in post-jump cooldown.
         // When grounded, always allow free movement — prevents corner lock.
@@ -232,7 +235,7 @@ public class PlayerMovement : MonoBehaviour
         float targetSpeed = input * MoveSpeed;
         float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Acceleration : deceleration;
         float velocityX = Mathf.MoveTowards(rb.linearVelocity.x, targetSpeed, accelRate * Time.fixedDeltaTime);
-        rb.linearVelocity = new Vector3(velocityX, rb.linearVelocity.y, -2f);
+        rb.linearVelocity = new Vector3(velocityX, rb.linearVelocity.y, 0f);
     }
 
     private void CheckGround()
@@ -284,8 +287,8 @@ public class PlayerMovement : MonoBehaviour
             {
                 isWallSliding = true;
                 StartWallSlideSequence();
-                playerStats?.RecordWallSlideStart();
-                upgradeManager?.WallSlideStart();
+                if (playerStats != null) playerStats.RecordWallSlideStart();
+                if (upgradeManager != null) upgradeManager.WallSlideStart();
             }
         }
         else if (isWallSliding)
@@ -306,7 +309,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!isWallSliding) return;
 
-        upgradeManager?.WallSlideTick(Time.fixedDeltaTime);
+        if (upgradeManager != null) upgradeManager.WallSlideTick(Time.fixedDeltaTime);
 
         switch (wallSlidePhase)
         {
@@ -335,7 +338,7 @@ public class PlayerMovement : MonoBehaviour
     private void ResetWallSlide()
     {
         isWallSliding = false;
-        upgradeManager?.WallSlideEnd();
+        if (upgradeManager != null) upgradeManager.WallSlideEnd();
         wallSlidePhase = WallSlidePhase.None;
         wallLerpTimer = 0f;
         wallSlideDelayTimer = 0f;
@@ -344,7 +347,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Flip()
     {
-        float input = Input.GetAxisRaw("Horizontal");
+        float input = GameInput.MoveX;
         if (input > 0 && !isFacingRight) Turn();
         else if (input < 0 && isFacingRight) Turn();
     }

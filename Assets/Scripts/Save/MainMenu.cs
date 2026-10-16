@@ -1,3 +1,4 @@
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,6 +11,8 @@ using UnityEngine.UI;
 ///            Level 1 scene (see NamePromptUI).
 /// Settings → toggles the settings panel (kept as-is for now)
 /// Collection → Collection scene
+/// Pacts    → PactSelectUI (optional) — chosen pacts are applied on Play
+/// Meta Shop→ MetaShopUI (optional) — permanent upgrades for meta currency
 /// Exit     → quits the game
 /// </summary>
 public class MainMenu : MonoBehaviour
@@ -19,6 +22,14 @@ public class MainMenu : MonoBehaviour
     public Button settingsButton;
     public Button collectionButton;
     public Button exitButton;
+
+    [Header("Progression (optional)")]
+    public Button pactsButton;
+    public PactSelectUI pactSelect;
+    public Button metaShopButton;
+    public MetaShopUI metaShop;
+    [Tooltip("Shows the meta currency balance.")]
+    public TMP_Text currencyText;
 
     [Header("Settings Panel (optional)")]
     public GameObject settingsPanel;
@@ -41,8 +52,21 @@ public class MainMenu : MonoBehaviour
         if (collectionButton != null) collectionButton.onClick.AddListener(OnCollection);
         if (exitButton != null)       exitButton.onClick.AddListener(OnExit);
         if (settingsBackButton != null) settingsBackButton.onClick.AddListener(CloseSettings);
+        if (pactsButton != null && pactSelect != null)   pactsButton.onClick.AddListener(pactSelect.Open);
+        if (metaShopButton != null && metaShop != null)  metaShopButton.onClick.AddListener(metaShop.Open);
+
+        MetaProgression.OnChanged += RefreshCurrency;
+        RefreshCurrency();
 
         if (settingsPanel != null) settingsPanel.SetActive(false);
+    }
+
+    private void OnDestroy() => MetaProgression.OnChanged -= RefreshCurrency;
+
+    private void RefreshCurrency()
+    {
+        if (currencyText != null)
+            currencyText.text = $"{MetaProgression.Currency} {MetaProgression.CurrencyName}";
     }
 
     private void OnPlay()
@@ -50,6 +74,7 @@ public class MainMenu : MonoBehaviour
         EnsureRunConfig();
         RunConfig.I.Reset();
         ApplyDefaultLoadout(RunConfig.I);
+        RunConfig.I.SetPacts(PactSelectUI.SavedSelection());
         SceneFlow.StartRunAtLevel1();
     }
 
@@ -87,9 +112,7 @@ public class MainMenu : MonoBehaviour
     {
         cfg.selectedWeaponId = defaultWeaponId;
 
-        ClassDefinition def = null;
-        foreach (ClassDefinition c in Resources.LoadAll<ClassDefinition>("Classes"))
-            if (c != null && c.classId == defaultClassId) { def = c; break; }
+        ClassDefinition def = Content.Classes.Get(defaultClassId);
 
         if (def == null)
         {

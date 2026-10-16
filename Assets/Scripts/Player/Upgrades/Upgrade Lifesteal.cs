@@ -8,7 +8,8 @@ using System.Collections.Generic;
 /// Base: 10%. Scales with Psyche: +0.05% per Psyche point.
 ///
 /// Uses PlayerStats.lifeSteal which is already checked in RecordDamageDealt().
-/// Updated every frame so Psyche gains during the run are reflected immediately.
+/// Re-evaluated whenever stats change (PlayerStats.OnStatsChanged), so Psyche
+/// gains during the run are reflected immediately — no per-frame polling.
 /// </summary>
 public class UpgradeLifesteal : PlayerUpgrade
 {
@@ -24,12 +25,13 @@ public class UpgradeLifesteal : PlayerUpgrade
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
         playerStats = mgr.GetComponent<PlayerStats>();
+        if (playerStats != null) playerStats.OnStatsChanged += RefreshLifesteal;
         RefreshLifesteal();
     }
 
-    private void Update()
+    private void OnDestroy()
     {
-        RefreshLifesteal();
+        if (playerStats != null) playerStats.OnStatsChanged -= RefreshLifesteal;
     }
 
     private void RefreshLifesteal()

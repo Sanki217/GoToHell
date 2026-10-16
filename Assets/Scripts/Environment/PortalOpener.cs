@@ -5,7 +5,8 @@ using UnityEngine;
 /// assigned portal. Further hits do nothing — no health, no death, no drops.
 ///
 /// Extends Enemy so every weapon (arrow, slash, dash, explosions, statuses)
-/// hits it through the standard damage path.
+/// hits it through the standard damage path. It is NOT a combatant, so
+/// auto-targeting never fires at it by itself.
 ///
 /// SETUP:
 ///   1. Create the keystone object, TAG IT "Enemy", add a solid collider.
@@ -25,11 +26,13 @@ public class PortalOpener : Enemy
 
     private bool opened;
 
-    public override void TakeDamage(int amount, Vector3 hitPosition,
+    public override bool IsCombatant => false;
+
+    public override bool TakeDamage(int amount, Vector3 hitPosition,
                                     Vector3 knockbackDir, float knockbackForce,
                                     bool isCrit, FloatingTextManager.HitType hitType)
     {
-        if (opened) return;
+        if (opened) return false;
         opened = true;
 
         if (portal != null)
@@ -39,6 +42,8 @@ public class PortalOpener : Enemy
 
         FloatingTextManager.ShowText(openText, transform.position,
                                      FloatingTextManager.HitType.HolyDetonate);
-        PlayerRefs.CamFollow?.Shake(openShakeMagnitude, 0.2f);
+        CameraFollow cam = PlayerRefs.CamFollow;
+        if (cam != null) cam.Shake(openShakeMagnitude, 0.2f);
+        return false;
     }
 }

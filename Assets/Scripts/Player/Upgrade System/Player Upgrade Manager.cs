@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System;
 using UnityEngine;
 
@@ -34,6 +34,19 @@ public class PlayerUpgradeManager : MonoBehaviour
     // ============================================================
 
     public bool HasUpgrade(string id) => activeUpgrades.ContainsKey(id);
+
+    /// <summary>Union of the tags of every owned upgrade (build identity for synergy weighting).</summary>
+    public UpgradeTag OwnedTags { get; private set; }
+
+    /// <summary>How many owned upgrades carry any of <paramref name="tags"/>.</summary>
+    public int CountOwnedWithAny(UpgradeTag tags)
+    {
+        if (tags == UpgradeTag.None) return 0;
+        int n = 0;
+        foreach (PlayerUpgrade u in activeUpgrades.Values)
+            if (u != null && (u.tags & tags) != 0) n++;
+        return n;
+    }
 
     public IEnumerable<string> GetActiveUpgradeIds()
     {
@@ -262,6 +275,7 @@ public class PlayerUpgradeManager : MonoBehaviour
         }
 
         activeUpgrades.Add(id, upgrade);
+        OwnedTags |= upgrade.tags;
 
         // Store display info for the TAB hover tooltip
         appliedUpgradeInfo[id] = new AppliedUpgradeInfo
@@ -276,6 +290,29 @@ public class PlayerUpgradeManager : MonoBehaviour
         upgrade.OnAdded(this);
 
         Debug.Log($"[Upgrade] {id} applied.");
+    }
+
+    /// <summary>
+    /// Gives the player an upgrade straight from its orb prefab, skipping the
+    /// orb flight (pacts, meta perks, debug). Same result as picking it.
+    /// Returns false if already owned or the prefab has no PlayerUpgrade.
+    /// </summary>
+    public bool GrantUpgradeFromPrefab(GameObject orbPrefab, UpgradeRarity rarity = UpgradeRarity.Common)
+    {
+        if (orbPrefab == null || !orbPrefab.TryGetComponent(out PlayerUpgrade template)) return false;
+        if (HasUpgrade(template.UpgradeId)) return false;
+
+        GameObject go = Instantiate(orbPrefab, transform.position, Quaternion.identity, transform);
+        go.name = $"[Upgrade] {template.UpgradeId}";
+
+        // Same stripping as UpgradeOrb's arrival: keep only the behaviour
+        if (go.TryGetComponent(out UpgradeOrb orb)) DestroyImmediate(orb);
+        foreach (Collider col in go.GetComponentsInChildren<Collider>()) Destroy(col);
+        if (go.TryGetComponent(out Rigidbody rb)) Destroy(rb);
+        foreach (Renderer rend in go.GetComponentsInChildren<Renderer>()) rend.enabled = false;
+
+        ApplyUpgrade(go.GetComponent<PlayerUpgrade>(), rarity);
+        return true;
     }
 }
 

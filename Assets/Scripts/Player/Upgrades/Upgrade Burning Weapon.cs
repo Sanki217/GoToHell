@@ -35,6 +35,14 @@ public class UpgradeBurningWeapon : PlayerUpgrade
         mgr.OnDashHitEnemy += OnMeleeHit;
     }
 
+    private void OnDestroy()
+    {
+        if (upgradeManager == null) return;
+        upgradeManager.OnArrowHitEnemy -= OnArrowHit;
+        upgradeManager.OnSlashHitEnemy -= OnMeleeHit;
+        upgradeManager.OnDashHitEnemy -= OnMeleeHit;
+    }
+
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
         if (stats == null) return description;

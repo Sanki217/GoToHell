@@ -1,8 +1,12 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 
+/// <summary>
+/// Base for merchant shop items: world-space price label, E to buy while in
+/// the trigger, "not enough souls" shake. Subclasses only implement OnPurchased.
+/// </summary>
 public abstract class ShopItem : MonoBehaviour
 {
     [Header("Shop Item")]
@@ -44,7 +48,7 @@ public abstract class ShopItem : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
         label.fontSize = labelFontSize;
         label.color = Color.white;
-        label.text = $"{itemName}\n{cost} Souls";
+        label.text = $"{itemName}\n{Price} Souls";
 
         RectTransform trt = textGO.GetComponent<RectTransform>();
         trt.anchorMin = Vector2.zero;
@@ -62,20 +66,20 @@ public abstract class ShopItem : MonoBehaviour
         pos.y += labelHeight;
         canvasGO.transform.position = pos;
 
-        Camera cam = Camera.main;
+        Camera cam = PlayerRefs.Cam;
         if (cam != null) canvasGO.transform.rotation = cam.transform.rotation;
     }
 
     private void Update()
     {
-        if (!playerInRange || sold) return;
+        if (!playerInRange || sold || GameTime.IsPaused) return;
 
-        if (Input.GetKeyDown(KeyCode.E))
+        if (GameInput.InteractPressed)
         {
-            PlayerInventory inv = PlayerRefs.I?.Inventory;
+            PlayerInventory inv = PlayerRefs.I != null ? PlayerRefs.I.Inventory : null;
             if (inv == null) return;
 
-            if (!inv.SpendSouls(cost))
+            if (!inv.SpendSouls(Price))
             {
                 StopAllCoroutines();
                 StartCoroutine(CantAffordFlash());
@@ -83,7 +87,7 @@ public abstract class ShopItem : MonoBehaviour
             }
 
             sold = true;
-            canvasGO?.SetActive(false);
+            if (canvasGO != null) canvasGO.SetActive(false);
             OnPurchased();
             Destroy(gameObject);
         }
@@ -93,14 +97,14 @@ public abstract class ShopItem : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
         playerInRange = true;
-        canvasGO?.SetActive(true);
+        if (canvasGO != null) canvasGO.SetActive(true);
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag("Player")) return;
         playerInRange = false;
-        canvasGO?.SetActive(false);
+        if (canvasGO != null) canvasGO.SetActive(false);
     }
 
     private IEnumerator CantAffordFlash()
@@ -127,8 +131,11 @@ public abstract class ShopItem : MonoBehaviour
 
         canvasGO.transform.localPosition = originalPos;
         label.color = original;
-        label.text = $"{itemName}\n{cost} Souls";
+        label.text = $"{itemName}\n{Price} Souls";
     }
+
+    /// <summary>Actual price after pact / meta modifiers (RunModifiers.ShopPriceMult).</summary>
+    public int Price => Mathf.Max(0, Mathf.RoundToInt(cost * RunModifiers.ShopPriceMult));
 
     protected abstract void OnPurchased();
 }

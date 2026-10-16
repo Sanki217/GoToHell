@@ -39,7 +39,6 @@ public class ShieldAbility : MonoBehaviour
     private PlayerEnergy energy;
     private PlayerStats playerStats;
     private PlayerStateController stateController;
-    private Camera mainCam;
 
     public bool IsBlocking => isBlocking;
 
@@ -52,7 +51,6 @@ public class ShieldAbility : MonoBehaviour
         energy = GetComponent<PlayerEnergy>();
         playerStats = GetComponent<PlayerStats>();
         stateController = GetComponent<PlayerStateController>();
-        mainCam = Camera.main;
 
         if (shieldVisual != null) shieldVisual.SetActive(false);
     }
@@ -68,7 +66,7 @@ public class ShieldAbility : MonoBehaviour
 
     private void Update()
     {
-        bool wantBlock = Input.GetMouseButton(1)
+        bool wantBlock = GameInput.SkillHeld
                       && (stateController == null || stateController.HasControl())
                       && energy != null && energy.currentEnergy > 0f;
 
@@ -120,7 +118,7 @@ public class ShieldAbility : MonoBehaviour
         if (source == null) return;
 
         Enemy enemy = source.GetComponentInParent<Enemy>();
-        if (enemy == null) return;
+        if (enemy == null || enemy.IsDead) return;
 
         float attack = playerStats != null ? playerStats.attackDamage : 5f;
         int dmg = Mathf.Max(1, Mathf.RoundToInt(attack * contactDamageMultiplier));
@@ -157,17 +155,6 @@ public class ShieldAbility : MonoBehaviour
         if (shieldVisual != null) shieldVisual.SetActive(value);
     }
 
-    private Vector3 GetCursorDirection()
-    {
-        if (mainCam == null) mainCam = Camera.main;
-        if (mainCam == null) return blockDirection;
-
-        Vector3 mouse = Input.mousePosition;
-        mouse.z = Mathf.Abs(mainCam.transform.position.z);
-        Vector3 worldMouse = mainCam.ScreenToWorldPoint(mouse);
-        worldMouse.z = 0f;
-        Vector3 dir = worldMouse - transform.position;
-        dir.z = 0f;
-        return dir.magnitude > 0.01f ? dir.normalized : blockDirection;
-    }
+    private Vector3 GetCursorDirection() =>
+        GameInput.AimDirectionFrom(transform.position, blockDirection);
 }

@@ -25,6 +25,13 @@ public class FXManager : MonoBehaviour
             return;
         }
         Instance = this;
+        BuildLookup();
+        BuildAudioPool();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     // ================================================================
@@ -57,7 +64,7 @@ public class FXManager : MonoBehaviour
     [Header("Audio Source Pool")]
     public int audioSourcePoolSize = 10;   // how many sounds can play at once
 
-    [Header("FX Library — fill in Unity Inspector")]
+    [Header("FX Library â€” fill in Unity Inspector")]
     public List<FXEntry> fxLibrary = new List<FXEntry>();
 
     // ================================================================
@@ -68,19 +75,22 @@ public class FXManager : MonoBehaviour
     private AudioSource[] audioPool;
     private int poolIndex;
 
-    private void Start()
+    // Built in Awake (not Start) so effects requested by other Awake/Start calls aren't dropped
+    private void BuildLookup()
     {
-        // Build fast lookup dictionary
         fxLookup.Clear();
         foreach (var entry in fxLibrary)
         {
-            if (!fxLookup.ContainsKey(entry.id))
+            if (entry != null && !fxLookup.ContainsKey(entry.id))
                 fxLookup[entry.id] = entry;
         }
+    }
 
-        // Create audio source pool on this GameObject
-        audioPool = new AudioSource[audioSourcePoolSize];
-        for (int i = 0; i < audioSourcePoolSize; i++)
+    private void BuildAudioPool()
+    {
+        int size = Mathf.Max(1, audioSourcePoolSize);
+        audioPool = new AudioSource[size];
+        for (int i = 0; i < size; i++)
         {
             audioPool[i] = gameObject.AddComponent<AudioSource>();
             audioPool[i].playOnAwake = false;
@@ -146,8 +156,9 @@ public class FXManager : MonoBehaviour
         if (entry.audioClip == null) return;
 
         // Grab next available AudioSource from pool
-        AudioSource source = audioPool[poolIndex % audioSourcePoolSize];
-        poolIndex++;
+        if (audioPool == null || audioPool.Length == 0) return;
+        AudioSource source = audioPool[poolIndex];
+        poolIndex = (poolIndex + 1) % audioPool.Length;
 
         source.clip = entry.audioClip;
         source.volume = entry.volume;
@@ -163,8 +174,7 @@ public class FXManager : MonoBehaviour
         fx.transform.localScale = Vector3.one * entry.particleScale;
 
         // Auto-destroy after particle system finishes
-        ParticleSystem ps = fx.GetComponent<ParticleSystem>();
-        if (ps != null)
+        if (fx.TryGetComponent(out ParticleSystem ps))
             Destroy(fx, ps.main.duration + ps.main.startLifetime.constantMax);
         else
             Destroy(fx, 3f); // fallback
@@ -172,12 +182,12 @@ public class FXManager : MonoBehaviour
 }
 
 // ================================================================
-//  ACTION FX ENUM — every action in the game
+//  ACTION FX ENUM â€” every action in the game
 // ================================================================
 
 public enum ActionFX
 {
-    // Player — Movement
+    // Player â€” Movement
     PlayerJump,
     PlayerDoubleJump,
     PlayerLand,
@@ -188,7 +198,7 @@ public enum ActionFX
     PlayerHoverTick,
     PlayerHoverEnd,
 
-    // Player — Combat
+    // Player â€” Combat
     PlayerDashStart,
     PlayerDashEnd,
     PlayerDashHitEnemy,
@@ -205,13 +215,13 @@ public enum ActionFX
     PlayerArrowChargeStart,
     PlayerArrowChargeCancelled,
 
-    // Player — Damage and Death
+    // Player â€” Damage and Death
     PlayerHit,
     PlayerDeath,
     PlayerSpikesTouched,
     PlayerLavaTick,
 
-    // Player — Resources
+    // Player â€” Resources
     PlayerSoulCollect,
     PlayerLevelUp,
     PlayerEnergyGain,

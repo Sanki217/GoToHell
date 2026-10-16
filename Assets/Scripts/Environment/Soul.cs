@@ -137,7 +137,7 @@ public class Soul : MonoBehaviour
         if (!other.CompareTag("SoulLooter")) return;
 
         if (targetInventory == null)
-            targetInventory = other.transform.root.GetComponent<PlayerInventory>();
+            targetInventory = other.GetComponentInParent<PlayerInventory>();
 
         Collect();
     }
@@ -242,7 +242,34 @@ public class Soul : MonoBehaviour
     {
         if (collected) return;
         collected = true;
-        targetInventory?.AddSouls(value);
+        if (targetInventory != null) targetInventory.AddSouls(value);
         Pool.Despawn(gameObject);
+    }
+
+    // ================================================================
+    //  SPAWN HELPER — the one place soul bursts are created
+    // ================================================================
+
+    /// <summary>
+    /// Spawns <paramref name="count"/> pooled souls at <paramref name="position"/>,
+    /// each ejected at a random angle in [minAngleDeg, maxAngleDeg] (0 = right,
+    /// 90 = up) with a random force in [minForce, maxForce].
+    /// Used by enemies, vases, barrels, chests and the killstreak payout.
+    /// </summary>
+    public static void Burst(GameObject soulPrefab, Vector3 position, int count,
+                             float minAngleDeg, float maxAngleDeg,
+                             float minForce, float maxForce, float attractDelay = 0f)
+    {
+        if (soulPrefab == null || count <= 0) return;
+
+        for (int i = 0; i < count; i++)
+        {
+            GameObject go = Pool.Spawn(soulPrefab, position, Quaternion.identity);
+            if (go == null || !go.TryGetComponent(out Soul soul)) continue;
+
+            float angle = Random.Range(minAngleDeg, maxAngleDeg) * Mathf.Deg2Rad;
+            Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
+            soul.Initialize(dir, Random.Range(minForce, maxForce), attractDelay);
+        }
     }
 }

@@ -7,7 +7,8 @@ using UnityEngine;
 /// zone in place of the walk-in exit.
 ///
 /// Extends Enemy so every weapon (arrow, slash, dash, explosions, statuses)
-/// hits it through the standard damage path.
+/// hits it through the standard damage path. It is NOT a combatant, so
+/// auto-targeting (Soul Arrow chains etc.) never fires at it by itself.
 ///
 /// SETUP:
 ///   1. Create the target object, TAG IT "Enemy", add a solid collider.
@@ -21,14 +22,18 @@ public class LevelExitTarget : Enemy
 
     private bool used;
 
-    public override void TakeDamage(int amount, Vector3 hitPosition,
+    public override bool IsCombatant => false;
+
+    public override bool TakeDamage(int amount, Vector3 hitPosition,
                                     Vector3 knockbackDir, float knockbackForce,
                                     bool isCrit, FloatingTextManager.HitType hitType)
     {
-        if (used) return;
+        if (used) return false;
         used = true;
 
-        PlayerRefs.CamFollow?.Shake(hitShakeMagnitude, 0.2f);
+        CameraFollow cam = PlayerRefs.CamFollow;
+        if (cam != null) cam.Shake(hitShakeMagnitude, 0.2f);
         LevelExit.CompleteLevel();
+        return false;
     }
 }

@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -24,7 +25,10 @@ public class RunConfig : MonoBehaviour
     // Empty string = nothing selected (e.g. gameplay scene tested directly)
     public string selectedClassId  = "";
     public string selectedWeaponId = "";
-    public string selectedPactId   = "";
+
+    // Active pacts for this run (PactDefinition.pactId). Change through
+    // SetPacts so RunModifiers rebuilds.
+    public List<string> selectedPactIds = new List<string>();
 
     // Starting primary stats — copied from the selected class's preset
     public int agility;
@@ -54,6 +58,14 @@ public class RunConfig : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    private void OnDestroy()
+    {
+        if (I == this) I = null;
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void InitStatics() => I = null;
+
     /// <summary>Total points currently allocated across all stats.</summary>
     public int TotalAllocated =>
         agility + attackDamage + luck + psyche + health + size + cooldown;
@@ -64,7 +76,7 @@ public class RunConfig : MonoBehaviour
         playerName       = "Sinner";
         selectedClassId  = "";
         selectedWeaponId = "";
-        selectedPactId   = "";
+        selectedPactIds.Clear();
         agility          = 0;
         attackDamage     = 0;
         luck             = 0;
@@ -75,6 +87,20 @@ public class RunConfig : MonoBehaviour
         currentLayer     = 1;
         runStartTime     = 0f;
         bankedDepth      = 0f;
+        RunModifiers.MarkDirty();
+    }
+
+    /// <summary>Replace the active pacts (unknown or locked ids are dropped).</summary>
+    public void SetPacts(IEnumerable<string> pactIds)
+    {
+        selectedPactIds.Clear();
+        if (pactIds != null)
+            foreach (string id in pactIds)
+            {
+                PactDefinition p = Content.Pacts.Get(id);
+                if (p != null && p.IsUnlocked && !selectedPactIds.Contains(id)) selectedPactIds.Add(id);
+            }
+        RunModifiers.MarkDirty();
     }
 
     /// <summary>Marks the moment gameplay begins, for run-duration tracking.</summary>

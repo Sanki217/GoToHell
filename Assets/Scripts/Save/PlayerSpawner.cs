@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Spawns the class-specific player prefab at this object's position when the
@@ -41,13 +41,11 @@ public class PlayerSpawner : MonoBehaviour
         string classId = RunConfig.I != null ? RunConfig.I.selectedClassId : "";
         if (!string.IsNullOrEmpty(classId))
         {
-            foreach (ClassDefinition def in Resources.LoadAll<ClassDefinition>("Classes"))
+            ClassDefinition def = Content.Classes.Get(classId);
+            if (def != null)
             {
-                if (def == null || def.classId != classId) continue;
                 if (def.playerPrefab != null) return def.playerPrefab;
-
                 Debug.LogWarning($"[PlayerSpawner] Class '{classId}' has no playerPrefab — using default.");
-                break;
             }
         }
         return defaultPlayerPrefab;

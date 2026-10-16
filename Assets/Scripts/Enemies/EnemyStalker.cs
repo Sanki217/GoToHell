@@ -44,25 +44,44 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver
     [Range(0f, 1f)] public float bounceDamping = 0.5f;
 
     // ── state ───────────────────────────────────────────────────────
-    private Transform player;
+    private Enemy enemy;
+    private bool sideChosen;
     private float side;          // -1 = hover left of the player, 1 = right
     private float cooldownTimer;
     private bool knockedBack;
     private Vector3 chaseVelocity;
     private Collider[] selfColliders;
 
+    private void Awake()
+    {
+        enemy = GetComponent<Enemy>();
+    }
+
     private void Start()
     {
         selfColliders = GetComponentsInChildren<Collider>(true);
-        if (PlayerRefs.I != null) player = PlayerRefs.I.T;
-
-        side = player != null && transform.position.x < player.position.x ? -1f : 1f;
         cooldownTimer = Random.Range(0f, attackCooldown);
     }
 
+    private void OnDisable()
+    {
+        StopAllCoroutines();
+        knockedBack = false;
+    }
+
+    private float SpeedMultiplier => enemy != null ? enemy.SpeedMultiplier : 1f;
+
     private void Update()
     {
+        Transform player = PlayerRefs.PlayerTransform;
         if (knockedBack || player == null) return;
+
+        // Pick the side we came from once — the player may spawn after us
+        if (!sideChosen)
+        {
+            side = transform.position.x < player.position.x ? -1f : 1f;
+            sideChosen = true;
+        }
 
         // Chase point: the player's side at followDistance, matching his
         // height, always converging on the gameplay plane (z = 0).
@@ -72,32 +91,33 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver
             0f);
 
         transform.position = Vector3.SmoothDamp(
-            transform.position, target, ref chaseVelocity, smoothTime, moveSpeed);
+            transform.position, target, ref chaseVelocity, smoothTime, moveSpeed * SpeedMultiplier);
 
-        TryShoot();
+        TryShoot(player);
     }
 
     // ================================================================
     //  SHOOTING — no-op for the melee variant (no prefab assigned)
     // ================================================================
 
-    private void TryShoot()
+    private void TryShoot(Transform player)
     {
         if (projectilePrefab == null) return;
         if (Mathf.Abs(transform.position.z) > shootZTolerance) return;   // still flying in
 
         Vector3 toPlayer = player.position - transform.position;
         toPlayer.z = 0f;
-        if (toPlayer.magnitude > attackRange) return;
+        if (toPlayer.sqrMagnitude > attackRange * attackRange) return;
 
-        cooldownTimer += Time.deltaTime;
+        cooldownTimer += Time.deltaTime * SpeedMultiplier;
         if (cooldownTimer < attackCooldown) return;
         cooldownTimer = 0f;
 
         Vector3 dir = toPlayer.normalized;
         Vector3 pos = transform.position + dir * muzzleOffset;
         GameObject proj = Pool.Spawn(projectilePrefab, pos, Quaternion.identity);
-        proj.GetComponent<EnemyProjectile>()?.Initialize(dir, projectileSpeed, transform.root);
+        if (proj != null && proj.TryGetComponent(out EnemyProjectile p))
+            p.Initialize(dir, projectileSpeed, transform);
     }
 
     // ================================================================
@@ -107,6 +127,7 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver
 
     public void ReceiveKnockback(Vector3 impulse, float duration)
     {
+        if (!isActiveAndEnabled) return;
         StopAllCoroutines();
         StartCoroutine(KnockbackRoutine(impulse, duration));
     }
@@ -119,6 +140,7 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver
         Vector3 velocity = impulse / Mathf.Max(duration, 0.01f);
         velocity.z = 0f;
 
+        LayerMask mask = Layers.SolidMask;
         float elapsed = 0f;
         while (elapsed < duration)
         {
@@ -128,7 +150,6 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver
             float t = Mathf.Clamp01(elapsed / duration);
             Vector3 step = velocity * (1f - t * t) * dt;
 
-            LayerMask mask = LayerMask.GetMask("Wall", "Ground");
             step = KnockbackBouncer.StepWithWallBounce(
                 step, transform.position, knockbackCastHalf,
                 bounceDamping, mask, selfColliders);

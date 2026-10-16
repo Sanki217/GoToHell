@@ -113,7 +113,7 @@ public class HealthOrb : MonoBehaviour
         if (!other.CompareTag("SoulLooter")) return;
 
         if (targetHealth == null)
-            targetHealth = other.transform.root.GetComponent<PlayerHealth>();
+            targetHealth = other.GetComponentInParent<PlayerHealth>();
 
         Collect();
     }
@@ -157,7 +157,7 @@ public class HealthOrb : MonoBehaviour
     {
         if (collected) return;
         collected = true;
-        targetHealth?.RestoreHP(healAmount);
+        if (targetHealth != null) targetHealth.RestoreHP(healAmount);
         Destroy(gameObject);
     }
 }

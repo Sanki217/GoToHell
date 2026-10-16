@@ -15,8 +15,8 @@ using System.Collections.Generic;
 ///   Update() monitors CurrentArrows. When == 1, playerStats.nextArrowForceCrit
 ///   is set to true (and a local isPrimed flag mirrors this).
 ///   Arrow.Initialize() consumes nextArrowForceCrit into arrow.isForcedCrit.
-///   On hit, isForcedCrit temporarily boosts critChance to 2f so
-///   RollDamage() guarantees a crit.
+///   On hit, the arrow passes forceCrit to PlayerStats.RollDamage, which
+///   guarantees the crit without touching critChance.
 ///
 ///   When the primed arrow is fired (OnAnyArrowFired with isPrimed == true),
 ///   waitingForKill is set. On kill (OnArrowKill), the arrow is sucked back
@@ -66,7 +66,7 @@ public class UpgradeDeadMansHand : PlayerUpgrade
         // Clean up any primed flags if upgrade is removed mid-action
         if (playerStats != null && (isPrimed || waitingForKill))
             playerStats.nextArrowForceCrit = false;
-        playerShooting?.SetDeadMansHandPrimed(false);
+        if (playerShooting != null) playerShooting.SetDeadMansHandPrimed(false);
     }
 
     // ================================================================
@@ -124,10 +124,9 @@ public class UpgradeDeadMansHand : PlayerUpgrade
         // Retrieve the arrow that made the kill
         Arrow lastArrow = playerStats != null ? playerStats.lastFiredArrow : null;
 
-        if (lastArrow != null && lastArrow.gameObject != null)
+        if (lastArrow != null)
         {
-            ArrowPickup pickup = lastArrow.GetComponent<ArrowPickup>();
-            if (pickup != null)
+            if (lastArrow.TryGetComponent(out ArrowPickup pickup))
             {
                 // Fly the arrow back — ArrowPickup.StartSuck handles RestoreArrow on arrival
                 pickup.StartSuck(playerTransform);
@@ -136,8 +135,8 @@ public class UpgradeDeadMansHand : PlayerUpgrade
         }
 
         // Fallback: arrow was already destroyed (hit a barrel, etc.) — restore directly
-        playerShooting?.RestoreArrow();
-        upgradeManager?.ArrowPickedUp();
+        if (playerShooting != null) playerShooting.RestoreArrow();
+        if (upgradeManager != null) upgradeManager.ArrowPickedUp();
     }
 
     // ================================================================

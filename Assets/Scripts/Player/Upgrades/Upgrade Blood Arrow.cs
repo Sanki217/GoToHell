@@ -14,7 +14,8 @@ using System.Collections.Generic;
 ///   Bonus stays — damage multiplier continues for the rest of the run.
 ///
 /// bloodArrowMultiplier on PlayerStats is read by Arrow.cs every hit.
-/// It is updated every frame so AttackDamage gains during the run are reflected immediately.
+/// It is re-evaluated on PlayerStats.OnStatsChanged, so AttackDamage gains
+/// during the run are reflected immediately — no per-frame polling.
 /// </summary>
 public class UpgradeBloodArrow : PlayerUpgradeCurse
 {
@@ -43,6 +44,9 @@ public class UpgradeBloodArrow : PlayerUpgradeCurse
         playerHealth = mgr.GetComponent<PlayerHealth>();
         playerShooting = mgr.GetComponent<PlayerShooting>();
 
+        if (playerStats != null) playerStats.OnStatsChanged += RefreshMultiplier;
+        RefreshMultiplier();
+
         // Subscribe to all three fire events to impose the HP cost
         mgr.OnWeakArrowFired += OnArrowFired;
         mgr.OnMediumArrowFired += OnArrowFired;
@@ -68,14 +72,17 @@ public class UpgradeBloodArrow : PlayerUpgradeCurse
             curseMgr.OnChargedArrowFired -= OnArrowFired;
         }
         if (playerStats != null)
+        {
+            playerStats.OnStatsChanged -= RefreshMultiplier;
             playerStats.bloodArrowMultiplier = 1f;
+        }
     }
 
     // ================================================================
-    //  UPDATE — keep damage multiplier live (responds to AD changes)
+    //  BONUS — damage multiplier follows Attack Damage
     // ================================================================
 
-    private void Update()
+    private void RefreshMultiplier()
     {
         if (playerStats == null) return;
         float bonus = baseDamageBonus + damagePerAttackDamage * playerStats.attackDamage;

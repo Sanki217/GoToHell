@@ -29,20 +29,20 @@ public static class SceneFlow
 
     public static void GoToCharacterCreator()
     {
-        GameTime.Resume();
+        GameTime.ResetAll();
         SceneManager.LoadScene(CharacterCreator);
     }
 
     public static void GoToCollection()
     {
-        GameTime.Resume();
+        GameTime.ResetAll();
         SceneManager.LoadScene(Collection);
     }
 
     /// <summary>Loads a specific gameplay layer (1–9).</summary>
     public static void GoToLevel(int layer)
     {
-        GameTime.Resume();
+        GameTime.ResetAll();
         layer = Mathf.Clamp(layer, 1, MaxLayer);
         SceneManager.LoadScene(LevelPrefix + layer);
     }
@@ -54,10 +54,27 @@ public static class SceneFlow
         SceneManager.LoadScene(LevelPrefix + "1");
     }
 
+    /// <summary>
+    /// Throws away the current run and starts a fresh one at Level 1 with the
+    /// same loadout (pause-menu Restart). Goes through RunManager so run-scoped
+    /// state (extra life, pity, earned achievements) never leaks into the new run.
+    /// </summary>
+    public static void RestartRun() => StartRunAtLevel1();
+
+    /// <summary>
+    /// Reloads the active scene as a fresh run (death fallback when testing a
+    /// scene without a RunSummaryUI). Run-scoped state is reset first.
+    /// </summary>
+    public static void ReloadActiveScene()
+    {
+        RunManager.BeginRun();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
     /// <summary>Advances to the next layer, updating RunConfig.currentLayer.</summary>
     public static void GoToNextLayer()
     {
-        GameTime.Resume();
+        GameTime.ResetAll();
         int next = (RunConfig.I != null ? RunConfig.I.currentLayer : 1) + 1;
         next = Mathf.Clamp(next, 1, MaxLayer);
         if (RunConfig.I != null) RunConfig.I.currentLayer = next;

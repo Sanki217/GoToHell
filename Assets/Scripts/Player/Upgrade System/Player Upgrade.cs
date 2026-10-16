@@ -22,6 +22,9 @@ public abstract class PlayerUpgrade : MonoBehaviour
     public Sprite icon;
     public UpgradeCategory category;
     public UpgradeRarity rarity;   // set per-prefab; used by UI for colour
+    [Tooltip("Build-identity tags (Arrow, Fire, Soul…). Drive synergy weighting, pact " +
+             "favour/ban rules and the balance sheet. See UpgradeTag.")]
+    public UpgradeTag tags;
 
     [Header("Availability (empty = common pool)")]
     [Tooltip("If set, offered only when this weapon is equipped (WeaponDefinition.weaponId, e.g. \"bow\").")]
@@ -133,6 +136,7 @@ public abstract class PlayerUpgrade : MonoBehaviour
                     case PrimaryStat.Psyche: s.psyche += b.value; break;
                 }
             }
+            s.RecomputeDerived(real);
         }
         return s;
     }
@@ -140,6 +144,8 @@ public abstract class PlayerUpgrade : MonoBehaviour
 
 // ================================================================
 //  SimulatedStats — lightweight snapshot used only for description preview
+//  Derived values are recomputed from the simulated primaries with the
+//  player's own formula coefficients, so previews show post-pick numbers.
 // ================================================================
 
 public class SimulatedStats
@@ -176,5 +182,16 @@ public class SimulatedStats
         holyStrength = real.holyStrength;
         shockStrength = real.shockStrength;
         arrowDamage = real.arrowDamage;
+    }
+
+    /// <summary>Re-derive the mirrored stats from the (simulated) primaries.</summary>
+    public void RecomputeDerived(PlayerStats real)
+    {
+        if (real == null) return;
+        burnStrength   = real.baseBurnStrength   + real.burnPerPsyche   * psyche;
+        freezeStrength = real.baseFreezeStrength + real.freezePerPsyche * psyche;
+        holyStrength   = real.baseHolyStrength   + real.holyPerPsyche   * psyche;
+        shockStrength  = real.baseShockStrength  + real.shockPerPsyche  * psyche;
+        arrowDamage    = real.baseArrowDamage    + real.arrowDmgPerAttack * attackDamage;
     }
 }

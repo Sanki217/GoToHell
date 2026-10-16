@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// Gravity Arrow pull zone — attach this to a prefab.
@@ -52,8 +53,9 @@ public class GravityArrowZone : MonoBehaviour
     private float timer;
     private float tickTimer;
 
-    // Reusable buffer — shared across all GravityArrowZones so we never allocate.
-    private static readonly Collider[] hitBuffer = new Collider[64];
+    // Reused per zone — each enemy is pulled/damaged once per step, however
+    // many colliders it has (multi-collider enemies used to be pulled 2-3×).
+    private readonly List<Enemy> inZone = new List<Enemy>(16);
 
     private void Start()
     {
@@ -79,14 +81,11 @@ public class GravityArrowZone : MonoBehaviour
             doDamage = true;
         }
 
-        int count = Physics.OverlapSphereNonAlloc(transform.position, pullRadius, hitBuffer);
-        for (int i = 0; i < count; i++)
+        CombatQuery.OverlapEnemies(transform.position, pullRadius, inZone, combatantsOnly: true);
+        for (int i = 0; i < inZone.Count; i++)
         {
-            Collider col = hitBuffer[i];
-            // Walk up to root in case the enemy collider is on a child object
-            Enemy enemy = col.GetComponent<Enemy>()
-                          ?? col.transform.root.GetComponent<Enemy>();
-            if (enemy == null) continue;
+            Enemy enemy = inZone[i];
+            if (enemy == null || enemy.IsDead) continue;
 
             Vector3 toZone = transform.position - enemy.transform.position;
             toZone.z = 0f;

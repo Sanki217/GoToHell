@@ -70,7 +70,7 @@ public class CameraFollow : MonoBehaviour
         // Spawned-prefab support: resolve the player via PlayerRefs when unassigned
         if (player == null)
         {
-            player = PlayerRefs.I != null ? PlayerRefs.I.T : null;
+            player = PlayerRefs.PlayerTransform;
             if (player == null) return;
         }
 
@@ -154,10 +154,6 @@ public class CameraFollow : MonoBehaviour
     //  HELPERS
     // ================================================================
 
-    private bool IsBlockedByUI()
-    {
-        if (ChestRewardUI.Instance != null && ChestRewardUI.Instance.IsOpen) return true;
-        if (LevelUpUI.Instance != null && LevelUpUI.Instance.IsOpen) return true;
-        return false;
-    }
+    /// <summary>No shake while any menu/picker holds a pause (works for future menus automatically).</summary>
+    private bool IsBlockedByUI() => GameTime.IsPaused;
 }

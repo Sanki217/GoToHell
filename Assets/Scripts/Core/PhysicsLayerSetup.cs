@@ -19,9 +19,10 @@ public static class PhysicsLayerSetup
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Apply()
     {
-        Physics.IgnoreLayerCollision(PickupLayer, PickupLayer, true);
+        if (LayerMask.LayerToName(PickupLayer) != "Pickup")
+            Debug.LogWarning($"[PhysicsLayerSetup] Layer {PickupLayer} is '{LayerMask.LayerToName(PickupLayer)}', " +
+                             "expected 'Pickup' — check Tags and Layers.");
 
-        Debug.Log($"[PhysicsLayerSetup] '{LayerMask.LayerToName(PickupLayer)}' (layer {PickupLayer}) " +
-                  "no longer self-collides — souls ignore stuck arrows.");
+        Physics.IgnoreLayerCollision(PickupLayer, PickupLayer, true);
     }
 }

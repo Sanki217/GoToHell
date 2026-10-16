@@ -1,11 +1,21 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 
+/// <summary>
+/// Player HP, i-frames, shield charges, death and the extra-life resurrection.
+///
+/// MAX HP has ONE source of truth: PlayerStats.maxHP (derived from the Health
+/// stat + flat bonuses). This component listens to PlayerStats.OnStatsChanged
+/// and, when max HP rises, heals by the same amount — so Health upgrades,
+/// class presets and shop items all behave the same way. (Previously a Health
+/// stat upgrade was overwritten back to the old max.)
+/// </summary>
 public class PlayerHealth : MonoBehaviour
 {
     [Header("HP Settings")]
+    [Tooltip("Fallback max HP when there is no PlayerStats on the player.")]
     public int maxHP = 100;
 
     [Header("UI")]
@@ -41,7 +51,7 @@ public class PlayerHealth : MonoBehaviour
     public float resurrectionZoomSpeed = 2f;
 
     // ================================================================
-    //  STATIC STATE  (persists across scenes)
+    //  STATIC STATE  (persists across scenes — reset by RunManager)
     // ================================================================
 
     public static bool HasExtraLife = false;
@@ -51,30 +61,45 @@ public class PlayerHealth : MonoBehaviour
     // ================================================================
 
     private int currentHP;
-    private bool isInvincible;
+    private bool initialized;
+    private float invincibleUntil = -1f;
+    private float dashInvincibleUntil = -1f;
     private int shieldBlocks = 0;
-
-    private bool isDashInvincible;
-    private Coroutine dashInvincCoroutine;
-    private Coroutine dashFlashCoroutine;
+    private bool isDead;
+    private bool isResurrecting;
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
     private ShieldAbility shieldAbility;
-    private Color originalColor;
+    private PlayerStateController stateCtrl;
+    private TintController tint;
 
     public int CurrentHP => currentHP;
+    public int MaxHP => playerStats != null ? playerStats.maxHP : maxHP;
+    public bool IsDead => isDead;
+    public bool IsInvincible => isResurrecting || Time.time < invincibleUntil || Time.time < dashInvincibleUntil;
 
     // ================================================================
     //  INIT
     // ================================================================
 
-    private void Start()
+    private void Awake()
     {
         upgradeManager = GetComponent<PlayerUpgradeManager>();
         playerStats = GetComponent<PlayerStats>();
         shieldAbility = GetComponent<ShieldAbility>();
+        stateCtrl = GetComponent<PlayerStateController>();
 
+        if (playerStats != null) playerStats.OnStatsChanged += OnStatsChanged;
+    }
+
+    private void OnDestroy()
+    {
+        if (playerStats != null) playerStats.OnStatsChanged -= OnStatsChanged;
+    }
+
+    private void Start()
+    {
         // Spawned-prefab support: pull scene HUD refs not wired on the prefab
         if (HUDRefs.I != null)
         {
@@ -82,14 +107,34 @@ public class PlayerHealth : MonoBehaviour
             if (hpText == null) hpText = HUDRefs.I.hpText;
         }
 
-        if (playerStats != null) maxHP = playerStats.maxHP;
-        currentHP = maxHP;
+        tint = TintController.For(gameObject);
+        if (playerRenderer != null) tint.SetTargets(playerRenderer);
 
-        if (playerRenderer != null)
-            originalColor = playerRenderer.material.color;
+        SyncMaxHP();
+        currentHP = maxHP;
+        initialized = true;
+        if (playerStats != null) playerStats.SyncHPMirror(currentHP);
 
         RefreshShieldVFX();
         UpdateHealthUI();
+    }
+
+    /// <summary>Max HP changed (Health stat, class preset, items): heal by any increase.</summary>
+    private void OnStatsChanged()
+    {
+        int oldMax = maxHP;
+        SyncMaxHP();
+        if (!initialized) return;
+
+        int delta = maxHP - oldMax;
+        currentHP = delta > 0 ? currentHP + delta : Mathf.Min(currentHP, maxHP);
+        playerStats.SyncHPMirror(currentHP);
+        UpdateHealthUI();
+    }
+
+    private void SyncMaxHP()
+    {
+        if (playerStats != null) maxHP = Mathf.Max(1, playerStats.maxHP);
     }
 
     // ================================================================
@@ -104,7 +149,10 @@ public class PlayerHealth : MonoBehaviour
     /// </summary>
     public void TakeDamage(int amount, Vector3 sourcePosition, GameObject source = null)
     {
-        if (shieldAbility != null && shieldAbility.IsBlockingFrom(sourcePosition))
+        if (isDead || isResurrecting) return;
+
+        if (shieldAbility != null && shieldAbility.isActiveAndEnabled
+            && shieldAbility.IsBlockingFrom(sourcePosition))
         {
             shieldAbility.OnBlockedHit(source);   // shield counter: damage + knockback
             return;   // blocked — no damage, no i-frames
@@ -115,41 +163,41 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-        if (isInvincible || isDashInvincible) return;
+        if (amount <= 0 || isDead || IsInvincible) return;
+
+        // Pacts / meta upgrades (never rounds a real hit down to zero)
+        amount = Mathf.Max(1, Mathf.RoundToInt(amount * RunModifiers.DamageTakenMult));
 
         // Shield absorbs a hit
         if (shieldBlocks > 0)
         {
             shieldBlocks--;
             RefreshShieldVFX();
-            StartCoroutine(InvincibilityTimer());
+            invincibleUntil = Time.time + invincibilityTime;
             return;
         }
 
-        currentHP -= amount;
-        currentHP = Mathf.Max(currentHP, 0);
-        playerStats?.SyncHPMirror(currentHP);
-
-        playerStats?.RecordDamageTaken(amount);
-        upgradeManager?.DamageTaken(amount);
+        currentHP = Mathf.Max(currentHP - amount, 0);
+        if (playerStats != null)
+        {
+            playerStats.SyncHPMirror(currentHP);
+            playerStats.RecordDamageTaken(amount);
+        }
+        if (upgradeManager != null) upgradeManager.DamageTaken(amount);
         HitStopManager.NotifyPlayerHurt(amount, maxHP);
 
         CameraFollow cam = PlayerRefs.CamFollow;   // cached — this runs on every hit
-        if (currentHP > 0)
+        if (cam != null)
         {
-            float mag = shakeMagnitudeBase + shakeMagnitudePer10Dmg * (amount / 10f);
-            cam?.Shake(mag, shakeDurationOnHit);
-        }
-        else
-        {
-            cam?.Shake(shakeMagnitudeOnDeath, shakeDurationOnDeath);
+            if (currentHP > 0)
+                cam.Shake(shakeMagnitudeBase + shakeMagnitudePer10Dmg * (amount / 10f), shakeDurationOnHit);
+            else
+                cam.Shake(shakeMagnitudeOnDeath, shakeDurationOnDeath);
         }
 
         UpdateHealthUI();
-        StartCoroutine(InvincibilityTimer());
-
-        if (playerRenderer != null)
-            StartCoroutine(HitFlash());
+        invincibleUntil = Time.time + invincibilityTime;
+        if (tint != null && hitFlashDuration > 0f) tint.Flash(hitFlashColor, hitFlashDuration);
 
         if (currentHP <= 0)
             Die();
@@ -163,32 +211,45 @@ public class PlayerHealth : MonoBehaviour
 
     public void StartDashInvincibility(float duration)
     {
-        if (dashInvincCoroutine != null) StopCoroutine(dashInvincCoroutine);
-        if (dashFlashCoroutine != null) StopCoroutine(dashFlashCoroutine);
-        dashInvincCoroutine = StartCoroutine(DashInvincibilityTimer(duration));
-        dashFlashCoroutine = StartCoroutine(DashInvincibilityFlash(duration));
+        dashInvincibleUntil = Mathf.Max(dashInvincibleUntil, Time.time + duration);
+        if (tint != null) tint.Pulse(dashInvincColor, Color.white, 6f, duration);
     }
 
     public void RestoreHP(int amount)
     {
+        if (isDead || amount <= 0) return;
+        int before = currentHP;
         currentHP = Mathf.Min(currentHP + amount, maxHP);
-        playerStats?.SyncHPMirror(currentHP);
-        playerStats?.RecordHPRestored(amount);
+        if (playerStats != null)
+        {
+            playerStats.SyncHPMirror(currentHP);
+            playerStats.RecordHPRestored(currentHP - before);   // only what was actually healed
+        }
         UpdateHealthUI();
     }
 
     public void SetHP(int value)
     {
         currentHP = Mathf.Clamp(value, 0, maxHP);
-        playerStats?.SyncHPMirror(currentHP);
+        if (playerStats != null) playerStats.SyncHPMirror(currentHP);
         UpdateHealthUI();
     }
 
+    /// <summary>
+    /// Permanent flat max-HP bonus (heals by the same amount). Goes through
+    /// PlayerStats so it survives every later stat recalculation.
+    /// </summary>
     public void IncreaseMaxHP(int amount)
     {
+        if (amount == 0) return;
+        if (playerStats != null)
+        {
+            playerStats.AddBonusMaxHP(amount);   // OnStatsChanged heals + refreshes UI
+            return;
+        }
+
         maxHP += amount;
-        currentHP = Mathf.Min(currentHP + amount, maxHP);
-        if (playerStats != null) playerStats.maxHP = maxHP;
+        currentHP = Mathf.Clamp(currentHP + Mathf.Max(0, amount), 0, maxHP);
         UpdateHealthUI();
     }
 
@@ -198,6 +259,8 @@ public class PlayerHealth : MonoBehaviour
 
     private void Die()
     {
+        if (isDead) return;
+
         if (HasExtraLife)
         {
             HasExtraLife = false;
@@ -205,22 +268,25 @@ public class PlayerHealth : MonoBehaviour
             return;
         }
 
-        upgradeManager?.PlayerDied();
+        isDead = true;
+        if (upgradeManager != null) upgradeManager.PlayerDied();
         Achievements.TriggerEvent("player_died");   // e.g. unlocks the Warrior class
 
-        // Run summary (records the run + back-to-menu). Fallback: old fade-and-reload
-        // for scenes without a RunSummaryUI (e.g. testing).
+        // Run summary (records the run + back-to-menu). Fallback: record the run
+        // and fade-and-reload for scenes without a RunSummaryUI (e.g. testing).
         if (RunSummaryUI.TryShow(false)) return;
-        Object.FindFirstObjectByType<GameStartSequence>()?.PlayerDied();
+
+        RunManager.CompleteRun(false);
+        GameStartSequence seq = Object.FindFirstObjectByType<GameStartSequence>();
+        if (seq != null) seq.PlayerDied();
     }
 
     private IEnumerator ResurrectionSequence()
     {
-        // Disable player control during sequence
-        GetComponent<PlayerStateController>()?.DisableControl();
+        isResurrecting = true;
+        if (stateCtrl != null) stateCtrl.AddBlocker(this);
 
-        Camera mainCam = Camera.main;
-        CameraFollow cam = mainCam?.GetComponent<CameraFollow>();
+        Camera mainCam = PlayerRefs.Cam;
         float originalZ = mainCam != null ? mainCam.transform.position.z : 0f;
 
         // Ease time to near-zero
@@ -230,7 +296,7 @@ public class PlayerHealth : MonoBehaviour
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / resurrectionSlowDuration);
             float curve = 1f - Mathf.Pow(1f - t, 3f);
-            GameTime.SetScale(Mathf.Lerp(1f, resurrectionMinTimeScale, curve));
+            GameTime.SetSlowMo(this, Mathf.Lerp(1f, resurrectionMinTimeScale, curve));
 
             // Ease camera Z in (zoom)
             if (mainCam != null)
@@ -246,6 +312,7 @@ public class PlayerHealth : MonoBehaviour
 
         // Restore player HP
         currentHP = maxHP;
+        if (playerStats != null) playerStats.SyncHPMirror(currentHP);
         UpdateHealthUI();
 
         // Play resurrection VFX
@@ -261,7 +328,7 @@ public class PlayerHealth : MonoBehaviour
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / resurrectionSlowDuration);
-            GameTime.SetScale(Mathf.Lerp(resurrectionMinTimeScale, 1f, t));
+            GameTime.SetSlowMo(this, Mathf.Lerp(resurrectionMinTimeScale, 1f, t));
 
             if (mainCam != null)
             {
@@ -273,7 +340,7 @@ public class PlayerHealth : MonoBehaviour
             yield return null;
         }
 
-        GameTime.Resume();
+        GameTime.ClearSlowMo(this);
 
         if (mainCam != null)
         {
@@ -282,8 +349,15 @@ public class PlayerHealth : MonoBehaviour
             mainCam.transform.position = pos;
         }
 
-        GetComponent<PlayerStateController>()?.EnableControl();
-        StartCoroutine(InvincibilityTimer());
+        isResurrecting = false;
+        if (stateCtrl != null) stateCtrl.RemoveBlocker(this);
+        invincibleUntil = Time.time + invincibilityTime;
+    }
+
+    private void OnDisable()
+    {
+        // Interrupted resurrection must not leave time slowed
+        GameTime.ClearSlowMo(this);
     }
 
     // ================================================================
@@ -305,45 +379,5 @@ public class PlayerHealth : MonoBehaviour
         }
         if (hpText != null)
             hpText.text = $"{currentHP} / {maxHP}";
-    }
-
-    private IEnumerator InvincibilityTimer()
-    {
-        isInvincible = true;
-        yield return new WaitForSeconds(invincibilityTime);
-        isInvincible = false;
-    }
-
-    private IEnumerator DashInvincibilityTimer(float duration)
-    {
-        isDashInvincible = true;
-        yield return new WaitForSeconds(duration);
-        isDashInvincible = false;
-        dashInvincCoroutine = null;
-    }
-
-    private IEnumerator DashInvincibilityFlash(float duration)
-    {
-        if (playerRenderer == null) yield break;
-
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            float t = Mathf.PingPong(elapsed * 6f, 1f);
-            playerRenderer.material.color = Color.Lerp(dashInvincColor, Color.white, t);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        playerRenderer.material.color = originalColor;
-        dashFlashCoroutine = null;
-    }
-
-    private IEnumerator HitFlash()
-    {
-        if (playerRenderer == null) yield break;
-        playerRenderer.material.color = hitFlashColor;
-        yield return new WaitForSeconds(hitFlashDuration);
-        playerRenderer.material.color = originalColor;
     }
 }

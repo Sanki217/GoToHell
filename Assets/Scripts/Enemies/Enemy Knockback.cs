@@ -65,7 +65,10 @@ public class EnemyKnockback : MonoBehaviour
         }
 
         if (!handled)
+        {
+            StopAllCoroutines();   // a new hit replaces the previous fallback push
             StartCoroutine(FallbackKnockback(impulse));
+        }
     }
 
     /// <summary>

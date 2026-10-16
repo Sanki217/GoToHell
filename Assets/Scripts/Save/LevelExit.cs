@@ -35,6 +35,9 @@ public class LevelExit : MonoBehaviour
     {
         int layer = RunConfig.I != null ? RunConfig.I.currentLayer : 1;
 
+        PlayerStats stats = PlayerRefs.I != null ? PlayerRefs.I.Stats : null;
+        if (stats != null) stats.RecordLayerCompleted();
+
         // Fire achievement event: "level_1_complete", "level_2_complete", ...
         Achievements.TriggerEvent($"level_{layer}_complete");
 
@@ -48,7 +51,10 @@ public class LevelExit : MonoBehaviour
             // Run complete — victory summary, fall back to menu.
             // (Depth is NOT banked here — RunSummaryUI reads the live tracker.)
             if (!RunSummaryUI.TryShow(true))
+            {
+                RunManager.CompleteRun(true);   // still record the victory
                 SceneFlow.GoToMainMenu();
+            }
         }
         else
         {

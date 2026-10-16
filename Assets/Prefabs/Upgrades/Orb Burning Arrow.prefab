@@ -122,6 +122,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   category: 0
   rarity: 2
+  tags: 16
   requiredWeaponId: 
   requiredClassId: 
   statCountCommon: 1

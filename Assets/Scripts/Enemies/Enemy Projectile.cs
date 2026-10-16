@@ -2,9 +2,12 @@
 using UnityEngine;
 
 /// <summary>
-/// Enemy projectile. POOLED — spawned via Pool.Spawn by EnemyShooter and
-/// returned with Pool.Despawn on hit or lifetime expiry (never Destroy).
+/// Enemy projectile. POOLED — spawned via Pool.Spawn by EnemyShooter /
+/// EnemyStalker and returned with Pool.Despawn on hit or lifetime expiry
+/// (never Destroy).
 ///
+/// OWNER: the shooting enemy's transform (not transform.root — enemies placed
+/// under a scene folder would otherwise share a root and ignore each other).
 /// Owner-collision ignores are tracked and undone on despawn, so a reused
 /// projectile never inherits a previous owner's ignore pairs.
 /// </summary>
@@ -20,8 +23,10 @@ public class EnemyProjectile : MonoBehaviour
 
     private Vector3 direction;
     private float speed;
-    private Transform ownerRoot;
+    private Transform owner;
     private float lifeTimer;
+    private bool spent;           // hit something this frame — ignore further triggers
+    private int hitDamage;        // damage vs the player, scaled by the shooter (EnemyDefinition / layer / pacts)
 
     private Collider myCollider;
     private readonly List<Collider> ignoredColliders = new List<Collider>();
@@ -31,32 +36,46 @@ public class EnemyProjectile : MonoBehaviour
         myCollider = GetComponent<Collider>();
     }
 
-    public void Initialize(Vector3 dir, float moveSpeed, Transform owner)
+    private void OnEnable()
+    {
+        spent = false;
+        lifeTimer = 0f;
+    }
+
+    public void Initialize(Vector3 dir, float moveSpeed, Transform shooter)
     {
         direction = dir.normalized;
         speed = moveSpeed;
-        ownerRoot = owner;
         lifeTimer = 0f;
+        spent = false;
 
         transform.rotation = Quaternion.LookRotation(Vector3.forward, direction);
+        SetOwner(shooter);
 
-        // Ignore ALL colliders on the shooting enemy (root + children),
-        // remembering each pair so it can be undone on despawn.
-        if (myCollider != null && ownerRoot != null)
-        {
-            foreach (Collider c in ownerRoot.GetComponentsInChildren<Collider>())
-            {
-                if (c == null) continue;
-                Physics.IgnoreCollision(myCollider, c);
-                ignoredColliders.Add(c);
-            }
-        }
+        Enemy shooterEnemy = shooter != null ? shooter.GetComponentInParent<Enemy>() : null;
+        hitDamage = shooterEnemy != null ? shooterEnemy.ScaleProjectileDamage(damage) : damage;
     }
 
     private void OnDisable()
     {
         ClearOwnerIgnores();
-        ownerRoot = null;
+        owner = null;
+    }
+
+    private void SetOwner(Transform newOwner)
+    {
+        ClearOwnerIgnores();
+        owner = newOwner;
+        if (myCollider == null || owner == null) return;
+
+        // Ignore ALL colliders on the owner (root + children), remembering each
+        // pair so it can be undone on despawn.
+        foreach (Collider c in owner.GetComponentsInChildren<Collider>())
+        {
+            if (c == null) continue;
+            Physics.IgnoreCollision(myCollider, c);
+            ignoredColliders.Add(c);
+        }
     }
 
     private void ClearOwnerIgnores()
@@ -72,27 +91,12 @@ public class EnemyProjectile : MonoBehaviour
     /// if it's gone). The player becomes the new owner, so the projectile now
     /// damages enemies — including the shooter — and ignores the player.
     /// </summary>
-    private void Reflect(Transform newOwnerRoot)
+    private void Reflect(Transform newOwner)
     {
-        // Old owner can be hit again; new owner (player) is ignored
-        ClearOwnerIgnores();
+        Transform shooter = owner;
+        SetOwner(newOwner);
 
-        Transform shooter = ownerRoot;
-        ownerRoot = newOwnerRoot;
-
-        if (myCollider != null && newOwnerRoot != null)
-        {
-            foreach (Collider c in newOwnerRoot.GetComponentsInChildren<Collider>())
-            {
-                if (c == null) continue;
-                Physics.IgnoreCollision(myCollider, c);
-                ignoredColliders.Add(c);
-            }
-        }
-
-        Vector3 dir = shooter != null
-            ? (shooter.position - transform.position)
-            : -direction;
+        Vector3 dir = shooter != null ? shooter.position - transform.position : -direction;
         dir.z = 0f;
         direction = dir.sqrMagnitude > 0.001f ? dir.normalized : -direction;
 
@@ -102,20 +106,32 @@ public class EnemyProjectile : MonoBehaviour
 
     private void Update()
     {
+        if (spent) return;
+
         transform.position += direction * speed * Time.deltaTime;
 
         lifeTimer += Time.deltaTime;
         if (lifeTimer >= lifeTime)
-            Pool.Despawn(gameObject);
+            Despawn();
+    }
+
+    private void Despawn()
+    {
+        if (spent) return;
+        spent = true;
+        Pool.Despawn(gameObject);
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        if (spent) return;
+
         // Ignore owner
-        if (ownerRoot != null && other.transform.root == ownerRoot) return;
+        if (owner != null && other.transform.IsChildOf(owner)) return;
 
         // Ignore pickups / sensors
-        if (other.CompareTag("EnemySensor") || other.CompareTag("Orb") || other.CompareTag("Looter"))
+        if (other.CompareTag("EnemySensor") || other.CompareTag("Orb") || other.CompareTag("Looter")
+            || other.CompareTag("SoulLooter"))
             return;
 
         // Only react to allowed layers
@@ -126,39 +142,35 @@ public class EnemyProjectile : MonoBehaviour
         {
             // Warrior's shield: reflect back at the shooter (costs energy per
             // projectile). Can't afford it → the shield absorbs the hit.
-            ShieldAbility shield = other.GetComponent<ShieldAbility>();
+            ShieldAbility shield = other.GetComponentInParent<ShieldAbility>();
             if (shield != null && shield.isActiveAndEnabled && shield.IsBlockingFrom(transform.position))
             {
                 if (shield.TryPayReflectCost())
-                    Reflect(other.transform.root);
+                    Reflect(shield.transform);
                 else
-                    Pool.Despawn(gameObject);
+                    Despawn();
                 return;
             }
 
-            other.GetComponent<PlayerHealth>()?.TakeDamage(damage, transform.position);
-            Pool.Despawn(gameObject);
+            PlayerHealth health = other.GetComponentInParent<PlayerHealth>();
+            if (health != null) health.TakeDamage(hitDamage > 0 ? hitDamage : damage, transform.position);
+            Despawn();
             return;
         }
 
-        // ── OTHER ENEMY ─────────────────────────────────────────────
+        // ── ENEMY ───────────────────────────────────────────────────
         if (other.CompareTag("Enemy"))
         {
             Enemy enemy = other.GetComponentInParent<Enemy>();
-            if (enemy != null && enemy.transform.root != ownerRoot)
-            {
-                // Show damage number at the hit position
-                FloatingTextManager.Show(damage, other.transform.position,
-                    FloatingTextManager.HitType.Normal);
+            if (enemy != null && (owner == null || !enemy.transform.IsChildOf(owner)))
+                enemy.TakeDamage(damage, transform.position, Vector3.zero, 0f,
+                                 false, FloatingTextManager.HitType.Normal);
 
-                enemy.TakeDamage(damage);
-            }
-
-            Pool.Despawn(gameObject);
+            Despawn();
             return;
         }
 
         // ── WORLD ───────────────────────────────────────────────────
-        Pool.Despawn(gameObject);
+        Despawn();
     }
 }

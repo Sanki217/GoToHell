@@ -2,7 +2,10 @@
 
 /// <summary>
 /// Freeze: slows enemy movement and attack speed.
-/// Works with the new EnemyPatrol, EnemyPatrolVertical, and EnemyShooter scripts.
+///
+/// Works on EVERY enemy type through Enemy.SpeedMultiplier — patrols, wall
+/// jumpers, shooters and stalkers all scale their movement (and shooters
+/// their fire rate) by it. No per-type special cases here.
 ///
 /// At FreezeStrength 1.0 → 50% slow
 /// At FreezeStrength 1.5 → 75% slow
@@ -15,81 +18,48 @@ public class FreezeEffect : StatusEffect
     public float baseDuration = 3f;
     public float maxSlowPercent = 0.95f;
 
-    private EnemyPatrolHorizontal hPatrol;
-    private EnemyPatrolVertical vPatrol;
-    private EnemyShooter shooter;
+    [Tooltip("Seconds between freeze 'ticks' (tick FX + upgrade-bus FreezeTick event).")]
+    public float tickInterval = 0.5f;
 
-    private float originalHSpeed;
-    private float originalVSpeed;
-    private float originalShooterCooldown;
-    private bool wasApplied = false;
+    private float tickTimer;
 
-    private Color freezeColor = new Color(0.5f, 0.85f, 1f);
+    public override StatusType Type => StatusType.Freeze;
+    protected override Color TintColor => new Color(0.5f, 0.85f, 1f);
+    protected override ActionFX ApplyFX => ActionFX.StatusFreezeApply;
 
     protected override void OnApplied()
     {
         duration = baseDuration;
         timeRemaining = baseDuration;
-
-        hPatrol = GetComponent<EnemyPatrolHorizontal>();
-        vPatrol = GetComponent<EnemyPatrolVertical>();
-        shooter = GetComponent<EnemyShooter>();
-
-        if (hPatrol != null) originalHSpeed = hPatrol.speed;
-        if (vPatrol != null) originalVSpeed = vPatrol.speed;
-        if (shooter != null) originalShooterCooldown = shooter.attackCooldown;
-
+        tickTimer = 0f;
         ApplySlow();
-        SetTint(freezeColor);
-        FXManager.Play(ActionFX.StatusFreezeApply, transform.position);
-        upgradeManager?.StatusApplied(gameObject, StatusType.Freeze);
-        playerStats?.RecordStatusApplied(StatusType.Freeze);
     }
 
     protected override void OnRefreshed()
     {
-        RestoreSlow();
-        ApplySlow();
+        ApplySlow();   // re-evaluate with the latest freezeStrength
     }
 
     protected override void OnTick(float dt)
     {
+        tickTimer += dt;
+        if (tickTimer < tickInterval) return;
+        tickTimer -= tickInterval;
+
         FXManager.Play(ActionFX.StatusFreezeTick, transform.position);
-        upgradeManager?.FreezeTick(gameObject);
+        if (upgradeManager != null) upgradeManager.FreezeTick(gameObject);
     }
 
-    protected override void OnExpired()
+    protected override void OnRemoved()
     {
-        RestoreSlow();
-        RestoreTint();
-        Destroy(this);
+        if (enemy != null) enemy.ClearSlow(this);
     }
 
     private void ApplySlow()
     {
+        if (enemy == null) return;
         float strength = playerStats != null ? playerStats.freezeStrength : 1f;
         float slow = Mathf.Clamp(baseSlowPercent * strength, 0f, maxSlowPercent);
-        float mult = 1f - slow;
-
-        // Apply via speedMultiplier field so original speed is preserved
-        if (hPatrol != null) hPatrol.speedMultiplier = mult;
-        if (vPatrol != null) vPatrol.speedMultiplier = mult;
-        if (shooter != null) shooter.attackCooldown = originalShooterCooldown / mult;
-
-        wasApplied = true;
-    }
-
-    private void RestoreSlow()
-    {
-        if (!wasApplied) return;
-        if (hPatrol != null) hPatrol.speedMultiplier = 1f;
-        if (vPatrol != null) vPatrol.speedMultiplier = 1f;
-        if (shooter != null) shooter.attackCooldown = originalShooterCooldown;
-    }
-
-    private void OnDestroy()
-    {
-        RestoreSlow();
-        RestoreTint();
+        enemy.SetSlow(this, 1f - slow);
     }
 }

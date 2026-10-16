@@ -19,40 +19,36 @@ public class ShockEffect : StatusEffect
     public float bonusDamageMultiplier = 0.5f;  // multiplied by ShockStrength
     public float baseDuration = 5f;
 
-    private Color shockColor = new Color(1f, 0.95f, 0.2f); // yellow
+    private bool consumed;
+
+    public override StatusType Type => StatusType.Shock;
+    protected override Color TintColor => new Color(1f, 0.95f, 0.2f);   // yellow
+    protected override ActionFX ApplyFX => ActionFX.StatusShockApply;
 
     protected override void OnApplied()
     {
         duration = baseDuration;
         timeRemaining = baseDuration;
-
-        SetTint(shockColor);
-        FXManager.Play(ActionFX.StatusShockApply, transform.position);
-        upgradeManager?.StatusApplied(gameObject, StatusType.Shock);
-        playerStats?.RecordStatusApplied(StatusType.Shock);
-    }
-
-    protected override void OnExpired()
-    {
-        RestoreTint();
-        Destroy(this);
     }
 
     /// <summary>
     /// Called by Enemy.TakeDamage when shock is present.
-    /// Returns the bonus damage to add, then destroys itself.
+    /// Returns the bonus damage to add, then removes itself. Returns 0 if
+    /// already consumed this frame (component removal is deferred).
     /// </summary>
     public float ConsumeShock(float incomingDamage)
     {
+        if (consumed) return 0f;
+        consumed = true;
+
         float strength = playerStats != null ? playerStats.shockStrength : 1f;
         float bonusDmg = incomingDamage * bonusDamageMultiplier * strength;
 
         FXManager.Play(ActionFX.StatusShockConsume, transform.position);
-        upgradeManager?.ShockConsumed(gameObject, bonusDmg);
-        playerStats?.RecordDamageDealt(bonusDmg, DamageSource.Status, gameObject);
+        if (upgradeManager != null) upgradeManager.ShockConsumed(gameObject, bonusDmg);
+        if (playerStats != null) playerStats.RecordDamageDealt(bonusDmg, DamageSource.Status, gameObject);
 
-        RestoreTint();
-        Destroy(this);
+        End();
         return bonusDmg;
     }
 }

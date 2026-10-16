@@ -29,7 +29,15 @@ public class AchievementPopupUI : MonoBehaviour
     private bool showing = false;
 
     private void OnEnable()  => Achievements.OnUnlocked += Enqueue;
-    private void OnDisable() => Achievements.OnUnlocked -= Enqueue;
+
+    private void OnDisable()
+    {
+        Achievements.OnUnlocked -= Enqueue;
+        // Coroutines die with the component — don't stay stuck in "showing"
+        StopAllCoroutines();
+        showing = false;
+        if (panel != null) panel.gameObject.SetActive(false);
+    }
 
     private void Start()
     {
@@ -38,8 +46,9 @@ public class AchievementPopupUI : MonoBehaviour
 
     private void Enqueue(AchievementDefinition a)
     {
+        if (a == null) return;
         queue.Enqueue(a);
-        if (!showing) StartCoroutine(ShowLoop());
+        if (!showing && isActiveAndEnabled) StartCoroutine(ShowLoop());
     }
 
     private IEnumerator ShowLoop()

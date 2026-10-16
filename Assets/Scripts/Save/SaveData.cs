@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -14,7 +14,7 @@ public class SaveData
 {
     // Bump when the save format changes incompatibly; lets future versions
     // migrate old files instead of discarding them.
-    public int saveVersion = 1;
+    public int saveVersion = 2;
 
     // Last name the player entered — pre-fills the Level 1 name prompt.
     public string lastPlayerName = "";
@@ -39,4 +39,26 @@ public class SaveData
 
     // Lifetime totals across all runs (summed each time a run ends)
     public RunStats lifetimeTotals = new RunStats();
+
+    // ---- Meta progression (v2) ----------------------------------------
+
+    // Spendable meta currency (MetaProgressionConfig.currencyName)
+    public int metaCurrency;
+
+    // Everything ever earned (stats / achievements; never decreases)
+    public int metaCurrencyLifetime;
+
+    // Owned rank per MetaUpgradeDefinition.metaId
+    public List<MetaRank> metaRanks = new List<MetaRank>();
+
+    // Pacts active on the last run — pre-selected in the pact picker
+    public List<string> lastPactIds = new List<string>();
+}
+
+/// <summary>Owned rank of one meta upgrade.</summary>
+[Serializable]
+public class MetaRank
+{
+    public string id;
+    public int rank;
 }

@@ -18,9 +18,10 @@ using System.Collections;
 /// grows to the biggest hit seen this scene, so the scaling stays meaningful
 /// as the player's damage climbs during a run.
 ///
-/// TIME OWNERSHIP: plays nice with GameTime — a stop is skipped while the game
-/// is paused (pickers, chest UI), aborts if another system grabs the timescale
-/// (charge slow-mo, resurrection), and only restores time it still owns.
+/// TIME OWNERSHIP: a stop is a GameTime slow-mo request owned by this
+/// manager. It composes with every other request (the slowest wins), is
+/// skipped while the game is paused, and is always released — including when
+/// the manager is disabled or destroyed mid-stop.
 /// </summary>
 public class HitStopManager : MonoBehaviour
 {
@@ -66,6 +67,16 @@ public class HitStopManager : MonoBehaviour
     private Coroutine stopRoutine;
 
     private void Awake() { Instance = this; }
+
+    private void OnDisable()
+    {
+        // A stop interrupted by scene unload / disable must never leave time slowed
+        if (stopRoutine != null) StopCoroutine(stopRoutine);
+        stopRoutine = null;
+        stopEndRealtime = -1f;
+        GameTime.ClearSlowMo(this);
+    }
+
     private void OnDestroy() { if (Instance == this) Instance = null; }
 
     // ================================================================
@@ -73,13 +84,19 @@ public class HitStopManager : MonoBehaviour
     // ================================================================
 
     public static void NotifyDamageDealt(float amount, DamageSource source)
-        => Instance?.OnDamageDealt(amount, source);
+    {
+        if (Instance != null) Instance.OnDamageDealt(amount, source);
+    }
 
     public static void NotifyKill()
-        => Instance?.OnKill();
+    {
+        if (Instance != null) Instance.OnKill();
+    }
 
     public static void NotifyPlayerHurt(float amount, float maxHP)
-        => Instance?.OnPlayerHurt(amount, maxHP);
+    {
+        if (Instance != null) Instance.OnPlayerHurt(amount, maxHP);
+    }
 
     // ================================================================
     //  TRIGGERS
@@ -119,9 +136,8 @@ public class HitStopManager : MonoBehaviour
     /// request extends an active stop; shorter ones are absorbed by it.</summary>
     public void RequestStop(float duration)
     {
-        if (duration <= 0f) return;
+        if (duration <= 0f || !isActiveAndEnabled) return;
         if (GameTime.IsPaused) return;                            // menus/pickers own the pause
-        if (Time.timeScale < 1f && stopRoutine == null) return;   // another system runs slow-mo — don't fight it
 
         float end = Time.realtimeSinceStartup + duration;
         if (end <= stopEndRealtime) return;                       // active stop already covers it
@@ -133,24 +149,12 @@ public class HitStopManager : MonoBehaviour
 
     private IEnumerator StopRoutine()
     {
-        GameTime.SetScale(stopTimeScale);
+        GameTime.SetSlowMo(this, stopTimeScale);
 
         while (Time.realtimeSinceStartup < stopEndRealtime)
-        {
-            // Another system took the timescale (pause, charge slow-mo, death) — back off
-            if (!Mathf.Approximately(Time.timeScale, stopTimeScale))
-            {
-                stopRoutine = null;
-                stopEndRealtime = -1f;
-                yield break;
-            }
             yield return null;
-        }
 
-        // Restore only if we still own the timescale
-        if (Mathf.Approximately(Time.timeScale, stopTimeScale))
-            GameTime.Resume();
-
+        GameTime.ClearSlowMo(this);
         stopRoutine = null;
         stopEndRealtime = -1f;
     }

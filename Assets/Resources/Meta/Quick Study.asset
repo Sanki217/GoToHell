@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8c1c23146275cd48b7f5c9a828d9ee2, type: 3}
+  m_Name: Quick Study
+  m_EditorClassIdentifier: Assembly-CSharp::MetaUpgradeDefinition
+  metaId: meta_quick_study
+  displayName: Quick Study
+  description: You learn faster in the dark.
+  icon: {fileID: 0}
+  category: Soul
+  sortOrder: 11
+  maxRank: 4
+  baseCost: 60
+  costGrowth: 1.6
+  costOverrides: 
+  requiredAchievement: {fileID: 0}
+  requiredUpgrade: {fileID: 0}
+  requiredUpgradeRank: 1
+  perRank:
+    primaryStats: []
+    bonusMaxHP: 0
+    startingSouls: 0
+    soulGainPercent: 0
+    xpGainPercent: 5
+    shopPricePercent: 0
+    metaCurrencyPercent: 0
+    damageTakenPercent: 0
+    enemyHealthPercent: 0
+    enemyDamagePercent: 0
+    enemySpeedPercent: 0
+    rarityLuck: 0
+    favouredTags: 0
+    favouredTagWeightPercent: 100
+    bannedTags: 0
+  effects: []
+  references:
+    version: 2
+    RefIds: []

@@ -1,7 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using System.Text;
 
 /// <summary>
 /// TAB-toggled two-column stats panel.
@@ -14,6 +15,10 @@ using System.Collections.Generic;
 ///
 /// Both use TMP &lt;link&gt; tags and TMP_TextUtilities.FindIntersectingLink
 /// so they work on pure text without spawning extra GameObjects.
+///
+/// PERF: the panel text is rebuilt at refreshRate Hz (not every frame) with a
+/// reused StringBuilder — the old per-frame string concatenation allocated
+/// tens of KB of garbage every frame while the panel was open.
 ///
 /// TOOLTIP SETUP:
 ///   1. Create a child Panel under statsPanel named "Tooltip".
@@ -44,7 +49,8 @@ public class StatsUI : MonoBehaviour
     public TMP_Text tooltipText;
 
     [Header("Settings")]
-    public KeyCode toggleKey = KeyCode.Tab;
+    [Tooltip("Text rebuilds per second while the panel is open (unscaled time, works while paused).")]
+    public float refreshRate = 5f;
 
     // Components
     private PlayerStats playerStats;
@@ -53,6 +59,8 @@ public class StatsUI : MonoBehaviour
     private PlayerEnergy playerEnergy;
     private PlayerUpgradeManager upgradeManager;
     private bool isVisible = false;
+    private float refreshTimer;
+    private readonly StringBuilder sb = new StringBuilder(4096);
 
     // Tooltip state
     private RectTransform tooltipRect;
@@ -71,6 +79,22 @@ public class StatsUI : MonoBehaviour
 
     private void Start()
     {
+        ResolvePlayer();
+
+        if (statsPanel != null) statsPanel.SetActive(false);
+        if (tooltipPanel != null)
+        {
+            tooltipPanel.SetActive(false);
+            tooltipRect = tooltipPanel.GetComponent<RectTransform>();
+        }
+
+        rootCanvas = GetComponentInParent<Canvas>();
+        if (rootCanvas != null) rootCanvas = rootCanvas.rootCanvas;
+    }
+
+    private bool ResolvePlayer()
+    {
+        if (playerStats != null) return true;
         var refs = PlayerRefs.I;
         if (player == null && refs != null) player = refs.gameObject;
 
@@ -83,18 +107,9 @@ public class StatsUI : MonoBehaviour
             upgradeManager = refs.Upgrades;
         }
 
-        if (statsPanel != null) statsPanel.SetActive(false);
-        if (tooltipPanel != null)
-        {
-            tooltipPanel.SetActive(false);
-            tooltipRect = tooltipPanel.GetComponent<RectTransform>();
-        }
-
-        rootCanvas = GetComponentInParent<Canvas>();
-        if (rootCanvas != null) rootCanvas = rootCanvas.rootCanvas;
-
         // Snapshot base values before any upgrades are applied
         if (playerStats != null) SnapshotBase();
+        return playerStats != null;
     }
 
     private void SnapshotBase()
@@ -129,26 +144,40 @@ public class StatsUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(toggleKey))
+        if (GameInput.ToggleStatsPressed)   // Tab / gamepad Select — rebindable
         {
             isVisible = !isVisible;
             if (statsPanel != null) statsPanel.SetActive(isVisible);
             if (!isVisible && tooltipPanel != null) tooltipPanel.SetActive(false);
+            refreshTimer = 0f;   // rebuild immediately on open
         }
 
-        if (!isVisible || playerStats == null) return;
+        if (!isVisible || !ResolvePlayer()) return;
 
+        refreshTimer -= Time.unscaledDeltaTime;
+        if (refreshTimer <= 0f)
+        {
+            refreshTimer = 1f / Mathf.Max(1f, refreshRate);
+            RebuildText();
+        }
+
+        HandleHover();
+    }
+
+    private void RebuildText()
+    {
         if (leftStatsText != null && rightStatsText != null)
         {
             leftStatsText.text = BuildLeft();
             rightStatsText.text = BuildRight();
+            leftStatsText.ForceMeshUpdate();
+            rightStatsText.ForceMeshUpdate();
         }
         else if (statsText != null)
         {
             statsText.text = BuildLeft() + "\n" + BuildRight();
+            statsText.ForceMeshUpdate();
         }
-
-        HandleHover();
     }
 
     // ================================================================
@@ -187,11 +216,8 @@ public class StatsUI : MonoBehaviour
     {
         if (textComponent == null) return null;
 
-        // Force mesh update so link info is current
-        textComponent.ForceMeshUpdate();
-
         int linkIndex = TMP_TextUtilities.FindIntersectingLink(
-            textComponent, Input.mousePosition, null);
+            textComponent, GameInput.PointerScreen, null);
 
         if (linkIndex >= 0 && linkIndex < textComponent.textInfo.linkCount)
             return textComponent.textInfo.linkInfo[linkIndex].GetLinkID();
@@ -203,7 +229,7 @@ public class StatsUI : MonoBehaviour
     {
         if (tooltipRect == null || rootCanvas == null) return;
 
-        Vector2 mousePos = Input.mousePosition;
+        Vector2 mousePos = GameInput.PointerScreen;
         Vector2 offset = new Vector2(15f, -15f);
 
         // Keep tooltip on screen
@@ -329,56 +355,68 @@ public class StatsUI : MonoBehaviour
     }
 
     // ================================================================
-    //  HELPERS — stat display with base + bonus
+    //  HELPERS — stat display with base + bonus (append into sb)
     // ================================================================
 
-    private string Stat(string label, float current, float baseVal, string fmt = "F1")
+    private const string White = "<color=#FFFFFF>";
+    private const string EndColor = "</color>";
+
+    private void Label(string label) => sb.Append(label.PadRight(18));
+
+    private void Bonus(float bonus, string formatted)
     {
-        string baseStr = current.ToString(fmt);
-        float bonus = current - baseVal;
-        if (Mathf.Abs(bonus) < 0.001f)
-            return $"{label,-18}<color=#FFFFFF>{baseStr}</color>\n";
-        string bonusStr = bonus > 0
-            ? $"<color=#00FF66>(+{bonus.ToString(fmt)})</color>"
-            : $"<color=#FF4444>({bonus.ToString(fmt)})</color>";
-        return $"{label,-18}<color=#FFFFFF>{baseStr}</color> {bonusStr}\n";
+        sb.Append(bonus > 0 ? " <color=#00FF66>(+" : " <color=#FF4444>(")
+          .Append(formatted).Append(")").Append(EndColor);
     }
 
-    private string StatPct(string label, float current, float baseVal)
+    private void Stat(string label, float current, float baseVal, string fmt = "F1")
     {
-        string baseStr = $"{current * 100f:F0}%";
+        Label(label);
+        sb.Append(White).Append(current.ToString(fmt)).Append(EndColor);
         float bonus = current - baseVal;
-        if (Mathf.Abs(bonus) < 0.0001f)
-            return $"{label,-18}<color=#FFFFFF>{baseStr}</color>\n";
-        string bonusStr = bonus > 0
-            ? $"<color=#00FF66>(+{bonus * 100f:F0}%)</color>"
-            : $"<color=#FF4444>({bonus * 100f:F0}%)</color>";
-        return $"{label,-18}<color=#FFFFFF>{baseStr}</color> {bonusStr}\n";
+        if (Mathf.Abs(bonus) >= 0.001f) Bonus(bonus, bonus.ToString(fmt));
+        sb.Append('\n');
     }
 
-    private string StatInt(string label, int current, int baseVal)
+    private void StatPct(string label, float current, float baseVal)
     {
+        Label(label);
+        sb.Append(White).Append((current * 100f).ToString("F0")).Append('%').Append(EndColor);
+        float bonus = current - baseVal;
+        if (Mathf.Abs(bonus) >= 0.0001f) Bonus(bonus, (bonus * 100f).ToString("F0") + "%");
+        sb.Append('\n');
+    }
+
+    private void StatInt(string label, int current, int baseVal)
+    {
+        Label(label);
+        sb.Append(White).Append(current).Append(EndColor);
         int bonus = current - baseVal;
-        if (bonus == 0)
-            return $"{label,-18}<color=#FFFFFF>{current}</color>\n";
-        string bonusStr = bonus > 0
-            ? $"<color=#00FF66>(+{bonus})</color>"
-            : $"<color=#FF4444>({bonus})</color>";
-        return $"{label,-18}<color=#FFFFFF>{current}</color> {bonusStr}\n";
+        if (bonus != 0) Bonus(bonus, bonus.ToString());
+        sb.Append('\n');
     }
 
-    /// <summary>Wraps a primary stat label in a TMP link tag for hover detection.</summary>
-    private string LinkedStat(string label, string linkId, float current, float baseVal, string fmt = "F1")
+    /// <summary>Primary stat line whose label is a TMP link (hover → tooltip).
+    /// Padding is applied to the visible label, not the markup, so columns line up.</summary>
+    private void LinkedStat(string label, string linkId, float current, float baseVal, string fmt = "F1")
     {
-        string linked = $"<link=\"stat_{linkId}\">{label}</link>";
-        string baseStr = current.ToString(fmt);
+        sb.Append("<link=\"stat_").Append(linkId).Append("\">").Append(label).Append("</link>");
+        sb.Append(' ', Mathf.Max(1, 18 - label.Length));
+        sb.Append(White).Append(current.ToString(fmt)).Append(EndColor);
         float bonus = current - baseVal;
-        if (Mathf.Abs(bonus) < 0.001f)
-            return $"{linked,-18}<color=#FFFFFF>{baseStr}</color>\n";
-        string bonusStr = bonus > 0
-            ? $"<color=#00FF66>(+{bonus.ToString(fmt)})</color>"
-            : $"<color=#FF4444>({bonus.ToString(fmt)})</color>";
-        return $"{linked,-18}<color=#FFFFFF>{baseStr}</color> {bonusStr}\n";
+        if (Mathf.Abs(bonus) >= 0.001f) Bonus(bonus, bonus.ToString(fmt));
+        sb.Append('\n');
+    }
+
+    private void Line(string label, string value)
+    {
+        Label(label);
+        sb.Append(value).Append('\n');
+    }
+
+    private void Header(string hexColor, string title)
+    {
+        sb.Append("<b><color=#").Append(hexColor).Append(">== ").Append(title).Append(" ==</color></b>\n");
     }
 
     // ================================================================
@@ -389,69 +427,69 @@ public class StatsUI : MonoBehaviour
     {
         var s = playerStats;
         var hp = playerHealth;
+        sb.Clear();
 
         // -- Primary Stats (hoverable) --
-        string left = "<b><color=#FF88FF>== PRIMARY STATS ==</color></b>\n";
-        left += LinkedStat("Agility", "Agility", s.agility, 0f);
-        left += LinkedStat("Atk Damage", "AttackDamage", s.attackDamage, 0f);
-        left += LinkedStat("Luck", "Luck", s.luck, 0f);
-        left += LinkedStat("Psyche", "Psyche", s.psyche, 0f);
-        left += LinkedStat("Health", "Health", s.health_stat, 0f);
-        left += LinkedStat("Size", "Size", s.size, 0f);
-        left += LinkedStat("Cooldown", "Cooldown", s.cooldown, 0f);
-        left += "\n";
+        Header("FF88FF", "PRIMARY STATS");
+        LinkedStat("Agility", "Agility", s.agility, 0f);
+        LinkedStat("Atk Damage", "AttackDamage", s.attackDamage, 0f);
+        LinkedStat("Luck", "Luck", s.luck, 0f);
+        LinkedStat("Psyche", "Psyche", s.psyche, 0f);
+        LinkedStat("Health", "Health", s.health_stat, 0f);
+        LinkedStat("Size", "Size", s.size, 0f);
+        LinkedStat("Cooldown", "Cooldown", s.cooldown, 0f);
+        sb.Append('\n');
 
         // -- Level --
-        left += "<b><color=#00FF99>== LEVEL ==</color></b>\n";
+        Header("00FF99", "LEVEL");
         if (levelSystem != null)
         {
             bool maxed = levelSystem.CurrentLevel >= PlayerLevelSystem.MaxLevel;
-            left += $"{"Level",-18}<color=#FFFFFF>{(maxed ? "MAX" : levelSystem.CurrentLevel.ToString())}</color>\n";
-            left += $"{"Current XP",-18}<color=#FFFFFF>{(maxed ? "\u2014" : Mathf.FloorToInt(levelSystem.CurrentXP).ToString())}</color>\n";
-            left += $"{"XP to Next",-18}<color=#FFFFFF>{(maxed ? "\u2014" : Mathf.FloorToInt(levelSystem.XPToNextLevel).ToString())}</color>\n";
-            left += $"{"XP Multiplier",-18}<color=#FFFFFF>{levelSystem.xpMultiplier:F2}x</color>\n";
+            Line("Level", White + (maxed ? "MAX" : levelSystem.CurrentLevel.ToString()) + EndColor);
+            Line("Current XP", White + (maxed ? "\u2014" : Mathf.FloorToInt(levelSystem.CurrentXP).ToString()) + EndColor);
+            Line("XP to Next", White + (maxed ? "\u2014" : Mathf.FloorToInt(levelSystem.XPToNextLevel).ToString()) + EndColor);
+            Line("XP Multiplier", White + levelSystem.xpMultiplier.ToString("F2") + "x" + EndColor);
         }
-        left += "\n";
+        sb.Append('\n');
 
         // -- Movement --
-        left += "<b><color=#FFD700>== MOVEMENT ==</color></b>\n";
-        left += Stat("Move Speed", s.moveSpeed, baseMoveSpeed);
-        left += Stat("Jump Force", s.jumpForce, baseJumpForce);
-        left += Stat("Dash Distance", s.dashDistance, baseDashDist);
-        left += Stat("Dash Cost", s.dashCost, baseDashCost);
-        left += Stat("Dash Invinc", s.dashInvincibilityWindow, baseDashInvinc, "F2");
-        left += Stat("Max Energy", s.maxEnergy, baseMaxEnergy);
-        left += $"{"Energy",-18}<color=#FFFFFF>{(playerEnergy != null ? playerEnergy.currentEnergy : 0f):F0}</color>\n";
-        left += Stat("Hover Drain/s", s.hoverDrainRate, baseHoverDrain);
-        left += Stat("Charge Drain/s", s.arrowChargeDrainRate, baseChargeDrain);
-        left += Stat("Charge Time", s.arrowChargeDuration, baseChargeDur, "F2");
-        left += Stat("Wall Slide", s.wallSlideSpeed, baseWallSlide);
-        left += Stat("Loot Range", s.lootRange, baseLootRange);
-        left += Stat("Luck", s.luck, baseLuck);
-        left += "\n";
+        Header("FFD700", "MOVEMENT");
+        Stat("Move Speed", s.moveSpeed, baseMoveSpeed);
+        Stat("Jump Force", s.jumpForce, baseJumpForce);
+        Stat("Dash Distance", s.dashDistance, baseDashDist);
+        Stat("Dash Cost", s.dashCost, baseDashCost);
+        Stat("Dash Invinc", s.dashInvincibilityWindow, baseDashInvinc, "F2");
+        Stat("Max Energy", s.maxEnergy, baseMaxEnergy);
+        Line("Energy", White + (playerEnergy != null ? playerEnergy.currentEnergy : 0f).ToString("F0") + EndColor);
+        Stat("Hover Drain/s", s.hoverDrainRate, baseHoverDrain);
+        Stat("Charge Drain/s", s.arrowChargeDrainRate, baseChargeDrain);
+        Stat("Charge Time", s.arrowChargeDuration, baseChargeDur, "F2");
+        Stat("Wall Slide", s.wallSlideSpeed, baseWallSlide);
+        Stat("Loot Range", s.lootRange, baseLootRange);
+        Stat("Luck", s.luck, baseLuck);
+        sb.Append('\n');
 
         // -- Combat --
-        left += "<b><color=#FFD700>== COMBAT ==</color></b>\n";
-        left += $"{"HP",-18}<color=#FFFFFF>{(hp != null ? hp.CurrentHP : 0)} / {s.maxHP}</color>\n";
-        left += Stat("Arrow Damage", s.arrowDamage, baseArrowDamage);
-        left += Stat("Dash Damage", s.dashDamage, baseDashDamage);
-        left += StatPct("Crit Chance", s.critChance, baseCritChance);
-        left += StatPct("Crit Multi", s.critMultiplier, baseCritMultiplier);
-        left += Stat("Knockback", s.knockbackForce, baseKnockback);
-        left += StatPct("Lifesteal", s.lifeSteal, baseLifesteal);
-        left += StatPct("Burn", s.burnStrength, baseBurn);
-        left += StatPct("Freeze", s.freezeStrength, baseFreeze);
-        left += StatPct("Holy", s.holyStrength, baseHoly);
-        left += StatPct("Shock", s.shockStrength, baseShock);
-        left += "\n";
+        Header("FFD700", "COMBAT");
+        Line("HP", White + (hp != null ? hp.CurrentHP : 0) + " / " + s.maxHP + EndColor);
+        Stat("Arrow Damage", s.arrowDamage, baseArrowDamage);
+        Stat("Dash Damage", s.dashDamage, baseDashDamage);
+        StatPct("Crit Chance", s.critChance, baseCritChance);
+        StatPct("Crit Multi", s.critMultiplier, baseCritMultiplier);
+        Stat("Knockback", s.knockbackForce, baseKnockback);
+        StatPct("Lifesteal", s.lifeSteal, baseLifesteal);
+        StatPct("Burn", s.burnStrength, baseBurn);
+        StatPct("Freeze", s.freezeStrength, baseFreeze);
+        StatPct("Holy", s.holyStrength, baseHoly);
+        StatPct("Shock", s.shockStrength, baseShock);
+        sb.Append('\n');
 
         // -- Ammo --
-        left += "<b><color=#FFD700>== AMMO ==</color></b>\n";
-        left += StatInt("Arrows", s.CurrentArrows, s.CurrentArrows);
-        left += $"{"Max Arrows",-18}";
-        left += StatInt("", s.MaxArrows, baseMaxArrows).TrimStart();
+        Header("FFD700", "AMMO");
+        StatInt("Arrows", s.CurrentArrows, s.CurrentArrows);
+        StatInt("Max Arrows", s.MaxArrows, baseMaxArrows);
 
-        return left;
+        return sb.ToString();
     }
 
     // ================================================================
@@ -460,10 +498,11 @@ public class StatsUI : MonoBehaviour
 
     private string BuildRight()
     {
-        var s = playerStats;
+        RunStats h = playerStats.history;
+        sb.Clear();
 
         // -- Active Upgrades (hoverable via TMP links) --
-        string right = "<b><color=#FF99FF>== ACTIVE UPGRADES ==</color></b>\n";
+        Header("FF99FF", "ACTIVE UPGRADES");
         if (upgradeManager != null)
         {
             bool any = false;
@@ -471,46 +510,49 @@ public class StatsUI : MonoBehaviour
             {
                 PlayerUpgrade upgrade = upgradeManager.GetUpgrade(id);
                 string name = upgrade != null ? upgrade.displayName : id;
-                right += $"  <link=\"{id}\"><color=#AAFFAA>{name}</color></link>\n";
+                sb.Append("  <link=\"").Append(id).Append("\"><color=#AAFFAA>").Append(name)
+                  .Append("</color></link>\n");
                 any = true;
             }
-            if (!any) right += "  <color=#888888>None</color>\n";
+            if (!any) sb.Append("  <color=#888888>None</color>\n");
         }
-        right += "\n";
+        sb.Append('\n');
 
         // -- Run History --
-        right +=
-            "<b><color=#FF6666>== HISTORY: MOVEMENT ==</color></b>\n" +
-            $"{"Distance",-18}{s.totalDistance:F0}m\n" +
-            $"{"Jumps",-18}{s.jumpsPerformed}\n" +
-            $"{"Wall Slides",-18}{s.wallSlideCount} ({s.totalWallSlideDuration:F1}s)\n" +
-            $"{"Hovers",-18}{s.hoverCount} ({s.totalHoverDuration:F1}s)\n" +
-            $"{"Dashes",-18}{s.dashCount} (E:{s.dashesHitEnemy} W:{s.dashesHitWall})\n" +
-            "\n" +
-            "<b><color=#FF6666>== HISTORY: COMBAT ==</color></b>\n" +
-            $"{"Arrows Fired",-18}{s.totalArrowsFired} (L:{s.weakArrowsFired} M:{s.mediumArrowsFired} S:{s.chargedArrowsFired})\n" +
-            $"{"Arrows Hit",-18}{s.arrowsHitEnemy}\n" +
-            $"{"Kills",-18}{s.enemiesKilled}\n" +
-            $"{"Dmg Dealt",-18}{s.totalDamageDealt:F0}\n" +
-            $"{"Crits",-18}{s.critsLanded}\n" +
-            $"{"Status",-18}B:{s.burnApplied} F:{s.freezeApplied} H:{s.holyApplied} S:{s.shockApplied}\n" +
-            "\n" +
-            "<b><color=#FF6666>== HISTORY: RESOURCES ==</color></b>\n" +
-            $"{"Souls",-18}{s.soulsCollected}\n" +
-            $"{"XP",-18}{s.xpGained:F0}\n" +
-            $"{"Energy",-18}{s.energyGainedTotal:F0}\n" +
-            $"{"  Kills",-18}{s.energyFromKills:F0}\n" +
-            $"{"  Falling",-18}{s.energyFromFalling:F0}\n" +
-            $"{"  Lava",-18}{s.energyFromLava:F0}\n" +
-            $"{"  Wall Slide",-18}{s.energyFromWallSlide:F0}\n" +
-            "\n" +
-            "<b><color=#FF6666>== HISTORY: SURVIVAL ==</color></b>\n" +
-            $"{"Dmg Taken",-18}{s.damageTaken:F0}\n" +
-            $"{"Times Hit",-18}{s.timesHit}\n" +
-            $"{"HP Restored",-18}{s.hpRestored:F0}\n" +
-            $"{"Extra Life",-18}{(PlayerHealth.HasExtraLife ? "<color=#66FF66>YES</color>" : "<color=#888888>no</color>")}\n" +
-            $"{"Layers Done",-18}{s.layersCompleted}\n";
+        Header("FF6666", "HISTORY: MOVEMENT");
+        Line("Distance", h.totalDistance.ToString("F0") + "m");
+        Line("Jumps", h.jumpsPerformed.ToString());
+        Line("Wall Slides", $"{h.wallSlideCount} ({h.totalWallSlideDuration:F1}s)");
+        Line("Hovers", $"{h.hoverCount} ({h.totalHoverDuration:F1}s)");
+        Line("Dashes", $"{h.dashCount} (E:{h.dashesHitEnemy} W:{h.dashesHitWall})");
+        sb.Append('\n');
 
-        return right;
+        Header("FF6666", "HISTORY: COMBAT");
+        Line("Arrows Fired", $"{h.totalArrowsFired} (L:{h.weakArrowsFired} M:{h.mediumArrowsFired} S:{h.chargedArrowsFired})");
+        Line("Arrows Hit", h.arrowsHitEnemy.ToString());
+        Line("Kills", h.enemiesKilled.ToString());
+        Line("Dmg Dealt", h.totalDamageDealt.ToString("F0"));
+        Line("Crits", h.critsLanded.ToString());
+        Line("Status", $"B:{h.burnApplied} F:{h.freezeApplied} H:{h.holyApplied} S:{h.shockApplied}");
+        sb.Append('\n');
+
+        Header("FF6666", "HISTORY: RESOURCES");
+        Line("Souls", h.soulsCollected.ToString());
+        Line("XP", h.xpGained.ToString("F0"));
+        Line("Energy", h.energyGainedTotal.ToString("F0"));
+        Line("  Kills", h.energyFromKills.ToString("F0"));
+        Line("  Falling", h.energyFromFalling.ToString("F0"));
+        Line("  Lava", h.energyFromLava.ToString("F0"));
+        Line("  Wall Slide", h.energyFromWallSlide.ToString("F0"));
+        sb.Append('\n');
+
+        Header("FF6666", "HISTORY: SURVIVAL");
+        Line("Dmg Taken", h.damageTaken.ToString("F0"));
+        Line("Times Hit", h.timesHit.ToString());
+        Line("HP Restored", h.hpRestored.ToString("F0"));
+        Line("Extra Life", PlayerHealth.HasExtraLife ? "<color=#66FF66>YES</color>" : "<color=#888888>no</color>");
+        Line("Layers Done", h.layersCompleted.ToString());
+
+        return sb.ToString();
     }
 }

@@ -4,7 +4,7 @@ using System.Collections;
 
 public class PlayerEnergy : MonoBehaviour
 {
-    [Header("Energy Settings � defaults, overridden by PlayerStats at runtime")]
+    [Header("Energy Settings — defaults, overridden by PlayerStats at runtime")]
     public float maxEnergy = 100f;
     public float currentEnergy = 0f;
 
@@ -23,22 +23,26 @@ public class PlayerEnergy : MonoBehaviour
 
     private PlayerMovement playerMovement;
     private PlayerStats playerStats;
+    private PlayerUpgradeManager upgradeManager;
+    private bool lavaDrainedNotified;
     private LavaZone currentLavaZone;
     private Collider currentLavaCollider;
     private CapsuleCollider playerCapsule;
     private Color energyTextOriginalColor;
     private Coroutine insufficientFlashRoutine;
+    private int shownEnergy = int.MinValue;   // last value written to the HUD text
 
     // Always read max energy from PlayerStats when available
     private float MaxEnergy => playerStats != null ? playerStats.maxEnergy : maxEnergy;
 
-    // Regen multiplier from PlayerStats � applied to ALL energy gained
+    // Regen multiplier from PlayerStats — applied to ALL energy gained
     private float RegenMultiplier => playerStats != null ? playerStats.energyRegenMultiplier : 1f;
 
     void Start()
     {
         playerMovement = GetComponent<PlayerMovement>();
         playerStats = GetComponent<PlayerStats>();
+        upgradeManager = GetComponent<PlayerUpgradeManager>();
         playerCapsule = GetComponent<CapsuleCollider>();
 
         // Spawned-prefab support: pull scene HUD refs not wired on the prefab
@@ -60,6 +64,7 @@ public class PlayerEnergy : MonoBehaviour
 
     private void HandleEnergyGain()
     {
+        if (playerMovement == null) return;
         float yVelocity = playerMovement.GetVelocity().y;
 
         if (yVelocity < 0f)
@@ -78,18 +83,33 @@ public class PlayerEnergy : MonoBehaviour
             if (actualGain > 0f)
             {
                 currentEnergy += actualGain;
-                playerStats?.RecordEnergyGained(actualGain, source);
+                if (playerStats != null) playerStats.RecordEnergyGained(actualGain, source);
             }
         }
 
         if (currentLavaZone != null)
         {
-            float lavaGain = currentLavaZone.DrainEnergy(Time.deltaTime) * RegenMultiplier;
+            float drained = currentLavaZone.DrainEnergy(Time.deltaTime);
+            if (upgradeManager != null)
+            {
+                if (drained > 0f)
+                {
+                    upgradeManager.LavaTick(Time.deltaTime);
+                    lavaDrainedNotified = false;
+                }
+                else if (!lavaDrainedNotified)
+                {
+                    lavaDrainedNotified = true;
+                    upgradeManager.LavaZoneDrained();
+                }
+            }
+
+            float lavaGain = drained * RegenMultiplier;
             float actualGain = Mathf.Min(lavaGain, MaxEnergy - currentEnergy);
             if (actualGain > 0f)
             {
                 currentEnergy += actualGain;
-                playerStats?.RecordEnergyGained(actualGain, EnergySource.Lava);
+                if (playerStats != null) playerStats.RecordEnergyGained(actualGain, EnergySource.Lava);
             }
         }
 
@@ -104,7 +124,7 @@ public class PlayerEnergy : MonoBehaviour
         if (actualGain > 0f)
         {
             currentEnergy += actualGain;
-            playerStats?.RecordEnergyGained(actualGain, EnergySource.Kill);
+            if (playerStats != null) playerStats.RecordEnergyGained(actualGain, EnergySource.Kill);
         }
         UpdateEnergyUI();
     }
@@ -115,6 +135,7 @@ public class PlayerEnergy : MonoBehaviour
         if (currentEnergy >= amount)
         {
             currentEnergy -= amount;
+            UpdateEnergyUI();
             return true;
         }
         return false;
@@ -129,8 +150,11 @@ public class PlayerEnergy : MonoBehaviour
 
     private void UpdateEnergyUI()
     {
-        if (energyTMPText != null)
-            energyTMPText.text = "Energy: " + Mathf.FloorToInt(currentEnergy).ToString();
+        if (energyTMPText == null) return;
+        int shown = Mathf.FloorToInt(currentEnergy);
+        if (shown == shownEnergy) return;   // no string/mesh rebuild when unchanged
+        shownEnergy = shown;
+        energyTMPText.text = "Energy: " + shown;
     }
 
     // ================================================================

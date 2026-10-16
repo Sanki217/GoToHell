@@ -1,12 +1,15 @@
 ﻿using UnityEngine;
-using System.Collections;
+using UnityEngine.Pool;
 using System.Collections.Generic;
 
 /// <summary>
 /// Enemy Explosion upgrade.
 /// Effect: enemies explode on death, dealing AoE damage with falloff.
-/// Final damage  = damage + damageAP × AbilityPower
+/// Final damage  = damage + damageAP × Psyche
 /// Final radius  = radius + radiusSize × Size
+///
+/// No chain reactions: an enemy killed BY an explosion does not explode
+/// itself (victims are remembered for the current frame).
 /// </summary>
 public class UpgradeEnemyExplosion : PlayerUpgrade
 {
@@ -18,20 +21,30 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
     public float debugVisualDuration = 0.25f;
 
     private PlayerStats playerStats;
-    private MonoBehaviour host;
+    private PlayerUpgradeManager upgradeManager;
+
+    // Enemies hit by an explosion this frame — their deaths don't explode
+    private readonly HashSet<int> victims = new HashSet<int>();
+    private int victimsFrame = -1;
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
+        upgradeManager = mgr;
         playerStats = mgr.GetComponent<PlayerStats>();
-        host = mgr;
         mgr.OnEnemyKilled += OnEnemyKilled;
+    }
+
+    private void OnDestroy()
+    {
+        if (upgradeManager != null) upgradeManager.OnEnemyKilled -= OnEnemyKilled;
     }
 
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
         if (stats == null) return description;
-        float dmg = damage + damageAP * stats.psyche;
-        float rad = radius + radiusSize * stats.size;
+        var s = Simulate(stats, simulatedBonuses);
+        float dmg = damage + damageAP * s.psyche;
+        float rad = radius + radiusSize * s.size;
         return $"Enemies explode on death dealing {PSY(dmg)} damage in {SZ(rad)} radius.\n" +
                $"Scales with <color=#FF66CC>Psyche</color> and <color=#AAAAAA>Size</color>.";
     }
@@ -45,73 +58,51 @@ public class UpgradeEnemyExplosion : PlayerUpgrade
     private void OnEnemyKilled(GameObject enemyGO)
     {
         if (enemyGO == null) return;
-        if (enemyGO.TryGetComponent<ExplosionVictim>(out _)) return;
+
+        if (victimsFrame != Time.frameCount)
+        {
+            victims.Clear();
+            victimsFrame = Time.frameCount;
+        }
+        if (victims.Contains(enemyGO.GetInstanceID())) return;   // killed by an explosion — no chain
 
         float dmg = GetDamage();
         float rad = GetRadius();
         Vector3 pos = enemyGO.transform.position;
 
-        host?.StartCoroutine(ShowSphere(pos, rad));
+        DebugShapes.Sphere(pos, rad, new Color(1f, 0.1f, 0.1f, 0.35f), debugVisualDuration);
 
-        Collider[] hits = Physics.OverlapSphere(pos, rad);
-        foreach (var hit in hits)
+        float kb = playerStats != null ? playerStats.knockbackForce : 0f;
+
+        List<Enemy> hits = ListPool<Enemy>.Get();
+        CombatQuery.OverlapEnemies(pos, rad, hits);
+        foreach (Enemy nearby in hits)
         {
-            if (!hit.CompareTag("Enemy")) continue;
-            var nearby = hit.GetComponent<Enemy>();
-            if (nearby == null || hit.gameObject == enemyGO) continue;
+            if (nearby == null || nearby.IsDead || nearby.gameObject == enemyGO) continue;
 
-            if (!hit.gameObject.TryGetComponent<ExplosionVictim>(out _))
-            {
-                var v = hit.gameObject.AddComponent<ExplosionVictim>();
-                host?.StartCoroutine(RemoveVictim(v));
-            }
+            victims.Add(nearby.gameObject.GetInstanceID());
 
-            float dist = Vector3.Distance(pos, hit.transform.position);
+            float dist = Vector3.Distance(pos, nearby.transform.position);
             float falloff = 1f - Mathf.Clamp01(dist / rad);
             int rounded = Mathf.Max(1, Mathf.RoundToInt(dmg * falloff));
-            Vector3 dir = (hit.transform.position - pos).normalized;
-            dir.z = 0f;
+            Vector3 dir = CombatQuery.PlanarDirection(pos, nearby.transform.position, Vector3.right);
 
-            nearby.TakeDamage(rounded, pos, dir,
-                playerStats != null ? playerStats.knockbackForce : 0f,
-                false, FloatingTextManager.HitType.Normal);
-            playerStats?.RecordDamageDealt(dmg * falloff, DamageSource.Explosion, nearby.gameObject);
+            GameObject nearbyGO = nearby.gameObject;
+            nearby.TakeDamage(rounded, pos, dir, kb, false, FloatingTextManager.HitType.Normal);
+            if (playerStats != null)
+                playerStats.RecordDamageDealt(dmg * falloff, DamageSource.Explosion, nearbyGO);
         }
+        ListPool<Enemy>.Release(hits);
 
-        foreach (var hit in hits)
-        {
-            hit.GetComponent<ExplosiveBarrel>()?.TakeDamage(Mathf.RoundToInt(dmg));
-            hit.GetComponent<Vase>()?.TakeDamage(Mathf.RoundToInt(dmg));
-        }
+        List<IDestructible> breakables = ListPool<IDestructible>.Get();
+        CombatQuery.OverlapDestructibles(pos, rad, breakables);
+        foreach (IDestructible d in breakables)
+            d.TakeDamage(Mathf.RoundToInt(dmg));
+        ListPool<IDestructible>.Release(breakables);
 
         FXManager.Play(ActionFX.EnemyDeath, pos);
     }
 
-    private IEnumerator RemoveVictim(ExplosionVictim v)
-    {
-        yield return null;
-        if (v != null) Object.Destroy(v);
-    }
-
-    private IEnumerator ShowSphere(Vector3 pos, float rad)
-    {
-        var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        Object.Destroy(sphere.GetComponent<Collider>());
-        sphere.transform.position = pos;
-        sphere.transform.localScale = Vector3.one * rad * 2f;
-        var r = sphere.GetComponent<Renderer>();
-        if (r != null) r.material = MakeTransparentMaterial(new Color(1f, 0.1f, 0.1f, 0.35f));
-        yield return new WaitForSeconds(debugVisualDuration);
-        Object.Destroy(sphere);
-    }
-
-    public static Material MakeTransparentMaterial(Color color)
-    {
-        var shader = Shader.Find("Unlit/Transparent") ?? Shader.Find("Sprites/Default");
-        var mat = new Material(shader);
-        mat.color = color;
-        return mat;
-    }
+    /// <summary>Kept for existing callers — use DebugShapes.GetMaterial for new code.</summary>
+    public static Material MakeTransparentMaterial(Color color) => DebugShapes.GetMaterial(color);
 }
-
-public class ExplosionVictim : MonoBehaviour { }

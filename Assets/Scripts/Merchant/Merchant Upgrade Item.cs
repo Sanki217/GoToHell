@@ -9,7 +9,7 @@ using System.Collections.Generic;
 /// Setup per item:
 ///   1. Place a GameObject in the merchant zone with a mesh + SphereCollider (trigger, radius ~3)
 ///   2. Add this script
-///   3. Assign upgradePrefab � a prefab with UpgradeOrb + a PlayerUpgrade subclass on it
+///   3. Assign upgradePrefab — a prefab with UpgradeOrb + a PlayerUpgrade subclass on it
 ///   4. Assign upgradePool so stat bonuses can be rolled on Start
 ///   5. Set soulCost and rarity (or call RollOffer() from level setup code)
 ///   6. Wire all UI text/panel references
@@ -20,16 +20,16 @@ using System.Collections.Generic;
 public class MerchantUpgradeItem : MonoBehaviour
 {
     [Header("Upgrade")]
-    [Tooltip("Orb prefab � must have UpgradeOrb + a PlayerUpgrade subclass on it.")]
+    [Tooltip("Orb prefab — must have UpgradeOrb + a PlayerUpgrade subclass on it.")]
     public GameObject upgradePrefab;
     public PlayerUpgradePool upgradePool;
     public UpgradeRarity rarity = UpgradeRarity.Common;
     public int soulCost = 50;
 
-    [Header("World UI � always visible")]
+    [Header("World UI — always visible")]
     public TMP_Text priceLabel;
 
-    [Header("Proximity UI � shown on approach")]
+    [Header("Proximity UI — shown on approach")]
     public GameObject proximityPanel;
     public TMP_Text descriptionLabel;
     public TMP_Text nameLabel;
@@ -55,10 +55,8 @@ public class MerchantUpgradeItem : MonoBehaviour
     private bool playerInRange = false;
     private bool purchased = false;
 
-    private Transform playerTransform;
-    private PlayerInventory inventory;
-    private PlayerUpgradeManager upgradeManager;
-    private PlayerStats playerStats;
+    private PlayerInventory Inventory => PlayerRefs.I != null ? PlayerRefs.I.Inventory : null;
+    private PlayerStats Stats => PlayerRefs.I != null ? PlayerRefs.I.Stats : null;
 
     // Rolled once on Start and displayed; injected into the orb on purchase
     private UpgradeOrbOffer rolledOffer;
@@ -71,21 +69,9 @@ public class MerchantUpgradeItem : MonoBehaviour
 
     private void Start()
     {
-        var refs = PlayerRefs.I;
-        if (refs != null)
-        {
-            playerTransform = refs.T;
-            inventory = refs.Inventory;
-            upgradeManager = refs.Upgrades;
-            playerStats = refs.Stats;
-        }
-
-        if (upgradePrefab != null && upgradePool != null)
-        {
-            PlayerUpgrade upgrade = upgradePrefab.GetComponent<PlayerUpgrade>();
-            if (upgrade != null)
-                rolledOffer = upgradePool.BuildOffer(upgradePrefab, upgrade, rarity, playerStats);
-        }
+        if (upgradePrefab != null && upgradePool != null
+            && upgradePrefab.TryGetComponent(out PlayerUpgrade upgrade))
+            rolledOffer = upgradePool.BuildOffer(upgradePrefab, upgrade, rarity, Stats);
 
         UpdatePriceLabel();
         if (proximityPanel != null) proximityPanel.SetActive(false);
@@ -110,7 +96,7 @@ public class MerchantUpgradeItem : MonoBehaviour
 
         if (!playerInRange) return;
 
-        if (Input.GetKeyDown(KeyCode.E))
+        if (GameInput.InteractPressed && !GameTime.IsPaused)
             TryPurchase();
     }
 
@@ -140,6 +126,7 @@ public class MerchantUpgradeItem : MonoBehaviour
 
     private void TryPurchase()
     {
+        PlayerInventory inventory = Inventory;
         if (inventory == null) return;
 
         if (!inventory.SpendSouls(soulCost))
@@ -161,14 +148,13 @@ public class MerchantUpgradeItem : MonoBehaviour
         if (upgradePrefab == null) return;
 
         GameObject obj = Instantiate(upgradePrefab, transform.position, Quaternion.identity);
-        UpgradeOrb orb = obj.GetComponent<UpgradeOrb>();
-        if (orb == null) return;
+        if (!obj.TryGetComponent(out UpgradeOrb orb)) return;
 
         // Inject the stat bonuses that were rolled and displayed
         orb.rolledStatBonuses = rolledOffer?.statBonuses?.ToArray();
         orb.rolledRarity = rarity;
 
-        // Pop upward � Looter will pick it up and attract it
+        // Pop upward — Looter will pick it up and attract it
         orb.Initialize(Vector3.up, spawnEjectForce);
     }
 
@@ -220,7 +206,7 @@ public class MerchantUpgradeItem : MonoBehaviour
         }
 
         if (buyPromptLabel != null)
-            buyPromptLabel.text = $"[E] Buy � {soulCost} Souls";
+            buyPromptLabel.text = $"[E] Buy — {soulCost} Souls";
     }
 
     private IEnumerator FlashNotEnoughSouls()
@@ -247,12 +233,9 @@ public class MerchantUpgradeItem : MonoBehaviour
     {
       //  rarity = UpgradeRarityRoller.Roll(layer, luck);
 
-        if (upgradePrefab != null && upgradePool != null)
-        {
-            PlayerUpgrade upgrade = upgradePrefab.GetComponent<PlayerUpgrade>();
-            if (upgrade != null)
-                rolledOffer = upgradePool.BuildOffer(upgradePrefab, upgrade, rarity, playerStats);
-        }
+        if (upgradePrefab != null && upgradePool != null
+            && upgradePrefab.TryGetComponent(out PlayerUpgrade upgrade))
+            rolledOffer = upgradePool.BuildOffer(upgradePrefab, upgrade, rarity, Stats);
 
         UpdatePriceLabel();
         BuildProximityPanel();

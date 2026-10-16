@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbfe3565be720be40ad6ddc4efa3e632, type: 3}
+  m_Name: MetaProgressionConfig
+  m_EditorClassIdentifier: Assembly-CSharp::MetaProgressionConfig
+  currencyName: Brimstone
+  currencyIcon: {fileID: 0}
+  perEnemyKilled: 0.25
+  perLayerReached: 10
+  perLayerCompleted: 15
+  perPlayerLevel: 2
+  perMinuteSurvived: 1
+  victoryBonus: 100
+  currencyPercentPerHeat: 10
+  maxActivePacts: 1

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
@@ -58,6 +58,8 @@ public class ChestRewardUI : MonoBehaviour
     //  PRIVATE STATE
     // ================================================================
 
+    private static readonly int RarityCount = System.Enum.GetValues(typeof(UpgradeRarity)).Length;
+
     private bool isOpen = false;
     private UpgradeOrbOffer pendingOffer;
     private Chest sourceChest;
@@ -80,19 +82,31 @@ public class ChestRewardUI : MonoBehaviour
 
     private void Start()
     {
-        if (playerStats == null)
-        {
-            var refs = PlayerRefs.I;
-            if (refs != null)
-            {
-                playerStats = refs.Stats;
-                upgradeManager = refs.Upgrades;
-                playerState = refs.StateCtrl;
-            }
-        }
+        ResolvePlayerRefs();
 
         if (collectButton != null)
             collectButton.onClick.AddListener(OnCollectClicked);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
+    private void OnDisable()
+    {
+        // Never leave the game frozen if the UI is torn down mid-roll
+        if (isOpen) Close();
+    }
+
+    private void ResolvePlayerRefs()
+    {
+        if (playerStats != null && upgradeManager != null && playerState != null) return;
+        var refs = PlayerRefs.I;
+        if (refs == null) return;
+        if (playerStats == null) playerStats = refs.Stats;
+        if (upgradeManager == null) upgradeManager = refs.Upgrades;
+        if (playerState == null) playerState = refs.StateCtrl;
     }
 
     // ================================================================
@@ -102,9 +116,10 @@ public class ChestRewardUI : MonoBehaviour
     public void Show(float luck, PlayerStats statsOverride = null, Chest chest = null)
     {
         if (isOpen || upgradePool == null || upgradePool.upgradePrefabs.Count == 0) return;
+        ResolvePlayerRefs();
 
-        PlayerStats effectiveStats = statsOverride ?? playerStats;
-        float effectiveLuck = effectiveStats != null ? effectiveStats.luck : luck;
+        PlayerStats effectiveStats = statsOverride != null ? statsOverride : playerStats;
+        float effectiveLuck = (effectiveStats != null ? effectiveStats.luck : luck) + RunModifiers.RarityLuck;
 
         pendingOffer = upgradePool.RollChestOffer(effectiveLuck, effectiveStats, upgradeManager);
         if (pendingOffer == null) return;
@@ -112,10 +127,10 @@ public class ChestRewardUI : MonoBehaviour
         sourceChest = chest;
 
         isOpen = true;
-        GameTime.Pause();
-        playerState?.DisableControl();
+        GameTime.Pause(this);
+        if (playerState != null) playerState.AddBlocker(this);
 
-        chestPanel.SetActive(true);
+        if (chestPanel != null) chestPanel.SetActive(true);
         if (resultCard != null) resultCard.SetActive(false);
         if (collectButton != null) collectButton.gameObject.SetActive(false);
         if (rollingNameLabel != null) rollingNameLabel.gameObject.SetActive(true);
@@ -140,7 +155,7 @@ public class ChestRewardUI : MonoBehaviour
         while (elapsed < rollDuration)
         {
             // Any key/click skips straight to the result
-            if (Input.anyKeyDown) break;
+            if (GameInput.AnyKeyPressed) break;
 
             elapsed += Time.unscaledDeltaTime;
             float t = elapsed / rollDuration;
@@ -155,7 +170,7 @@ public class ChestRewardUI : MonoBehaviour
 
                 if (rollingBackground != null)
                 {
-                    UpgradeRarity randRarity = (UpgradeRarity)Random.Range(0, 4);
+                    UpgradeRarity randRarity = (UpgradeRarity)Random.Range(0, RarityCount);
                     Color c = UpgradeRarityRoller.GetRarityColor(randRarity); c.a = 0.4f;
                     rollingBackground.color = c;
                 }
@@ -173,7 +188,7 @@ public class ChestRewardUI : MonoBehaviour
         while (shown < autoCollectDelay)
         {
             shown += Time.unscaledDeltaTime;
-            if (Input.anyKeyDown) break;
+            if (GameInput.AnyKeyPressed) break;
             yield return null;
         }
 
@@ -248,22 +263,22 @@ public class ChestRewardUI : MonoBehaviour
         SpawnOrb(offerToSpawn);
 
         // Souls burst from the chest in the world, like a breaking vase
-        chest?.BurstSouls();
+        if (chest != null) chest.BurstSouls();
     }
 
     private void SpawnOrb(UpgradeOrbOffer offer)
     {
+        if (offer.prefab == null) return;
+
         Transform playerTransform = upgradeManager != null
             ? upgradeManager.transform
-            : PlayerRefs.I?.T;
+            : (PlayerRefs.I != null ? PlayerRefs.I.T : null);
 
         if (playerTransform == null) return;
 
         Vector3 spawnPos = playerTransform.position + spawnOffset;
         GameObject obj = Instantiate(offer.prefab, spawnPos, Quaternion.identity);
-        UpgradeOrb orb = obj.GetComponent<UpgradeOrb>();
-
-        if (orb == null) return;
+        if (!obj.TryGetComponent(out UpgradeOrb orb)) return;
 
         orb.rolledStatBonuses = offer.statBonuses?.ToArray();
         orb.rolledRarity = offer.rarity;
@@ -283,12 +298,12 @@ public class ChestRewardUI : MonoBehaviour
         isOpen = false;
         pendingOffer = null;
         sourceChest = null;
-        GameTime.Resume();
-        chestPanel.SetActive(false);
+        GameTime.Unpause(this);
+        if (chestPanel != null) chestPanel.SetActive(false);
 
         if (rollingNameLabel != null) rollingNameLabel.gameObject.SetActive(true);
         if (rollingBackground != null) rollingBackground.gameObject.SetActive(true);
 
-        playerState?.EnableControl();
+        if (playerState != null) playerState.RemoveBlocker(this);
     }
 }

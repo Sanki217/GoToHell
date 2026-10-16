@@ -25,6 +25,11 @@ public class FloatingTextManager : MonoBehaviour
         Instance = this;
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     // ================================================================
     //  HIT TYPE DEFINITIONS
     // ================================================================
@@ -44,7 +49,7 @@ public class FloatingTextManager : MonoBehaviour
     // ================================================================
 
     [Header("Prefab")]
-    public GameObject floatingTextPrefab;  // assign in Inspector � see setup instructions
+    public GameObject floatingTextPrefab;  // assign in Inspector — see setup instructions
 
     [Header("Settings")]
     public bool showDamageNumbers = true;  // toggled from Settings menu
@@ -109,11 +114,10 @@ public class FloatingTextManager : MonoBehaviour
         Vector3 spawnPos = position + new Vector3(Random.Range(-0.3f, 0.3f), 0.3f, 0f);
 
         GameObject go = Pool.Spawn(floatingTextPrefab, spawnPos, Quaternion.identity);
-        FloatingText ft = go.GetComponent<FloatingText>();
-
-        if (ft == null)
+        if (!go.TryGetComponent(out FloatingText ft))
         {
             Debug.LogWarning("[FloatingTextManager] Prefab has no FloatingText component!");
+            Pool.Despawn(go);
             return;
         }
 
@@ -139,6 +143,7 @@ public class FloatingTextManager : MonoBehaviour
         HitType.BurnTick    => sizeBurn,
         HitType.HolyDetonate=> sizeHoly,
         HitType.ShockConsume=> sizeShock,
+        HitType.FrozenHit   => sizeFrozen,
         _                   => sizeNormal
     };
 }

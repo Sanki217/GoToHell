@@ -121,6 +121,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   category: 0
   rarity: 0
+  tags: 8193
   requiredWeaponId: bow
   requiredClassId: 
   statCountCommon: 1

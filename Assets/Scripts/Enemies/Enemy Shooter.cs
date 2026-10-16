@@ -1,6 +1,11 @@
 using UnityEngine;
 using System.Collections;
 
+/// <summary>
+/// Stationary turret-style enemy: fires pooled projectiles at the player when
+/// in range. Knockback pushes it off its home spot; it eases back afterwards.
+/// Fire rate scales with Enemy.SpeedMultiplier (Freeze slows shooting too).
+/// </summary>
 [RequireComponent(typeof(Enemy))]
 public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
 {
@@ -30,27 +35,36 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
 
     private Vector3 homePosition;
     private float cooldownTimer = 0f;
-    private Transform player;
 
     private bool knockedBack = false;
     private bool returning = false;
     private float returnVelX = 0f;
     private float returnVelY = 0f;
 
+    private Enemy enemy;
     private Collider[] selfColliders;
 
     // ================================================================
     //  INIT
     // ================================================================
 
+    private void Awake()
+    {
+        enemy = GetComponent<Enemy>();
+    }
+
     private void Start()
     {
         homePosition = transform.position;
         selfColliders = GetComponentsInChildren<Collider>(true);
-
-        if (PlayerRefs.I != null) player = PlayerRefs.I.T;
-
         cooldownTimer = Random.Range(0f, attackCooldown);
+    }
+
+    private void OnDisable()
+    {
+        // Slept by SceneOptimizer mid-knockback: resume by returning home
+        StopAllCoroutines();
+        if (knockedBack) { knockedBack = false; returning = true; }
     }
 
     // ================================================================
@@ -61,17 +75,16 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
     {
         if (knockedBack) return;
 
+        float dt = Time.deltaTime;
+
         // Smooth return to home after knockback
         if (returning)
         {
-            float x = Mathf.SmoothDamp(transform.position.x, homePosition.x,
-                                        ref returnVelX, 0.25f, returnSpeed, Time.deltaTime);
-            float y = Mathf.SmoothDamp(transform.position.y, homePosition.y,
-                                        ref returnVelY, 0.25f, returnSpeed, Time.deltaTime);
+            float x = Mathf.SmoothDamp(transform.position.x, homePosition.x, ref returnVelX, 0.25f, returnSpeed, dt);
+            float y = Mathf.SmoothDamp(transform.position.y, homePosition.y, ref returnVelY, 0.25f, returnSpeed, dt);
             transform.position = new Vector3(x, y, 0f);
 
-            float dist = Vector3.Distance(transform.position, homePosition);
-            if (dist < 0.05f)
+            if ((transform.position - homePosition).sqrMagnitude < 0.0025f)
             {
                 transform.position = homePosition;
                 returning = false;
@@ -81,11 +94,12 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
         }
 
         // Shooting
+        Transform player = PlayerRefs.PlayerTransform;
         if (player == null || projectilePrefab == null) return;
 
         Vector3 toPlayer = player.position - transform.position;
         toPlayer.z = 0f;
-        if (toPlayer.magnitude > attackRange) return;
+        if (toPlayer.sqrMagnitude > attackRange * attackRange) return;
 
         if (facesPlayer && toPlayer.sqrMagnitude > 0.001f)
         {
@@ -93,7 +107,8 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
             transform.rotation = Quaternion.Euler(0f, 0f, angle);
         }
 
-        cooldownTimer += Time.deltaTime;
+        // Slows (Freeze) stretch the cooldown
+        cooldownTimer += dt * (enemy != null ? enemy.SpeedMultiplier : 1f);
         if (cooldownTimer < attackCooldown) return;
 
         cooldownTimer = 0f;
@@ -106,6 +121,7 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
 
     public void ReceiveKnockback(Vector3 impulse, float duration)
     {
+        if (!isActiveAndEnabled) return;
         StopAllCoroutines();
         StartCoroutine(KnockbackRoutine(impulse, duration));
     }
@@ -119,27 +135,23 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
 
         Vector3 velocity = impulse / Mathf.Max(duration, 0.01f);
         velocity.z = 0f;
+        LayerMask mask = Layers.SolidMask;
 
         float elapsed = 0f;
-
         while (elapsed < duration)
         {
             float dt = Time.deltaTime;
             elapsed += dt;
 
             float t = Mathf.Clamp01(elapsed / duration);
-            float scale = 1f - t * t;
-            Vector3 step = velocity * scale * dt;
+            Vector3 step = velocity * (1f - t * t) * dt;
 
-            LayerMask mask = LayerMask.GetMask("Wall", "Ground");
             step = KnockbackBouncer.StepWithWallBounce(
                 step, transform.position, knockbackCastHalf,
                 bounceDamping, mask, selfColliders);
 
-            transform.position = new Vector3(
-                transform.position.x + step.x,
-                transform.position.y + step.y,
-                0f);
+            Vector3 p = transform.position;
+            transform.position = new Vector3(p.x + step.x, p.y + step.y, 0f);
 
             yield return null;
         }
@@ -156,7 +168,8 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
     {
         Vector3 pos = transform.position + dir * muzzleOffset;
         GameObject proj = Pool.Spawn(projectilePrefab, pos, Quaternion.identity);
-        proj.GetComponent<EnemyProjectile>()?.Initialize(dir, projectileSpeed, transform.root);
+        if (proj != null && proj.TryGetComponent(out EnemyProjectile p))
+            p.Initialize(dir, projectileSpeed, transform);
     }
 
     // ================================================================

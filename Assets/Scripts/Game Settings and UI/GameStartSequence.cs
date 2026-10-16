@@ -1,8 +1,12 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using System.Collections;
 
+/// <summary>
+/// Level intro gate: holds the player until any key, kicks them into the
+/// level, then hands over control. Also provides the legacy death fallback
+/// (fade + restart) for scenes tested without a RunSummaryUI.
+/// </summary>
 public class GameStartSequence : MonoBehaviour
 {
     [Header("Setup")]
@@ -29,10 +33,9 @@ public class GameStartSequence : MonoBehaviour
     {
         // Spawned-prefab support: resolve the player via PlayerRefs when unassigned
         if (player == null && PlayerRefs.I != null)
-        {
             player = PlayerRefs.I.StateCtrl;
-            playerRb = PlayerRefs.I.GetComponent<Rigidbody>();
-        }
+        if (playerRb == null && player != null)
+            playerRb = player.GetComponent<Rigidbody>();
 
         if (player == null)
         {
@@ -54,12 +57,12 @@ public class GameStartSequence : MonoBehaviour
 
     void Update()
     {
-        if (waitingForStart && Input.anyKeyDown)
-        {
-            waitingForStart = false;
-            pressAnyButtonText.SetActive(false);
-            StartCoroutine(StartRunRoutine());
-        }
+        if (!waitingForStart || !GameInput.AnyKeyPressed) return;
+        if (GameTime.IsPaused) return;   // e.g. pause menu open over the intro
+
+        waitingForStart = false;
+        if (pressAnyButtonText != null) pressAnyButtonText.SetActive(false);
+        StartCoroutine(StartRunRoutine());
     }
 
     IEnumerator StartRunRoutine()
@@ -67,14 +70,15 @@ public class GameStartSequence : MonoBehaviour
         yield return new WaitForSeconds(delayBeforeKick);
 
         player.allowKickMovement = true;
-        playerRb.AddForce(Vector3.right * kickForce, ForceMode.Impulse);
+        if (playerRb != null)
+            playerRb.AddForce(Vector3.right * kickForce, ForceMode.Impulse);
 
         yield return new WaitForSeconds(delayBeforeControl);
 
         player.EnableControl();
     }
 
-    // Called when player dies
+    // Called when player dies and no RunSummaryUI exists (scene testing)
     public void PlayerDied()
     {
         StartCoroutine(DeathFadeAndReload());
@@ -83,17 +87,17 @@ public class GameStartSequence : MonoBehaviour
     IEnumerator DeathFadeAndReload()
     {
         player.DisableControl();
-        playerRb.linearVelocity = Vector3.zero;
+        if (playerRb != null && !playerRb.isKinematic) playerRb.linearVelocity = Vector3.zero;
 
-        GameTime.Pause();
+        GameTime.Pause(this);
 
         // Fade the single Image alpha from 0 → 1
-        yield return StartCoroutine(FadeImage(0f, 1f, fadeDuration));
+        if (blackScreen != null)
+            yield return StartCoroutine(FadeImage(0f, 1f, fadeDuration));
 
         yield return new WaitForSecondsRealtime(reloadDelay);
 
-        GameTime.Resume();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        SceneFlow.ReloadActiveScene();   // resets time + run-scoped state
     }
 
     IEnumerator FadeImage(float from, float to, float duration)

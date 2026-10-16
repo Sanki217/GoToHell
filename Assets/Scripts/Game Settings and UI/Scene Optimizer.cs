@@ -9,9 +9,9 @@ using System.Collections.Generic;
 /// Two systems:
 ///
 /// 1. ENEMY SLEEP
-///    Enemies far from the player have their movement scripts (EnemyPatrol,
-///    EnemyPatrolVertical, EnemyShooter) disabled. They wake up when the
-///    player gets close enough.
+///    Enemies far from the player have their movement/AI scripts disabled
+///    (Enemy.SetBehavioursEnabled — every IKnockbackReceiver). They wake up
+///    when the player gets close enough.
 ///
 /// 2. RENDERER CULLING
 ///    Disables Renderer components on non-enemy objects outside the camera
@@ -70,7 +70,7 @@ public class SceneOptimizer : MonoBehaviour
         mainCamera = Camera.main;
 
         if (playerTransform == null)
-            playerTransform = PlayerRefs.I?.T;
+            playerTransform = PlayerRefs.PlayerTransform;
 
         CacheRenderers();
         StartCoroutine(OptimizeLoop());
@@ -96,12 +96,13 @@ public class SceneOptimizer : MonoBehaviour
 
     private IEnumerator OptimizeLoop()
     {
-        float interval = 1f / Mathf.Max(1, checksPerSecond);
+        var wait = new WaitForSeconds(1f / Mathf.Max(1, checksPerSecond));
 
         while (true)
         {
-            yield return new WaitForSeconds(interval);
+            yield return wait;
 
+            if (playerTransform == null) playerTransform = PlayerRefs.PlayerTransform;
             if (!enableOptimizer || playerTransform == null) continue;
 
             if (enableEnemySleep) UpdateEnemySleep();
@@ -122,15 +123,15 @@ public class SceneOptimizer : MonoBehaviour
         for (int i = 0; i < enemies.Count; i++)
         {
             Enemy enemy = enemies[i];
-            if (enemy == null) continue;
+            if (enemy == null || !enemy.IsCombatant) continue;
             GameObject go = enemy.gameObject;
 
-            float dist = Vector3.Distance(go.transform.position, playerPos);
+            float distSq = (go.transform.position - playerPos).sqrMagnitude;
             bool sleeping = sleepingEnemies.Contains(go);
 
-            if (!sleeping && dist > enemySleepRadius)
+            if (!sleeping && distSq > enemySleepRadius * enemySleepRadius)
                 Sleep(go);
-            else if (sleeping && dist < enemyWakeRadius)
+            else if (sleeping && distSq < enemyWakeRadius * enemyWakeRadius)
                 Wake(go);
         }
 
@@ -155,15 +156,10 @@ public class SceneOptimizer : MonoBehaviour
 
     private void SetEnemyScriptsEnabled(GameObject go, bool enabled)
     {
-        var hPatrol = go.GetComponent<EnemyPatrolHorizontal>();
-        var vPatrol = go.GetComponent<EnemyPatrolVertical>();
-        var shooter = go.GetComponent<EnemyShooter>();
-        var jumper  = go.GetComponent<EnemyWallJumper>();
-
-        if (hPatrol != null) hPatrol.enabled = enabled;
-        if (vPatrol != null) vPatrol.enabled = enabled;
-        if (shooter != null) shooter.enabled = enabled;
-        if (jumper != null) jumper.enabled = enabled;
+        // Every movement/AI script implements IKnockbackReceiver — new enemy
+        // types sleep automatically, no list to maintain here.
+        if (go.TryGetComponent(out Enemy enemy))
+            enemy.SetBehavioursEnabled(enabled);
     }
 
     // ================================================================

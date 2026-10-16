@@ -2,7 +2,7 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// FPS Counter — shows current and average FPS on screen.
+/// FPS Counter â€” shows current and average FPS on screen.
 ///
 /// SETUP:
 ///   1. Add this script to any GameObject in the scene
@@ -43,10 +43,12 @@ public class FPSCounter : MonoBehaviour
     // ================================================================
 
     private float intervalTimer = 0f;
+    private int intervalFrames = 0;
     private float currentFps = 0f;
 
-    private float totalFps = 0f;
-    private int sampleCount = 0;
+    // True average = frames / time (averaging per-frame FPS values overweights fast frames)
+    private float totalTime = 0f;
+    private int totalFrames = 0;
 
     // ================================================================
     //  UPDATE
@@ -54,22 +56,20 @@ public class FPSCounter : MonoBehaviour
 
     private void Update()
     {
-        // Accumulate for rolling current FPS
-        intervalTimer += Time.unscaledDeltaTime;
+        float dt = Time.unscaledDeltaTime;
+        if (dt <= 0f) return;
 
-        // Accumulate for average
-        if (Time.unscaledDeltaTime > 0f)
-        {
-            float fps = 1f / Time.unscaledDeltaTime;
-            totalFps += fps;
-            sampleCount++;
-        }
+        intervalTimer += dt;
+        intervalFrames++;
+        totalTime += dt;
+        totalFrames++;
 
-        // Update current display every interval
+        // Update current display every interval (average over the interval, not one frame)
         if (intervalTimer >= updateInterval)
         {
-            currentFps = 1f / Time.unscaledDeltaTime;
+            currentFps = intervalFrames / intervalTimer;
             intervalTimer = 0f;
+            intervalFrames = 0;
 
             if (currentFpsLabel != null)
             {
@@ -78,9 +78,9 @@ public class FPSCounter : MonoBehaviour
             }
 
             // Update average display alongside current
-            if (averageFpsLabel != null && sampleCount > 0)
+            if (averageFpsLabel != null && totalTime > 0f)
             {
-                float avg = totalFps / sampleCount;
+                float avg = totalFrames / totalTime;
                 averageFpsLabel.text = $"AVG: {Mathf.RoundToInt(avg)}";
                 averageFpsLabel.color = GetColor(avg);
             }
@@ -101,7 +101,7 @@ public class FPSCounter : MonoBehaviour
     /// <summary>Reset the running average (e.g. after a loading screen).</summary>
     public void ResetAverage()
     {
-        totalFps = 0f;
-        sampleCount = 0;
+        totalTime = 0f;
+        totalFrames = 0;
     }
 }

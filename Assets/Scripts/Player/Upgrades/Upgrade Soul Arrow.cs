@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Pool;
 using System.Collections.Generic;
 
 /// <summary>
@@ -66,20 +67,24 @@ public class UpgradeSoulArrow : PlayerUpgrade
         if (killedEnemy == null || shooting == null) return;
 
         Vector3 killPos = killedEnemy.transform.position;
+        killedEnemy.TryGetComponent(out Enemy killed);
 
-        // Collect all valid targets sorted by distance
-        List<Enemy> targets = GetSortedTargets(killPos, killedEnemy);
-        if (targets.Count == 0) return;
+        // Living combatants in range, nearest first (registry — no scene scan).
+        // Non-combatants (portal keystone, level-exit target) are never auto-targeted.
+        List<Enemy> targets = ListPool<Enemy>.Get();
+        CombatQuery.EnemiesInRangeSorted(killPos, chainRange, targets, killed);
 
-        // Chain count scales with Psyche: 1 base + 1 per 10 Psyche
-        int chainCount = 1 + Mathf.FloorToInt(
-            (playerStats != null ? playerStats.psyche : 0f) / 10f);
-
-        for (int i = 0; i < chainCount; i++)
+        if (targets.Count > 0)
         {
-            Enemy target = targets[i % targets.Count]; // cycle if fewer enemies than chains
-            FireChainArrow(killPos, target);
+            // Chain count scales with Psyche: 1 base + 1 per 10 Psyche
+            int chainCount = 1 + Mathf.FloorToInt(
+                (playerStats != null ? playerStats.psyche : 0f) / 10f);
+
+            for (int i = 0; i < chainCount; i++)
+                FireChainArrow(killPos, targets[i % targets.Count]); // cycle if fewer enemies than chains
         }
+
+        ListPool<Enemy>.Release(targets);
     }
 
     private void FireChainArrow(Vector3 fromPos, Enemy target)
@@ -92,13 +97,13 @@ public class UpgradeSoulArrow : PlayerUpgrade
         dir = dir.normalized;
 
         // Use light arrow prefab as the chain projectile (falls back to mainArrowPrefab)
-        GameObject prefab = shooting.lightArrowPrefab ?? shooting.mainArrowPrefab;
+        GameObject prefab = shooting.GetArrowPrefab(ArrowFireType.Weak);
         if (prefab == null) return;
 
         GameObject arrowGO = Instantiate(prefab, fromPos, Quaternion.identity);
-        Arrow arrow = arrowGO.GetComponent<Arrow>();
-        if (arrow == null) { Destroy(arrowGO); return; }
+        if (!arrowGO.TryGetComponent(out Arrow arrow)) { Destroy(arrowGO); return; }
 
+        arrow.isChainCopy = true;      // set BEFORE Initialize: chain copies never consume one-shot buffs
         arrow.Initialize(dir, shooting.stickableLayers);
         arrow.speed = shooting.baseArrowSpeed;
         arrow.fireType = ArrowFireType.Weak;
@@ -107,37 +112,12 @@ public class UpgradeSoulArrow : PlayerUpgrade
         arrow.flatDamageBonus = playerStats != null
             ? playerStats.psyche * chainAPScaling
             : 0f;
-        arrow.isChainCopy = true;      // prevents further chaining
+
+        // Chain shots never become pickups — clean them up like mirror arrows
+        Destroy(arrowGO, 3f);
 
         // Notify other upgrades an extra arrow was spawned (stat tracking, etc.)
-        upgradeManager?.FireExtraArrow(dir, shooting.baseArrowSpeed);
-    }
-
-    // ================================================================
-    //  TARGET SEARCH — sorted by distance from kill position
-    // ================================================================
-
-    private List<Enemy> GetSortedTargets(Vector3 from, GameObject exclude)
-    {
-        float rangeSq = chainRange * chainRange;
-        var result = new List<(Enemy e, float distSq)>();
-
-        Enemy[] all = Object.FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        foreach (Enemy e in all)
-        {
-            if (e == null || e.gameObject == exclude) continue;
-            Vector3 delta = e.transform.position - from;
-            delta.z = 0f;
-            float dsq = delta.sqrMagnitude;
-            if (dsq <= rangeSq)
-                result.Add((e, dsq));
-        }
-
-        result.Sort((a, b) => a.distSq.CompareTo(b.distSq));
-
-        var enemies = new List<Enemy>(result.Count);
-        foreach (var pair in result) enemies.Add(pair.e);
-        return enemies;
+        if (upgradeManager != null) upgradeManager.FireExtraArrow(dir, shooting.baseArrowSpeed);
     }
 
     // ================================================================
@@ -147,9 +127,10 @@ public class UpgradeSoulArrow : PlayerUpgrade
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
         if (stats == null) return description;
-        int chains = 1 + Mathf.FloorToInt(stats.psyche / 10f);
+        var s = Simulate(stats, simulatedBonuses);
+        int chains = 1 + Mathf.FloorToInt(s.psyche / 10f);
         int dmgPct = Mathf.RoundToInt(chainDamageMultiplier * 100f);
-        float psFlat = stats.psyche * chainAPScaling;
+        float psFlat = s.psyche * chainAPScaling;
 
         return $"Arrows that kill fire {PSY(chains, "F0")} chain shot{(chains != 1 ? "s" : "")} " +
                $"at the closest enem{(chains != 1 ? "ies" : "y")} within {chainRange:F0}m.\n" +

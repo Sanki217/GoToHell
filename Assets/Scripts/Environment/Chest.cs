@@ -49,18 +49,12 @@ public class Chest : MonoBehaviour
     // ================================================================
 
     private bool playerInRange = false;
-    private Transform playerTransform;
-    private PlayerStats playerStats;
+
+    private Transform PlayerTransform => PlayerRefs.PlayerTransform;
+    private PlayerStats PlayerStats => PlayerRefs.I != null ? PlayerRefs.I.Stats : null;
 
     private void Start()
     {
-        var refs = PlayerRefs.I;
-        if (refs != null)
-        {
-            playerTransform = refs.T;
-            playerStats = refs.Stats;
-        }
-
         if (interactPromptText != null)
         {
             interactPromptText.text = promptMessage;
@@ -70,10 +64,10 @@ public class Chest : MonoBehaviour
 
     private void Update()
     {
-        if (isOpen || playerTransform == null) return;
+        Transform player = PlayerTransform;
+        if (isOpen || player == null) return;
 
-        float dist = Vector3.Distance(transform.position, playerTransform.position);
-        bool inRange = dist <= interactRadius;
+        bool inRange = (transform.position - player.position).sqrMagnitude <= interactRadius * interactRadius;
 
         if (inRange != playerInRange)
         {
@@ -82,7 +76,7 @@ public class Chest : MonoBehaviour
                 interactPromptText.gameObject.SetActive(playerInRange);
         }
 
-        if (playerInRange && Input.GetKeyDown(KeyCode.E))
+        if (playerInRange && GameInput.InteractPressed && !GameTime.IsPaused)
             Open();
     }
 
@@ -97,14 +91,17 @@ public class Chest : MonoBehaviour
         // Grey out to show it's been opened
         if (chestRenderer != null)
         {
-            Color c = chestRenderer.material.color;
-            chestRenderer.material.color = new Color(c.r * 0.5f, c.g * 0.5f, c.b * 0.5f);
+            TintController tint = TintController.For(gameObject);
+            tint.SetTargets(chestRenderer);
+            Color c = chestRenderer.sharedMaterial != null ? chestRenderer.sharedMaterial.color : Color.white;
+            tint.SetTint(this, new Color(c.r * 0.5f, c.g * 0.5f, c.b * 0.5f, c.a));
         }
 
-        float luck = playerStats != null ? playerStats.luck : 0f;
+        PlayerStats stats = PlayerStats;
+        float luck = stats != null ? stats.luck : 0f;
 
         if (ChestRewardUI.Instance != null)
-            ChestRewardUI.Instance.Show(luck, playerStats, this);
+            ChestRewardUI.Instance.Show(luck, stats, this);
         else
             Debug.LogWarning("[Chest] ChestRewardUI.Instance not found in scene.");
     }
@@ -121,24 +118,16 @@ public class Chest : MonoBehaviour
             return;
         }
 
-        float luck = playerStats != null ? playerStats.luck : 0f;
-        int level = PlayerRefs.I?.LevelSystem != null ? PlayerRefs.I.LevelSystem.CurrentLevel : 1;
+        PlayerStats stats = PlayerStats;
+        float luck = stats != null ? stats.luck : 0f;
+        PlayerLevelSystem levels = PlayerRefs.I != null ? PlayerRefs.I.LevelSystem : null;
+        int level = levels != null ? levels.CurrentLevel : 1;
         int count = Mathf.Max(1, Mathf.RoundToInt(baseOrbs * (orbLuckMultiplier * luck) + level));
 
         // Upward explosion fan; souls stay uncollectible for soulAttractDelay
         // so the burst plays out before the Looter reels them in.
-        Vector3 pos = transform.position;
-        for (int i = 0; i < count; i++)
-        {
-            GameObject s = Pool.Spawn(soulPrefab, pos, Quaternion.identity);
-            Soul soul = s.GetComponent<Soul>();
-            if (soul != null)
-            {
-                float angle = Random.Range(20f, 160f) * Mathf.Deg2Rad;
-                Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f).normalized;
-                soul.Initialize(dir, Random.Range(minEjectForce, maxEjectForce), soulAttractDelay);
-            }
-        }
+        Soul.Burst(soulPrefab, transform.position, count, 20f, 160f,
+                   minEjectForce, maxEjectForce, soulAttractDelay);
     }
 
     private void OnDrawGizmosSelected()

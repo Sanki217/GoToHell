@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEditor;
@@ -20,7 +20,7 @@ using UnityEngine.UI;
 /// objects) — restyle/move everything freely afterwards; only the component
 /// references matter. Safe to re-run: skips anything that already exists.
 /// </summary>
-public static class GoToHellSetup
+public static partial class GoToHellSetup
 {
     // ================================================================
     //  0. DELETE SAVE
@@ -29,16 +29,10 @@ public static class GoToHellSetup
     [MenuItem("Tools/Go To Hell/0. Delete Save File")]
     public static void DeleteSaveFile()
     {
-        string path = System.IO.Path.Combine(Application.persistentDataPath, "save.json");
-        if (System.IO.File.Exists(path))
-        {
-            System.IO.File.Delete(path);
-            Debug.Log("[GoToHellSetup] Deleted save: " + path);
-        }
-        else
-        {
-            Debug.Log("[GoToHellSetup] No save file at: " + path);
-        }
+        // Goes through SaveManager so the backup/temp files and the cached
+        // in-memory save are cleared too
+        SaveManager.DeleteSave();
+        Debug.Log("[GoToHellSetup] Deleted save files in: " + Application.persistentDataPath);
     }
 
     // ================================================================
@@ -484,10 +478,21 @@ public static class GoToHellSetup
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.matchWidthOrHeight = 0.5f;
 
-        if (Object.FindFirstObjectByType<EventSystem>() == null)
-            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        EnsureEventSystem();
 
         return canvas;
+    }
+
+    /// <summary>EventSystem with the input module matching Active Input Handling.</summary>
+    private static void EnsureEventSystem()
+    {
+        if (Object.FindFirstObjectByType<EventSystem>() != null) return;
+#if ENABLE_INPUT_SYSTEM
+        var es = new GameObject("EventSystem", typeof(EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
+        es.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>().AssignDefaultActions();
+#else
+        new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+#endif
     }
 
     private static GameObject CreateUIObject(Transform parent, string name)

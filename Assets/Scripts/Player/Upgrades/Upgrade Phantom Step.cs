@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.Pool;
 using System.Collections.Generic;
 
 /// <summary>
@@ -40,16 +41,13 @@ public class UpgradePhantomStep : PlayerUpgrade
     [Tooltip("Optional VFX prefab spawned at the landing position on teleport.")]
     public GameObject explosionEffectPrefab;
 
-    [Header("Phantom Step — Layer Mask")]
-    [Tooltip("Layers that block the AoE damage sphere. Normally just the Enemy layer.")]
-    public LayerMask damageableLayers;
-
     // ================================================================
     //  REFERENCES
     // ================================================================
 
     private DashAbility dashAbility;
     private PlayerStats playerStats;
+    private PlayerUpgradeManager upgradeManager;
 
     // ================================================================
     //  SETUP
@@ -57,6 +55,7 @@ public class UpgradePhantomStep : PlayerUpgrade
 
     public override void OnAdded(PlayerUpgradeManager mgr)
     {
+        upgradeManager = mgr;
         playerStats  = mgr.GetComponent<PlayerStats>();
         dashAbility  = mgr.GetComponent<DashAbility>();
 
@@ -89,31 +88,31 @@ public class UpgradePhantomStep : PlayerUpgrade
         float radius = GetRadius();
         float damage = GetDamage();
 
-        // AoE damage — hit all enemies within radius at landing position
-        Collider[] hits = Physics.OverlapSphere(landPosition, radius);
-        foreach (Collider col in hits)
+        // AoE damage — each enemy within radius once
+        float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
+        List<Enemy> hits = ListPool<Enemy>.Get();
+        CombatQuery.OverlapEnemies(landPosition, radius, hits);
+        foreach (Enemy enemy in hits)
         {
-            Enemy enemy = col.GetComponent<Enemy>()
-                          ?? col.transform.root.GetComponent<Enemy>();
-            if (enemy == null) continue;
+            if (enemy == null || enemy.IsDead) continue;
 
-            Vector3 kbDir = (enemy.transform.position - landPosition);
-            kbDir.z = 0f;
-            if (kbDir.sqrMagnitude < 0.001f) kbDir = Vector3.right;
-            kbDir = kbDir.normalized;
+            Vector3 kbDir = CombatQuery.PlanarDirection(landPosition, enemy.transform.position, Vector3.right);
+            GameObject enemyGO = enemy.gameObject;
 
-            float kbForce = playerStats != null ? playerStats.knockbackForce : 0f;
+            enemy.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(damage)), landPosition, kbDir, kbForce,
+                             false, FloatingTextManager.HitType.Normal);
 
-            enemy.TakeDamage(
-                Mathf.Max(1, Mathf.RoundToInt(damage)),
-                landPosition,
-                kbDir,
-                kbForce,
-                false,
-                FloatingTextManager.HitType.Normal);
-
-            playerStats?.RecordDamageDealt(damage, DamageSource.Explosion, enemy.gameObject);
+            if (playerStats != null)
+                playerStats.RecordDamageDealt(damage, DamageSource.Explosion, enemyGO);
         }
+        ListPool<Enemy>.Release(hits);
+
+        // Breakables at the landing spot shatter too
+        List<IDestructible> breakables = ListPool<IDestructible>.Get();
+        CombatQuery.OverlapDestructibles(landPosition, radius, breakables);
+        foreach (IDestructible d in breakables)
+            d.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(damage)));
+        ListPool<IDestructible>.Release(breakables);
 
         // Spawn VFX if assigned
         if (explosionEffectPrefab != null)
@@ -145,8 +144,9 @@ public class UpgradePhantomStep : PlayerUpgrade
     public override string GetDynamicDescription(PlayerStats stats, List<UpgradeStatBonus> simulatedBonuses)
     {
         if (stats == null) return description;
-        float radius = baseRadius + radiusPerSize * stats.size;
-        float damage = baseExplosionDamage + damagePerAP * stats.psyche;
+        var s = Simulate(stats, simulatedBonuses);
+        float radius = baseRadius + radiusPerSize * s.size;
+        float damage = baseExplosionDamage + damagePerAP * s.psyche;
 
         return $"Dash teleports you instantly to your cursor (max range applies).\n" +
                $"Pass through enemies and thin walls.\n" +

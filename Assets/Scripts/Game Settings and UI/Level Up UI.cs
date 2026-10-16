@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 using TMPro;
 
@@ -14,6 +14,8 @@ using TMPro;
 ///   - Orbs spawn scattered in a radius below the player so they're visible before pickup.
 ///   - If the upgrade pool is exhausted, pending level-ups are silently discarded
 ///     and the game is un-frozen so the player is never stuck.
+///   - Q is ignored while another system (pause menu, chest roll, run summary)
+///     holds a pause, and closing the picker never un-pauses those systems.
 /// </summary>
 public class LevelUpUI : MonoBehaviour
 {
@@ -58,6 +60,7 @@ public class LevelUpUI : MonoBehaviour
     private readonly HashSet<string> pendingPickedIds = new HashSet<string>();
 
     public bool IsOpen => isOpen;
+    public int PendingLevelUps => pendingLevelUps;
 
     // ================================================================
     //  INIT
@@ -70,23 +73,38 @@ public class LevelUpUI : MonoBehaviour
         if (pendingPromptLabel != null) pendingPromptLabel.gameObject.SetActive(false);
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
+    private void OnDisable()
+    {
+        // Never leave the game frozen if the UI is torn down while open
+        if (isOpen) Close(restoreControl: true);
+    }
+
     private void Start()
     {
-        if (playerStats == null)
-        {
-            var refs = PlayerRefs.I;
-            if (refs != null)
-            {
-                playerStats = refs.Stats;
-                upgradeManager = refs.Upgrades;
-                playerState = refs.StateCtrl;
-            }
-        }
+        ResolvePlayerRefs();
+    }
+
+    private void ResolvePlayerRefs()
+    {
+        if (playerStats != null && upgradeManager != null && playerState != null) return;
+        var refs = PlayerRefs.I;
+        if (refs == null) return;
+        if (playerStats == null) playerStats = refs.Stats;
+        if (upgradeManager == null) upgradeManager = refs.Upgrades;
+        if (playerState == null) playerState = refs.StateCtrl;
     }
 
     private void Update()
     {
-        if (!Input.GetKeyDown(KeyCode.Q)) return;
+        if (!GameInput.LevelUpPressed) return;
+
+        // Another system owns the screen (pause menu, chest roll, run summary)
+        if (GameTime.IsPausedByOtherThan(this)) return;
 
         if (isOpen)
         {
@@ -110,7 +128,7 @@ public class LevelUpUI : MonoBehaviour
 
     public void QueueLevelUp(int currentLayer)
     {
-        storedLayer = currentLayer;
+        storedLayer = Mathf.Max(1, currentLayer);
         pendingLevelUps++;
         UpdatePrompt();
     }
@@ -124,15 +142,16 @@ public class LevelUpUI : MonoBehaviour
     private void OpenPicker()
     {
         if (upgradePool == null || pendingLevelUps <= 0) return;
+        ResolvePlayerRefs();
 
         pendingLevelUps--;
 
         // Reuse cached offers if they exist (player closed without picking)
         if (cachedOffers == null || cachedOffers.Count == 0)
         {
-            float luck = playerStats != null ? playerStats.luck : 0f;
+            float luck = (playerStats != null ? playerStats.luck : 0f) + RunModifiers.RarityLuck;
             cachedOffers = upgradePool.RollLevelUpOffers(
-                storedLayer, luck, playerStats, 3, upgradeManager, pendingPickedIds);
+                storedLayer, luck, playerStats, cards.Length, upgradeManager, pendingPickedIds);
         }
 
         if (cachedOffers == null || cachedOffers.Count == 0)
@@ -142,15 +161,14 @@ public class LevelUpUI : MonoBehaviour
             pendingLevelUps = 0;
             pendingPickedIds.Clear();
             cachedOffers = null;
-            GameTime.Resume();
-            playerState?.EnableControl();
+            Close(restoreControl: true);
             UpdatePrompt();
             return;
         }
 
-        GameTime.Pause();
+        GameTime.Pause(this);
         isOpen = true;
-        playerState?.DisableControl();
+        if (playerState != null) playerState.AddBlocker(this);
 
         for (int i = 0; i < cards.Length; i++)
         {
@@ -160,13 +178,13 @@ public class LevelUpUI : MonoBehaviour
                 cards[i].Hide();
         }
 
-        levelUpPanel.SetActive(true);
+        if (levelUpPanel != null) levelUpPanel.SetActive(true);
         UpdatePrompt();
     }
 
     private void OnCardPicked(UpgradeOrbOffer offer)
     {
-        if (!isOpen) return;
+        if (!isOpen || offer == null) return;
 
         // Apply stat bonuses NOW - before spawning the orb or opening the next picker.
         // This guarantees the chained picker's descriptions show the post-pick stats.
@@ -193,8 +211,7 @@ public class LevelUpUI : MonoBehaviour
             // No more picks queued - clear the pending set so it doesn't
             // linger across future level-up sessions
             pendingPickedIds.Clear();
-            GameTime.Resume();
-            playerState?.EnableControl();
+            Close(restoreControl: true);
         }
 
         UpdatePrompt();
@@ -203,20 +220,22 @@ public class LevelUpUI : MonoBehaviour
     private void Close(bool restoreControl)
     {
         isOpen = false;
-        levelUpPanel.SetActive(false);
+        if (levelUpPanel != null) levelUpPanel.SetActive(false);
 
         if (restoreControl)
         {
-            GameTime.Resume();
-            playerState?.EnableControl();
+            GameTime.Unpause(this);
+            if (playerState != null) playerState.RemoveBlocker(this);
         }
     }
 
     private void SpawnOrb(UpgradeOrbOffer offer)
     {
+        if (offer.prefab == null) return;
+
         Transform playerTransform = upgradeManager != null
             ? upgradeManager.transform
-            : PlayerRefs.I?.T;
+            : (PlayerRefs.I != null ? PlayerRefs.I.T : null);
 
         if (playerTransform == null) return;
 
@@ -232,8 +251,7 @@ public class LevelUpUI : MonoBehaviour
         Vector3 spawnPos = playerTransform.position + offset;
 
         GameObject obj = Instantiate(offer.prefab, spawnPos, Quaternion.identity);
-        UpgradeOrb orb = obj.GetComponent<UpgradeOrb>();
-        if (orb == null) return;
+        if (!obj.TryGetComponent(out UpgradeOrb orb)) return;
 
         orb.rolledStatBonuses = offer.statBonuses?.ToArray();
         orb.rolledRarity = offer.rarity;
@@ -251,9 +269,10 @@ public class LevelUpUI : MonoBehaviour
         if (!isOpen && pendingLevelUps > 0)
         {
             pendingPromptLabel.gameObject.SetActive(true);
+            string key = GameInput.BindingDisplay(GameAction.LevelUp);
             pendingPromptLabel.text = pendingLevelUps == 1
-                ? "Press <color=#FFD700>Q</color> to level up"
-                : $"Press <color=#FFD700>Q</color> to level up  x{pendingLevelUps}";
+                ? $"Press <color=#FFD700>{key}</color> to level up"
+                : $"Press <color=#FFD700>{key}</color> to level up  x{pendingLevelUps}";
         }
         else
         {

@@ -1,5 +1,13 @@
-using UnityEngine;
+﻿using UnityEngine;
 
+/// <summary>
+/// Rogue RMB skill: spend energy to dash toward the cursor (physics slide with
+/// a damage collider), or — with Phantom Step — teleport there.
+///
+/// Input is ignored while the player has no control (menus, level-up,
+/// resurrection). Teleports never end inside solid geometry: the landing
+/// point is pulled back along the dash line until the player fits.
+/// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class DashAbility : MonoBehaviour
 {
@@ -17,17 +25,26 @@ public class DashAbility : MonoBehaviour
     public Collider dashDamageCollider;
 
     [Header("References")]
-    public Camera mainCamera;
     public LineRenderer lineRenderer;
     public Transform shootOrigin;
+
+    [Header("Teleport Safety (Phantom Step)")]
+    [Tooltip("Radius of the clearance check at the teleport landing point.")]
+    public float teleportClearanceRadius = 0.4f;
 
     private PlayerUpgradeManager upgradeManager;
     private PlayerStats playerStats;
     private PlayerHealth playerHealth;
     private Rigidbody rb;
     private PlayerEnergy playerEnergy;
+    private PlayerStateController stateCtrl;
+    private Collider[] selfColliders;
+    private static readonly Collider[] clearanceBuffer = new Collider[8];
 
     public bool isDashing = false;
+
+    /// <summary>Increments every dash — lets hit detection reset its per-dash state.</summary>
+    public int DashSerial { get; private set; }
 
     // ── Phantom Step teleport mode (activated by UpgradePhantomStep) ──
     /// <summary>When true, dash instantly teleports to cursor instead of physics-sliding.</summary>
@@ -56,7 +73,9 @@ public class DashAbility : MonoBehaviour
         playerHealth = GetComponent<PlayerHealth>();
         rb = GetComponent<Rigidbody>();
         playerEnergy = GetComponent<PlayerEnergy>();
-        if (!mainCamera) mainCamera = Camera.main;
+        stateCtrl = GetComponent<PlayerStateController>();
+        selfColliders = GetComponentsInChildren<Collider>(true);
+        if (shootOrigin == null) shootOrigin = transform;
 
         // Damage collider starts disabled — only active during dash
         if (dashDamageCollider != null)
@@ -65,8 +84,14 @@ public class DashAbility : MonoBehaviour
 
     void Update()
     {
-        HandleInput();
+        if (stateCtrl == null || stateCtrl.HasControl())
+            HandleInput();
         UpdateDashLine();
+    }
+
+    private void OnDisable()
+    {
+        if (isDashing) EndDash();
     }
 
     void FixedUpdate()
@@ -84,7 +109,7 @@ public class DashAbility : MonoBehaviour
 
     void HandleInput()
     {
-        if (Input.GetMouseButtonDown(1) && !isDashing)
+        if (GameInput.SkillPressed && !isDashing && playerEnergy != null)
         {
             Vector3 cursorWorld = GetCursorWorldPosition();
             Vector3 origin = shootOrigin.position;
@@ -112,24 +137,29 @@ public class DashAbility : MonoBehaviour
                 return;
             }
 
-            playerStats?.RecordEnergySpent(cost, EnergySpentSource.Dash);
+            if (playerStats != null) playerStats.RecordEnergySpent(cost, EnergySpentSource.Dash);
 
             // ── PHANTOM STEP: instant teleport instead of physics dash ──
             if (isTeleportDash)
             {
-                Vector3 tpTarget = origin + direction * intendedDistance;
-                tpTarget.z = 0f;
+                Vector3 tpTarget = FindTeleportLanding(origin, direction, intendedDistance);
                 float tpDist = Vector3.Distance(origin, tpTarget);
 
                 float invincTP = dashDuration +
                     (playerStats != null ? playerStats.dashInvincibilityWindow : 0f);
-                playerHealth?.StartDashInvincibility(invincTP);
+                if (playerHealth != null) playerHealth.StartDashInvincibility(invincTP);
 
-                upgradeManager?.DashStart();
-                transform.position = tpTarget;
+                if (upgradeManager != null) upgradeManager.DashStart();
+
+                // Move the body by the same offset the shoot origin travels
+                Vector3 landing = transform.position + (tpTarget - origin);
+                landing.z = transform.position.z;
+                rb.position = landing;
+                transform.position = landing;
+
                 OnTeleportLanded?.Invoke(tpTarget);
-                playerStats?.RecordDash(tpDist);
-                upgradeManager?.DashEnd();
+                if (playerStats != null) playerStats.RecordDash(tpDist);
+                if (upgradeManager != null) upgradeManager.DashEnd();
                 return;
             }
             // ───────────────────────────────────────────────────────────
@@ -139,6 +169,7 @@ public class DashAbility : MonoBehaviour
             dashTimer = dashDuration;
             dashStartDistance = Vector3.Distance(origin, dashTarget);
             isDashing = true;
+            DashSerial++;
 
             // Enable dash damage collider
             if (dashDamageCollider != null)
@@ -147,23 +178,56 @@ public class DashAbility : MonoBehaviour
             // Start invincibility window (covers dash + a bit after)
             float invincDuration = dashDuration +
                 (playerStats != null ? playerStats.dashInvincibilityWindow : 0f);
-            playerHealth?.StartDashInvincibility(invincDuration);
+            if (playerHealth != null) playerHealth.StartDashInvincibility(invincDuration);
 
-            upgradeManager?.DashStart();
+            if (upgradeManager != null) upgradeManager.DashStart();
         }
+    }
+
+    /// <summary>
+    /// Teleport target along the dash line. Phantom Step passes through thin
+    /// walls, but must never land INSIDE geometry — walk back toward the
+    /// origin until the landing point is clear.
+    /// </summary>
+    private Vector3 FindTeleportLanding(Vector3 origin, Vector3 direction, float distance)
+    {
+        const int Steps = 12;
+        for (int i = 0; i <= Steps; i++)
+        {
+            float d = distance * (1f - (float)i / Steps);
+            Vector3 p = origin + direction * d;
+            p.z = origin.z;
+            if (IsClear(p)) return p;
+        }
+        return origin;
+    }
+
+    private bool IsClear(Vector3 point)
+    {
+        if (dashCollisionLayers == 0) return true;
+        int count = Physics.OverlapSphereNonAlloc(point, teleportClearanceRadius, clearanceBuffer,
+                                                  dashCollisionLayers, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < count; i++)
+        {
+            bool self = false;
+            foreach (var c in selfColliders)
+                if (c == clearanceBuffer[i]) { self = true; break; }
+            if (!self) return false;
+        }
+        return true;
     }
 
     void EndDash()
     {
-        playerStats?.RecordDash(dashStartDistance);
+        if (playerStats != null) playerStats.RecordDash(dashStartDistance);
         isDashing = false;
 
         // Disable damage collider
         if (dashDamageCollider != null)
             dashDamageCollider.enabled = false;
 
-        upgradeManager?.DashEnd();
-        rb.linearVelocity = dashDirection * postDashMomentum;
+        if (upgradeManager != null) upgradeManager.DashEnd();
+        if (rb != null && !rb.isKinematic) rb.linearVelocity = dashDirection * postDashMomentum;
     }
 
     void UpdateDashLine()
@@ -185,21 +249,17 @@ public class DashAbility : MonoBehaviour
         lineRenderer.SetPosition(1, endPoint);
     }
 
-    Vector3 GetCursorWorldPosition()
-    {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        Plane plane = new Plane(Vector3.forward, shootOrigin.position);
-        if (plane.Raycast(ray, out float distance)) return ray.GetPoint(distance);
-        return shootOrigin.position;
-    }
+    // Cursor on mouse; aim-stick direction at full range on gamepad / touch
+    Vector3 GetCursorWorldPosition() =>
+        GameInput.AimPoint(shootOrigin.position, CurrentDashRange);
 
     private void OnCollisionEnter(Collision collision)
     {
         if (!isDashing) return;
         if (!collision.gameObject.CompareTag("Enemy"))
         {
-            playerStats?.RecordDashHitWall();
-            upgradeManager?.DashHitWall();
+            if (playerStats != null) playerStats.RecordDashHitWall();
+            if (upgradeManager != null) upgradeManager.DashHitWall();
         }
     }
 }

@@ -66,6 +66,10 @@ public class SpawnArea : MonoBehaviour
     public Vector3 minScale = Vector3.one;
     public Vector3 maxScale = Vector3.one;
 
+    [Header("Debug")]
+    [Tooltip("Log every spawn pass and skipped slot to the console.")]
+    public bool logSpawns = false;
+
     // ── internal ────────────────────────────────────────────────────
     protected Collider areaCollider;
     private static readonly Collider[] wallHitBuffer = new Collider[16];
@@ -88,18 +92,19 @@ public class SpawnArea : MonoBehaviour
     {
         if (prefabs == null || prefabs.Count == 0) return;
 
-        Debug.Log($"[SpawnArea] '{name}' spawning up to {spawnCount} {spawnType} (order {spawnOrder})");
 
         int spawned = 0;
         for (int i = 0; i < spawnCount; i++)
         {
             GameObject prefab = prefabs[Random.Range(0, prefabs.Count)];
+            if (prefab == null) continue;
             Vector3 prefabScale = prefab.transform.localScale;
             float prefabRadius = GetPrefabRadius(prefab, prefabScale);
 
             if (!TryGetValidPoint(registry, prefabRadius, out Vector3 point))
             {
-                Debug.LogWarning($"[SpawnArea] '{name}': slot {i + 1}/{spawnCount} skipped — no valid position.");
+                if (logSpawns)
+                    Debug.LogWarning($"[SpawnArea] '{name}': slot {i + 1}/{spawnCount} skipped — no valid position.", this);
                 continue;
             }
 
@@ -121,7 +126,8 @@ public class SpawnArea : MonoBehaviour
             spawned++;
         }
 
-        Debug.Log($"[SpawnArea] '{name}': placed {spawned}/{spawnCount}");
+        if (logSpawns)
+            Debug.Log($"[SpawnArea] '{name}': placed {spawned}/{spawnCount} {spawnType} (order {spawnOrder})", this);
     }
 
     // Legacy no-arg overload
@@ -150,11 +156,12 @@ public class SpawnArea : MonoBehaviour
 
             // Separation check — candidate must not overlap any registered object
             bool tooClose = false;
-            foreach (SpawnRecord rec in registry)
+            for (int r = 0; r < registry.Count; r++)
             {
                 // Minimum distance = sum of both objects' radii (no double-counting)
+                SpawnRecord rec = registry[r];
                 float minDist = selfRadius + rec.exclusionRadius;
-                if (Vector3.Distance(candidate, rec.position) < minDist)
+                if ((candidate - rec.position).sqrMagnitude < minDist * minDist)
                 {
                     tooClose = true;
                     break;

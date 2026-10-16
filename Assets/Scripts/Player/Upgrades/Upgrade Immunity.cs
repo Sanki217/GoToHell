@@ -53,7 +53,7 @@ public class UpgradeImmunity : PlayerUpgrade
         while (true)
         {
             yield return new WaitForSeconds(GetCooldown());
-            playerHealth?.StartDashInvincibility(duration);
+            if (playerHealth != null) playerHealth.StartDashInvincibility(duration);
         }
     }
 }

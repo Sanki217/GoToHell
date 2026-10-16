@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -6,8 +6,8 @@ using TMPro;
 /// End-of-run summary panel, shown on death (any layer) or victory (layer 9).
 /// Lives in each gameplay scene on the UI canvas, panel disabled by default.
 ///
-/// On Show: freezes time, disables player control, builds a RunStats snapshot,
-/// records it to SaveManager (once), and displays the highlights.
+/// On Show: records the run through RunManager.CompleteRun (idempotent),
+/// freezes time, disables player control, and displays the highlights.
 /// "Back to Menu" returns to the main menu (which resets RunConfig).
 ///
 /// Callers use RunSummaryUI.TryShow(victory) — returns false if no summary UI
@@ -63,31 +63,13 @@ public class RunSummaryUI : MonoBehaviour
         if (shown) return;
         shown = true;
 
-        PlayerStats stats = Object.FindFirstObjectByType<PlayerStats>();
-        RunConfig cfg = RunConfig.I;
-
-        string playerName = cfg != null ? cfg.playerName : "Sinner";
-        int deepestLayer  = cfg != null ? cfg.currentLayer : 1;
-        float duration    = cfg != null ? cfg.RunDuration : 0f;
-
-        RunStats run = null;
-        if (stats != null)
-        {
-            run = RunStatsBuilder.Build(stats, playerName, deepestLayer, duration, victory);
-
-            // Loadout + max depth (banked layers + live tracker) for the leaderboard
-            run.classId  = cfg != null ? cfg.selectedClassId  : "";
-            run.weaponId = cfg != null ? cfg.selectedWeaponId : "";
-            DepthTracker tracker = Object.FindFirstObjectByType<DepthTracker>();
-            run.maxDepthReached = (cfg != null ? cfg.bankedDepth : 0f)
-                                + (tracker != null ? tracker.CurrentDepth : 0f);
-
-            SaveManager.RecordRun(run);
-        }
+        // Records the run once (history, best, lifetime, cumulative achievements)
+        RunStats run = RunManager.CompleteRun(victory);
 
         // Freeze the world, release the player
-        Object.FindFirstObjectByType<PlayerStateController>()?.DisableControl();
-        GameTime.Pause();
+        if (PlayerRefs.I != null && PlayerRefs.I.StateCtrl != null)
+            PlayerRefs.I.StateCtrl.DisableControl();
+        GameTime.Pause(this);
 
         if (titleText != null)
             titleText.text = victory ? victoryTitle : deathTitle;
@@ -115,7 +97,9 @@ public class RunSummaryUI : MonoBehaviour
             $"Crits landed:  {r.critsLanded}\n" +
             $"Arrows fired:  {r.totalArrowsFired}\n\n" +
             $"Souls collected:  {r.soulsCollected}\n" +
-            $"Damage taken:  {r.damageTaken:F0}";
+            $"Damage taken:  {r.damageTaken:F0}" +
+            (r.heat > 0 ? $"\n\nHeat:  {r.heat}" : "") +
+            $"\n\n<color=#FFB347><b>+{r.metaCurrencyEarned} {MetaProgression.CurrencyName}</b></color>";
     }
 
     private static string FormatDuration(float seconds)
