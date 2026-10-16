@@ -276,6 +276,7 @@ public class PlayerUpgradeManager : MonoBehaviour
 
         activeUpgrades.Add(id, upgrade);
         OwnedTags |= upgrade.tags;
+        SaveManager.DiscoverUpgrade(id);   // Collection shows found upgrades only
 
         // Store display info for the TAB hover tooltip
         appliedUpgradeInfo[id] = new AppliedUpgradeInfo

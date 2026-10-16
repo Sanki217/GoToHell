@@ -112,6 +112,7 @@ public static class SaveManager
         if (d.lastPlayerName == null)          d.lastPlayerName = "";
         if (d.metaRanks == null)               d.metaRanks = new List<MetaRank>();
         if (d.lastPactIds == null)             d.lastPactIds = new List<string>();
+        if (d.discoveredUpgradeIds == null)    d.discoveredUpgradeIds = new List<string>();
         if (d.metaCurrency < 0)                d.metaCurrency = 0;
     }
 
@@ -186,6 +187,17 @@ public static class SaveManager
     // ================================================================
     //  PACTS
     // ================================================================
+
+    public static bool IsUpgradeDiscovered(string upgradeId) =>
+        Data.discoveredUpgradeIds.Contains(upgradeId);
+
+    /// <summary>Marks an upgrade as found (first pickup ever). Saves only when new.</summary>
+    public static void DiscoverUpgrade(string upgradeId)
+    {
+        if (string.IsNullOrEmpty(upgradeId) || Data.discoveredUpgradeIds.Contains(upgradeId)) return;
+        Data.discoveredUpgradeIds.Add(upgradeId);
+        Save();
+    }
 
     public static bool IsPactUnlocked(string pactId) =>
         Data.unlockedPactIds.Contains(pactId);

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
@@ -89,8 +89,9 @@ public class CollectionUI : MonoBehaviour
         foreach (PactDefinition def in Resources.LoadAll<PactDefinition>("Pacts"))
         {
             if (def == null) continue;
-            bool unlocked = def.unlockedByDefault || SaveManager.IsPactUnlocked(def.pactId);
-            Spawn(def.icon, def.displayName, unlocked);
+            // Only pacts the player has unlocked — undiscovered ones stay secret
+            if (!def.unlockedByDefault && !SaveManager.IsPactUnlocked(def.pactId)) continue;
+            Spawn(def.icon, def.displayName, true);
         }
     }
 
@@ -111,7 +112,8 @@ public class CollectionUI : MonoBehaviour
             PlayerUpgrade upgrade = prefab.GetComponent<PlayerUpgrade>();
             if (upgrade == null) continue;
 
-            // Upgrades are always visible — never locked
+            // Only upgrades the player has picked up at least once
+            if (!SaveManager.IsUpgradeDiscovered(upgrade.UpgradeId)) continue;
             Spawn(upgrade.icon, upgrade.displayName, true);
         }
     }

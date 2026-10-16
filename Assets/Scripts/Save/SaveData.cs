@@ -53,6 +53,9 @@ public class SaveData
 
     // Pacts active on the last run — pre-selected in the pact picker
     public List<string> lastPactIds = new List<string>();
+
+    // Upgrades the player has picked up at least once (Collection shows only these)
+    public List<string> discoveredUpgradeIds = new List<string>();
 }
 
 /// <summary>Owned rank of one meta upgrade.</summary>

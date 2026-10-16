@@ -36,6 +36,7 @@ public class BalanceSheetWindow : EditorWindow
     private UpgradeTag tagFilter;
     private readonly HashSet<string> expanded = new HashSet<string>();
     private List<UpgradeRow> upgradeRows;
+    private string[] weaponIds = new string[0], classIds = new string[0];
 
     // Enemies
     private int previewLayer = 1;
@@ -105,17 +106,71 @@ public class BalanceSheetWindow : EditorWindow
 
     private static void Header(params (string label, float width)[] cols)
     {
-        using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+        using (new EditorGUILayout.HorizontalScope())
             foreach (var (label, width) in cols)
-                GUILayout.Label(label, EditorStyles.miniBoldLabel, width > 0 ? GUILayout.Width(width) : GUILayout.ExpandWidth(true));
+                GUILayout.Label(label, EditorStyles.boldLabel, width > 0 ? GUILayout.Width(width) : GUILayout.ExpandWidth(true));
+        Rect line = GUILayoutUtility.GetRect(1f, 1f, GUILayout.ExpandWidth(true));
+        EditorGUI.DrawRect(line, new Color(0f, 0f, 0f, 0.4f));
     }
 
+    /// <summary>
+    /// One-line field for a property WITHOUT its [Header]/[Space] decorators
+    /// (PropertyField draws those and breaks the row alignment).
+    /// </summary>
     private static void Prop(SerializedObject so, string name, float width)
     {
         SerializedProperty p = so.FindProperty(name);
-        if (p != null) EditorGUILayout.PropertyField(p, GUIContent.none, GUILayout.Width(width));
-        else GUILayout.Label("—", GUILayout.Width(width));
+        GUILayoutOption w = GUILayout.Width(width);
+        if (p == null) { GUILayout.Label("—", w); return; }
+
+        EditorGUI.BeginChangeCheck();
+        switch (p.propertyType)
+        {
+            case SerializedPropertyType.Integer:
+                int i = EditorGUILayout.IntField(p.intValue, w);
+                if (EditorGUI.EndChangeCheck()) p.intValue = i;
+                return;
+            case SerializedPropertyType.Float:
+                float f = EditorGUILayout.FloatField(p.floatValue, w);
+                if (EditorGUI.EndChangeCheck()) p.floatValue = f;
+                return;
+            case SerializedPropertyType.Boolean:
+                bool b = EditorGUILayout.Toggle(p.boolValue, w);
+                if (EditorGUI.EndChangeCheck()) p.boolValue = b;
+                return;
+            case SerializedPropertyType.String:
+                string str = EditorGUILayout.TextField(p.stringValue, w);
+                if (EditorGUI.EndChangeCheck()) p.stringValue = str;
+                return;
+            case SerializedPropertyType.Enum when name == "tags":
+                var tags = (UpgradeTag)EditorGUILayout.EnumFlagsField((UpgradeTag)p.intValue, w);
+                if (EditorGUI.EndChangeCheck()) p.intValue = (int)tags;
+                return;
+            case SerializedPropertyType.Enum:
+                int e = EditorGUILayout.Popup(p.enumValueIndex, p.enumDisplayNames, w);
+                if (EditorGUI.EndChangeCheck()) p.enumValueIndex = e;
+                return;
+            default:
+                EditorGUI.EndChangeCheck();
+                EditorGUILayout.PropertyField(p, GUIContent.none, w);
+                return;
+        }
     }
+
+    /// <summary>String id field as a dropdown of known ids ("" = Any).</summary>
+    private static void IdPopup(SerializedObject so, string name, string[] ids, float width)
+    {
+        SerializedProperty p = so.FindProperty(name);
+        if (p == null) { GUILayout.Label("—", GUILayout.Width(width)); return; }
+        string[] options = new[] { "Any" }.Concat(ids).ToArray();
+        int cur = string.IsNullOrEmpty(p.stringValue) ? 0 : Array.IndexOf(options, p.stringValue);
+        if (cur < 0) { options = options.Append(p.stringValue).ToArray(); cur = options.Length - 1; }
+        int next = EditorGUILayout.Popup(cur, options, GUILayout.Width(width));
+        if (next != cur) p.stringValue = next == 0 ? "" : options[next];
+    }
+
+    private static string[] Ids<T>(Func<T, string> id) where T : UnityEngine.Object =>
+        FindAssets<T>().Select(id).Where(x => !string.IsNullOrEmpty(x)).Distinct().OrderBy(x => x).ToArray();
 
     // ================================================================
     //  UPGRADES
@@ -177,8 +232,10 @@ public class BalanceSheetWindow : EditorWindow
         List<UpgradeRow> rows = GetUpgradeRows();
         DrawUpgradeSummary(rows);
 
-        Header(("Pool", 34), ("Name", 150), ("Type", 150), ("Rarity", 85), ("Category", 85), ("Tags", 150),
-               ("Weapon", 60), ("Class", 60), ("Stats C/R/E/L", 150), ("", 0));
+        Header(("Pool", 34), ("Name", 150), ("Type", 160), ("Rarity", 85), ("Category", 85), ("Tags", 150),
+               ("Weapon", 80), ("Class", 80), ("Common", 55), ("Rare", 55), ("Epic", 55), ("Legendary", 70), ("", 0));
+        weaponIds = Ids<WeaponDefinition>(d => d.weaponId);
+        classIds = Ids<ClassDefinition>(d => d.classId);
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
         foreach (UpgradeRow r in rows)
@@ -203,7 +260,7 @@ public class BalanceSheetWindow : EditorWindow
             if (pooled != r.inPool) SetInPool(pool, r, pooled);
 
             Prop(r.so, "displayName", 150);
-            GUILayout.Label(id, EditorStyles.miniLabel, GUILayout.Width(150));
+            GUILayout.Label(id, EditorStyles.miniLabel, GUILayout.Width(160));
             Color old = GUI.backgroundColor;
             GUI.backgroundColor = UpgradeRarityRoller.GetRarityColor(r.upgrade.rarity);
             Prop(r.so, "rarity", 85);
@@ -212,19 +269,19 @@ public class BalanceSheetWindow : EditorWindow
             if (r.upgrade.tags == UpgradeTag.None) GUI.backgroundColor = new Color(1f, 0.6f, 0.6f);
             Prop(r.so, "tags", 150);
             GUI.backgroundColor = old;
-            Prop(r.so, "requiredWeaponId", 60);
-            Prop(r.so, "requiredClassId", 60);
-            Prop(r.so, "statCountCommon", 34);
-            Prop(r.so, "statCountRare", 34);
-            Prop(r.so, "statCountEpic", 34);
-            Prop(r.so, "statCountLegendary", 34);
+            IdPopup(r.so, "requiredWeaponId", weaponIds, 80);
+            IdPopup(r.so, "requiredClassId", classIds, 80);
+            Prop(r.so, "statCountCommon", 55);
+            Prop(r.so, "statCountRare", 55);
+            Prop(r.so, "statCountEpic", 55);
+            Prop(r.so, "statCountLegendary", 70);
 
             bool open = expanded.Contains(id);
             if (GUILayout.Button(open ? "Tuning ▲" : "Tuning ▼", GUILayout.Width(75)))
             {
                 if (open) expanded.Remove(id); else expanded.Add(id);
             }
-            if (GUILayout.Button("Ping", GUILayout.Width(40))) EditorGUIUtility.PingObject(r.prefab);
+            if (GUILayout.Button("Find", GUILayout.Width(45))) { EditorGUIUtility.PingObject(r.prefab); Selection.activeObject = r.prefab; }
         }
 
         if (expanded.Contains(id))
@@ -470,7 +527,7 @@ public class BalanceSheetWindow : EditorWindow
                 int dmg = Mathf.RoundToInt(d.contactDamage * d.DamageScale(previewLayer));
                 float souls = (d.minSouls + d.maxSouls) * 0.5f * d.SoulScale(previewLayer);
                 GUILayout.Label($"HP {hp}  Dmg {dmg}  Souls ~{souls:0.#}", EditorStyles.miniBoldLabel);
-                if (GUILayout.Button("Ping", GUILayout.Width(40))) EditorGUIUtility.PingObject(d);
+                if (GUILayout.Button("Find", GUILayout.Width(45))) { EditorGUIUtility.PingObject(d); Selection.activeObject = d; }
             }
             if (so.ApplyModifiedProperties()) EditorUtility.SetDirty(d);
         }
