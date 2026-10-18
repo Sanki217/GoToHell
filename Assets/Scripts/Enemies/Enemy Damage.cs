@@ -19,6 +19,9 @@ public class EnemyDamage : MonoBehaviour
     public int damage = 10;
     public float hitCooldown = 0.5f;   // seconds between hits (prevents damage spam)
 
+    /// <summary>Fired after each hit that landed (e.g. melee stalker recoils).</summary>
+    public event System.Action<PlayerHealth> OnHitPlayer;
+
     private float lastHitTime = -999f;
     private Enemy owner;
 
@@ -42,5 +45,6 @@ public class EnemyDamage : MonoBehaviour
         if (dmg <= 0) return;
         playerHealth.TakeDamage(dmg, transform.position, gameObject);
         lastHitTime = Time.time;
+        OnHitPlayer?.Invoke(playerHealth);
     }
 }

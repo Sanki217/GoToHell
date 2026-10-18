@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Enemy Stalker Melee
   description: 
   icon: {fileID: 0}
-  maxHealth: 30
+  maxHealth: 10
   contactDamage: 15
   projectileDamage: 0
   moveSpeedMultiplier: 1

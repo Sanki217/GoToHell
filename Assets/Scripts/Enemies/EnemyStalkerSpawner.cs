@@ -1,18 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Spawns stalker enemies around the player at random intervals — an
 /// occasional danger, not a constant one. Put ONE on a manager object in the
 /// gameplay scene; all tuning in the Inspector.
 ///
-/// SPAWN POSITION (relative to the player):
-///   • Z: random within spawnZMin..spawnZMax — negative, in front of the
-///     level toward the camera, so the player never sees the spawn itself,
-///     only the stalker flying in.
-///   • Y: random within ±spawnYRange around the player.
-///   • X: always OUTSIDE the noSpawnXHalfWidth band around the player (plus
-///     up to spawnXExtra further out) — they enter from the sides.
+/// SPAWN POSITION: always far BELOW the player — he keeps falling toward
+/// them, so they end up all around him instead of piling up above (and the
+/// camera shows more below than above anyway).
+///   • Y: spawnDistance + up to spawnDistanceExtra below him, pushed further
+///     down by his fall speed × fallLeadTime so a fast fall can't outrun it.
+///   • X: random within ±spawnSpreadX around him.
+/// Z comes from the stalker itself (far = deep toward the camera), so it
+/// rises in from depth.
 ///
 /// TIMING: every checkInterval seconds one roll happens; spawnChance decides
 /// if ONE stalker appears (shooterChance picks the variant). A successful
@@ -40,23 +42,29 @@ public class EnemyStalkerSpawner : MonoBehaviour
     public int maxAlive = 3;
 
     [Header("Spawn Position (relative to player)")]
-    [Tooltip("Depth range — negative Z is in front of the level, toward the camera.")]
-    public float spawnZMin = -6f;
-    public float spawnZMax = -12f;
-    [Tooltip("Vertical spread around the player.")]
-    public float spawnYRange = 4f;
-    [Tooltip("No-spawn half-width on X around the player — stalkers always appear outside it.")]
-    public float noSpawnXHalfWidth = 10f;
-    [Tooltip("Extra random X distance beyond the no-spawn band.")]
-    public float spawnXExtra = 5f;
+    [FormerlySerializedAs("noSpawnXHalfWidth")]
+    [Tooltip("Minimum distance below the player.")]
+    public float spawnDistance = 18f;
+    [FormerlySerializedAs("spawnXExtra")]
+    [Tooltip("Extra random distance below spawnDistance.")]
+    public float spawnDistanceExtra = 5f;
+    [Tooltip("Random horizontal offset (±) around the player.")]
+    public float spawnSpreadX = 12f;
+    [Tooltip("Seconds of the player's fall added below the spawn point (0 = ignore fall speed).")]
+    public float fallLeadTime = 0.75f;
 
     // ── state ───────────────────────────────────────────────────────
     private readonly List<GameObject> alive = new List<GameObject>();
     private float rollTimer;
     private float cooldownRemaining;
+    private Vector3 lastPlayerPos;
+    private float playerFallSpeed;   // units/s downward, smoothed
+    private bool hasLastPos;
 
     private void Update()
     {
+        TrackPlayerFall();
+
         if (cooldownRemaining > 0f) cooldownRemaining -= Time.deltaTime;
 
         rollTimer += Time.deltaTime;
@@ -85,13 +93,25 @@ public class EnemyStalkerSpawner : MonoBehaviour
         }
 
         Vector3 p = PlayerRefs.I.T.position;
-        float sideSign = Random.value < 0.5f ? -1f : 1f;
-        Vector3 pos = new Vector3(
-            p.x + sideSign * (noSpawnXHalfWidth + Random.Range(0f, spawnXExtra)),
-            p.y + Random.Range(-spawnYRange, spawnYRange),
-            Random.Range(spawnZMin, spawnZMax));
+        float below = spawnDistance + Random.Range(0f, spawnDistanceExtra) + playerFallSpeed * fallLeadTime;
+        Vector3 pos = new Vector3(p.x + Random.Range(-spawnSpreadX, spawnSpreadX), p.y - below, 0f);
 
-        alive.Add(Instantiate(prefab, pos, Quaternion.identity));
+        GameObject go = Instantiate(prefab, pos, Quaternion.identity);
+        if (go.TryGetComponent(out EnemyStalker stalker)) stalker.SnapDepth();   // starts deep, flies in
+        alive.Add(go);
+    }
+
+    private void TrackPlayerFall()
+    {
+        if (PlayerRefs.I == null || Time.deltaTime <= 0f) { hasLastPos = false; return; }
+        Vector3 p = PlayerRefs.I.T.position;
+        if (hasLastPos)
+        {
+            float fall = Mathf.Max(0f, (lastPlayerPos.y - p.y) / Time.deltaTime);
+            playerFallSpeed = Mathf.Lerp(playerFallSpeed, fall, 1f - Mathf.Exp(-5f * Time.deltaTime));
+        }
+        lastPlayerPos = p;
+        hasLastPos = true;
     }
 
     private void OnDrawGizmosSelected()
@@ -99,8 +119,9 @@ public class EnemyStalkerSpawner : MonoBehaviour
         Transform t = Application.isPlaying && PlayerRefs.I != null ? PlayerRefs.I.T : null;
         Vector3 c = t != null ? t.position : transform.position;
         Gizmos.color = new Color(1f, 0.4f, 0.1f, 0.6f);
-        // no-spawn band edges
-        Gizmos.DrawLine(c + new Vector3(-noSpawnXHalfWidth, -spawnYRange, 0), c + new Vector3(-noSpawnXHalfWidth, spawnYRange, 0));
-        Gizmos.DrawLine(c + new Vector3(noSpawnXHalfWidth, -spawnYRange, 0), c + new Vector3(noSpawnXHalfWidth, spawnYRange, 0));
+        // spawn box below the player
+        float top = c.y - spawnDistance, bottom = c.y - spawnDistance - spawnDistanceExtra;
+        Vector3 center = new Vector3(c.x, (top + bottom) * 0.5f, 0f);
+        Gizmos.DrawWireCube(center, new Vector3(spawnSpreadX * 2f, Mathf.Max(0.1f, top - bottom), 0.1f));
     }
 }

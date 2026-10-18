@@ -520,7 +520,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &30390267
 Transform:
   m_ObjectHideFlags: 0
@@ -530,7 +530,7 @@ Transform:
   m_GameObject: {fileID: 30390266}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 18.3, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -549,17 +549,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStalkerSpawner
   meleeStalkerPrefab: {fileID: 5456285349514001431, guid: 39865a85fc734c5429c42cf2f49dac0f, type: 3}
-  shooterStalkerPrefab: {fileID: 0}
+  shooterStalkerPrefab: {fileID: 5456285349514001431, guid: 7303ef8ad97ab1645b6f0378ff7e4efe, type: 3}
   shooterChance: 0.4
-  checkInterval: 4
-  spawnChance: 0.25
-  spawnCooldown: 12
-  maxAlive: 3
-  spawnZMin: -6
-  spawnZMax: -12
-  spawnYRange: 4
-  noSpawnXHalfWidth: 8
-  spawnXExtra: 5
+  checkInterval: 0.1
+  spawnChance: 0.514
+  spawnCooldown: 3
+  maxAlive: 50
+  spawnDistance: -1
+  spawnDistanceExtra: 10
+  spawnSpreadX: 62.7
+  fallLeadTime: 0.24
 --- !u!65 &30390269
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3883,7 +3882,7 @@ Transform:
   m_GameObject: {fileID: 177737228}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -18.150549, y: -95.71674, z: -136.66629}
+  m_LocalPosition: {x: -17.95, y: -95.71674, z: -136.66629}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4014,7 +4013,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &186470283
 RectTransform:
   m_ObjectHideFlags: 0
@@ -17363,7 +17362,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 65
+  field of view: 50
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -17390,7 +17389,7 @@ Transform:
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0.0000087072885, w: 1}
-  m_LocalPosition: {x: 0, y: 21.82, z: -8.5}
+  m_LocalPosition: {x: 0, y: 21.82, z: -14.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -25844,7 +25843,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1477067194
 RectTransform:
   m_ObjectHideFlags: 0
