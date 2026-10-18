@@ -23,9 +23,9 @@ public enum InputScheme { KeyboardMouse, Gamepad, Touch }
 /// back to the legacy Input Manager automatically if the project is switched
 /// back (Project Settings → Player → Active Input Handling).
 ///
-/// BINDINGS live in BuildActions() — code, not an .inputactions asset, so
-/// they diff cleanly in git. Players can rebind at runtime (StartRebind); the
-/// overrides persist in PlayerPrefs.
+/// BINDINGS live in Assets/Resources/GameInputActions.inputactions — open it
+/// in Unity's Input Actions editor to change keys. Players can rebind at
+/// runtime (Settings → Controls); their overrides persist in PlayerPrefs.
 ///
 /// AIM: keyboard/mouse aims at the cursor on the gameplay plane (z = 0);
 /// gamepad and touch aim with the right stick, remembering the last direction
@@ -181,7 +181,7 @@ public static class GameInput
     {
         if (asset != null) return;
 
-        asset = BuildActions(out actions);
+        asset = LoadActions(out actions);
         string json = PlayerPrefs.GetString(BindingsPrefKey, "");
         if (!string.IsNullOrEmpty(json))
         {
@@ -215,11 +215,46 @@ public static class GameInput
         OnSchemeChanged = null;
     }
 
-    /// <summary>THE bindings. Index of each action == (int)GameAction.</summary>
-    private static InputActionAsset BuildActions(out InputAction[] list)
+    /// <summary>Resources path of the editable bindings asset (Assets/Resources/GameInputActions.inputactions).</summary>
+    public const string ActionsResource = "GameInputActions";
+
+    /// <summary>
+    /// The bindings come from Assets/Resources/GameInputActions.inputactions —
+    /// edit them in Unity's Input Actions editor (double-click the asset).
+    /// Action names must match GameAction. Without the asset, the defaults in
+    /// CreateDefaultActions() are used (Tools → Go To Hell → Input → Create
+    /// Input Actions Asset writes them out).
+    /// </summary>
+    private static InputActionAsset LoadActions(out InputAction[] list)
+    {
+        InputActionAsset source = Resources.Load<InputActionAsset>(ActionsResource);
+        if (source != null)
+        {
+            // Work on a copy so runtime rebinds never dirty the project asset
+            InputActionAsset copy = UnityEngine.Object.Instantiate(source);
+            list = new InputAction[Enum.GetValues(typeof(GameAction)).Length];
+            bool complete = true;
+            foreach (GameAction a in (GameAction[])Enum.GetValues(typeof(GameAction)))
+            {
+                list[(int)a] = copy.FindAction(a.ToString());
+                if (list[(int)a] == null)
+                {
+                    complete = false;
+                    Debug.LogError($"[GameInput] '{ActionsResource}' has no action named '{a}' — using default bindings.");
+                }
+            }
+            if (complete) return copy;
+            UnityEngine.Object.Destroy(copy);
+        }
+        return CreateDefaultActions(out list);
+    }
+
+    /// <summary>Default bindings. Index of each action == (int)GameAction.</summary>
+    public static InputActionAsset CreateDefaultActions() => CreateDefaultActions(out _);
+    private static InputActionAsset CreateDefaultActions(out InputAction[] list)
     {
         var a = ScriptableObject.CreateInstance<InputActionAsset>();
-        a.name = "GameInput (runtime)";
+        a.name = ActionsResource;
         InputActionMap map = a.AddActionMap("Gameplay");
         list = new InputAction[Enum.GetValues(typeof(GameAction)).Length];
 
@@ -289,6 +324,14 @@ public static class GameInput
         InputAction act = Get(a);
         int i = BindingIndexFor(act, CurrentScheme == InputScheme.KeyboardMouse ? InputScheme.KeyboardMouse : InputScheme.Gamepad);
         return i >= 0 ? act.GetBindingDisplayString(i) : act.GetBindingDisplayString();
+    }
+
+    /// <summary>Binding label for a specific device family ("—" if none), for rebinding screens.</summary>
+    public static string BindingDisplay(GameAction a, InputScheme scheme)
+    {
+        InputAction act = Get(a);
+        int i = BindingIndexFor(act, scheme == InputScheme.KeyboardMouse ? InputScheme.KeyboardMouse : InputScheme.Gamepad);
+        return i >= 0 ? act.GetBindingDisplayString(i) : "—";
     }
 
     /// <summary>
@@ -374,6 +417,8 @@ public static class GameInput
     private static bool Released(GameAction a) => Input.GetKeyUp(keys[(int)a]);
 
     public static string BindingDisplay(GameAction a) => keys[(int)a].ToString();
+    public static string BindingDisplay(GameAction a, InputScheme scheme) =>
+        scheme == InputScheme.KeyboardMouse ? keys[(int)a].ToString() : "—";
 
     public static bool StartRebind(GameAction a, InputScheme scheme, Action<bool> onDone = null) => false;
     public static void ResetBindings() { }

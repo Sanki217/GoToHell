@@ -17,10 +17,8 @@ public class CharacterSelectUI : MonoBehaviour
 {
     [Header("UI")]
     public GameObject panel;
-    [Tooltip("Parent for the slot rows (give it a VerticalLayoutGroup).")]
-    public RectTransform content;
-    [Tooltip("Optional styled row prefab (Button + TMP_Text). Empty = plain rows.")]
-    public GameObject rowTemplate;
+    [Tooltip("One button per character slot (CharacterRoster.MaxCharacters), in order. Scene objects — style freely.")]
+    public Button[] slotButtons = new Button[0];
     public TMP_Text detailText;
     public Button playButton;
     public Button createButton;
@@ -35,8 +33,7 @@ public class CharacterSelectUI : MonoBehaviour
     /// <summary>Character + pact chosen; MainMenu starts the run.</summary>
     public event Action<CharacterData, PactDefinition> OnStartRun;
 
-    private readonly List<(CharacterData c, Button button, TMP_Text label)> rows =
-        new List<(CharacterData, Button, TMP_Text)>();
+    private readonly List<CharacterData> slotData = new List<CharacterData>();
     private string selectedId;
     private bool confirmDelete;
 
@@ -46,7 +43,11 @@ public class CharacterSelectUI : MonoBehaviour
         if (createButton != null) createButton.onClick.AddListener(OpenCreate);
         if (deleteButton != null) deleteButton.onClick.AddListener(Delete);
         if (backButton != null)   backButton.onClick.AddListener(Close);
-        if (rowTemplate != null)  rowTemplate.SetActive(false);
+        for (int i = 0; i < slotButtons.Length; i++)
+        {
+            int index = i;
+            if (slotButtons[i] != null) slotButtons[i].onClick.AddListener(() => OnSlotClicked(index));
+        }
         if (createUI != null)     createUI.OnCreated += OnCreated;
         if (panel != null)        panel.SetActive(false);
     }
@@ -110,31 +111,34 @@ public class CharacterSelectUI : MonoBehaviour
     //  VIEW
     // ================================================================
 
+    private void OnSlotClicked(int index)
+    {
+        CharacterData c = index < slotData.Count ? slotData[index] : null;
+        if (c == null) { OpenCreate(); return; }
+        selectedId = c.id;
+        confirmDelete = false;
+        Refresh();
+    }
+
     private void Rebuild()
     {
-        UIRowFactory.Clear(content, rowTemplate);
-        rows.Clear();
-
+        slotData.Clear();
         IReadOnlyList<CharacterData> all = CharacterRoster.Characters;
-        for (int i = 0; i < CharacterRoster.MaxCharacters; i++)
-        {
-            CharacterData c = i < all.Count ? all[i] : null;
-            var (button, label) = UIRowFactory.Create(content, rowTemplate, 80f);
-            if (button != null)
-            {
-                if (c != null) button.onClick.AddListener(() => { selectedId = c.id; confirmDelete = false; Refresh(); });
-                else button.onClick.AddListener(OpenCreate);
-            }
-            rows.Add((c, button, label));
-        }
+        for (int i = 0; i < slotButtons.Length; i++) slotData.Add(i < all.Count ? all[i] : null);
+        if (all.Count > slotButtons.Length)
+            Debug.LogWarning($"[CharacterSelectUI] {all.Count} characters but only {slotButtons.Length} slot buttons.");
         Refresh();
     }
 
     private void Refresh()
     {
-        foreach (var (c, button, label) in rows)
+        for (int i = 0; i < slotButtons.Length; i++)
         {
-            if (label != null) label.text = c != null ? SlotLine(c) : "<color=#666666>— empty slot —</color>";
+            Button button = slotButtons[i];
+            if (button == null) continue;
+            CharacterData c = i < slotData.Count ? slotData[i] : null;
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = c != null ? SlotLine(c) : "— empty slot —";
             Color col = c == null ? UIRowFactory.DisabledColor
                       : c.id == selectedId ? UIRowFactory.SelectedColor : UIRowFactory.RowColor;
             UIRowFactory.SetColor(button, col);
@@ -152,24 +156,24 @@ public class CharacterSelectUI : MonoBehaviour
     {
         ClassDefinition cls = Content.Classes.Get(c.classId);
         string className = cls != null ? cls.displayName : c.classId;
-        string hc = c.hardcore ? (c.dead ? "  <color=#FF4444>† FALLEN</color>" : "  <color=#FF6A3D>HARDCORE</color>") : "";
-        return $"<b>{c.name}</b>   <color=#AAAAAA>{className} · Lv {c.level}</color>{hc}";
+        string hc = c.hardcore ? (c.dead ? "  † FALLEN" : "  HARDCORE") : "";
+        return $"<b>{c.name}</b>   {className} · Lv {c.level}{hc}";
     }
 
     private static string Details(CharacterData c)
     {
         ClassDefinition cls = Content.Classes.Get(c.classId);
         var sb = new StringBuilder();
-        sb.Append($"<size=120%><b>{c.name}</b></size>\n");
+        sb.Append($"<b>{c.name}</b>\n");
         sb.Append($"{(cls != null ? cls.displayName : c.classId)}  ·  Level {c.level}");
-        if (c.hardcore) sb.Append(c.dead ? "  ·  <color=#FF4444>Fallen (hardcore)</color>" : "  ·  <color=#FF6A3D>Hardcore</color>");
+        if (c.hardcore) sb.Append(c.dead ? "  ·  Fallen (hardcore)" : "  ·  Hardcore");
         sb.Append("\n\n");
 
         foreach (PrimaryStat s in CharacterRoster.CreationStats)
         {
             int add = c.Allocated(s);
             sb.Append($"{CharacterCreateUI.StatName(s)}:  {c.FinalStat(s)}");
-            if (add > 0) sb.Append($"  <color=#88FF88>(+{add})</color>");
+            if (add > 0) sb.Append($"  (+{add})");
             sb.Append('\n');
         }
 

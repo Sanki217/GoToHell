@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -17,7 +16,9 @@ using UnityEngine.UI;
 ///   • × the player's UI Scale (Settings, 75–150%) × a readability boost on
 ///     touch devices.
 ///
-/// Canvases spawned later (chest UI, popups) are picked up within a second.
+/// SETUP: one "UIScaleManager" object per scene (Tools → Go To Hell → UI →
+/// Add Missing Scene Objects places it). Canvases spawned later (chest UI,
+/// popups) are picked up within a second.
 /// Opt a canvas out or give it its own reference with a ResponsiveCanvas
 /// component. Anchor UI to the edges/corners it belongs to — scaling fixes
 /// SIZE; anchors fix POSITION.
@@ -64,25 +65,16 @@ public class UIScaleManager : MonoBehaviour
         userScale = -1f;
     }
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void Bootstrap()
-    {
-        if (instance != null) return;
-        var go = new GameObject("[UIScaleManager]");
-        go.hideFlags = HideFlags.HideInHierarchy;
-        DontDestroyOnLoad(go);
-        instance = go.AddComponent<UIScaleManager>();
-    }
-
     private void OnEnable()
     {
-        SceneManager.sceneLoaded += OnSceneLoaded;
+        instance = this;
         ApplyAll();
     }
 
-    private void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
-
-    private void OnSceneLoaded(Scene s, LoadSceneMode m) => ApplyAll();
+    private void OnDisable()
+    {
+        if (instance == this) instance = null;
+    }
 
     private void Update()
     {

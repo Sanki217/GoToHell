@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,7 +17,7 @@ public class MetaShopUI : MonoBehaviour
     public GameObject panel;
     [Tooltip("Parent for the rows (give it a VerticalLayoutGroup).")]
     public RectTransform content;
-    [Tooltip("Optional styled row prefab (Button + TMP_Text). Empty = plain rows.")]
+    [Tooltip("Disabled row inside content (Button + TMP_Text), cloned once per entry. Style it in the scene.")]
     public GameObject rowTemplate;
     public TMP_Text currencyText;
     public TMP_Text detailText;
@@ -66,9 +66,9 @@ public class MetaShopUI : MonoBehaviour
             if (def.category != category)
             {
                 category = def.category;
-                var (hb, hl) = UIRowFactory.Create(content, rowTemplate, 50f);
+                var (hb, hl) = UIRowFactory.Create(content, rowTemplate);
                 if (hb != null) { hb.interactable = false; UIRowFactory.SetColor(hb, Color.clear); }
-                if (hl != null) hl.text = $"<color=#FFB347><b>{category?.ToUpperInvariant()}</b></color>";
+                if (hl != null) hl.text = $"<b>{category?.ToUpperInvariant()}</b>";
             }
 
             var (button, label) = UIRowFactory.Create(content, rowTemplate);
@@ -105,7 +105,7 @@ public class MetaShopUI : MonoBehaviour
             bool maxed = rank >= def.maxRank;
             if (label != null)
                 label.text = $"<b>{def.displayName}</b>   {rank}/{def.maxRank}" +
-                             (maxed ? "   <color=#66FF66>MAX</color>" : $"   <color=#FFB347>{MetaProgression.NextCost(def)}</color>");
+                             (maxed ? "   MAX" : $"   {MetaProgression.NextCost(def)}");
             UIRowFactory.SetColor(button, def == selected ? UIRowFactory.SelectedColor : UIRowFactory.RowColor);
         }
 
@@ -120,8 +120,8 @@ public class MetaShopUI : MonoBehaviour
             string next = r < selected.maxRank ? selected.Describe(r + 1) : "";
             detailText.text =
                 $"<b>{selected.displayName}</b>\n{selected.description}\n\n" +
-                $"<color=#AAAAAA>Now:</color>\n{now}" +
-                (next.Length > 0 ? $"\n\n<color=#AAAAAA>Next rank:</color>\n{next}" : "");
+                $"Now:\n{now}" +
+                (next.Length > 0 ? $"\n\nNext rank:\n{next}" : "");
         }
 
         if (buyButton != null) buyButton.interactable = canBuy;

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
 /// <summary>
@@ -85,17 +85,17 @@ public class HitStopManager : MonoBehaviour
 
     public static void NotifyDamageDealt(float amount, DamageSource source)
     {
-        if (Instance != null) Instance.OnDamageDealt(amount, source);
+        if (Instance != null && GameSettings.HitStop) Instance.OnDamageDealt(amount, source);
     }
 
     public static void NotifyKill()
     {
-        if (Instance != null) Instance.OnKill();
+        if (Instance != null && GameSettings.HitStop) Instance.OnKill();
     }
 
     public static void NotifyPlayerHurt(float amount, float maxHP)
     {
-        if (Instance != null) Instance.OnPlayerHurt(amount, maxHP);
+        if (Instance != null && GameSettings.HitStop) Instance.OnPlayerHurt(amount, maxHP);
     }
 
     // ================================================================

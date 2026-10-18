@@ -89,13 +89,15 @@ public class CameraFollow : MonoBehaviour
         // Decay trauma every frame — framerate-independent
         trauma = Mathf.Max(0f, trauma - traumaDecayRate * Time.unscaledDeltaTime);
 
-        if (shakeEnabled && shakeIntensity > 0f && trauma > 0f && !IsBlockedByUI())
+        // Player settings: on/off + 0–500% on top of this camera's own scale
+        float intensity = shakeIntensity * GameSettings.ShakeIntensity;
+        if (shakeEnabled && GameSettings.CameraShake && intensity > 0f && trauma > 0f && !IsBlockedByUI())
         {
             float magnitude = trauma * trauma;
             float t = Time.unscaledTime;
             float nx = Mathf.PerlinNoise(seedX, t * 10f) * 2f - 1f;
             float ny = Mathf.PerlinNoise(seedY, t * 10f) * 2f - 1f;
-            shakeOffset = new Vector3(nx, ny, 0f) * magnitude * shakeIntensity * maxShakeOffset;
+            shakeOffset = new Vector3(nx, ny, 0f) * magnitude * intensity * maxShakeOffset;
         }
         else
         {

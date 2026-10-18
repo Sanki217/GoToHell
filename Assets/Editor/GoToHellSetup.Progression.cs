@@ -402,7 +402,10 @@ public static partial class GoToHellSetup
         CharacterSelectUI select = canvas.gameObject.AddComponent<CharacterSelectUI>();
         select.panel = CreateModal(root, "CharacterSelectPanel", out Transform sw);
         CreateText(sw, "Header", "CHOOSE YOUR SINNER", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
-        select.content = CreateScrollList(sw, new Vector2(-330, 0), new Vector2(760, 720));
+        RectTransform slots = CreateStack(sw, "Slots", new Vector2(-330, 0), new Vector2(760, 720));
+        select.slotButtons = new Button[CharacterRoster.MaxCharacters];
+        for (int i = 0; i < select.slotButtons.Length; i++)
+            select.slotButtons[i] = ListRow(slots, $"Slot {i + 1}", "— empty slot —", 80f);
         select.detailText = CreateText(sw, "Detail", "", 28, new Vector2(430, 80), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
         select.playButton = CreateButton(sw, "Play", "PLAY", new Vector2(430, -290), new Vector2(420, 90), 36);
         select.createButton = CreateButton(sw, "Create", "CREATE NEW", new Vector2(-560, -420), new Vector2(280, 64), 24);
@@ -416,8 +419,10 @@ public static partial class GoToHellSetup
         CreateText(cw, "Header", "NEW CHARACTER", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
         create.nameInput = CreateInputField(cw, "NameInput", CharacterRoster.DefaultName, new Vector2(-330, 300), new Vector2(760, 76));
         create.classContent = CreateScrollList(cw, new Vector2(-330, 90), new Vector2(760, 300));
+        create.classRowTemplate = RowTemplate(create.classContent);
         create.classDetailText = CreateText(cw, "ClassDetail", "", 26, new Vector2(-330, -210), new Vector2(760, 260), TextAlignmentOptions.TopLeft);
-        create.statsContent = CreateStack(cw, new Vector2(430, 110), new Vector2(620, 460));
+        RectTransform stats = CreateStack(cw, "Stats", new Vector2(430, 110), new Vector2(620, 460));
+        create.statRows = CharacterRoster.CreationStats.Select(st => StatRow(stats, st)).ToArray();
         create.pointsText = CreateText(cw, "Points", "", 30, new Vector2(350, -160), new Vector2(460, 50), TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
         create.autoButton = CreateButton(cw, "Auto", "AUTO", new Vector2(665, -160), new Vector2(150, 50), 24);
         create.hardcoreToggle = CreateToggle(cw, "Hardcore", "Hardcore — death is permanent", new Vector2(430, -240), new Vector2(620, 50));
@@ -429,6 +434,7 @@ public static partial class GoToHellSetup
         pacts.panel = CreateModal(root, "PactSelectPanel", out Transform pw);
         pacts.headerText = CreateText(pw, "Header", "CHOOSE A PACT", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
         pacts.content = CreateScrollList(pw, new Vector2(-330, 0), new Vector2(760, 720));
+        pacts.rowTemplate = RowTemplate(pacts.content);
         pacts.detailText = CreateText(pw, "Detail", "", 28, new Vector2(430, 80), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
         pacts.startButton = CreateButton(pw, "Descend", "DESCEND", new Vector2(430, -290), new Vector2(420, 90), 36);
         pacts.backButton = CreateButton(pw, "Back", "BACK", new Vector2(600, -420), new Vector2(220, 64), 24);
@@ -443,6 +449,7 @@ public static partial class GoToHellSetup
         shop.currencyText = CreateText(mw, "Currency", "0", 36, new Vector2(400, 400), new Vector2(600, 70), TextAlignmentOptions.Right, FontStyles.Bold);
         shop.currencyText.color = new Color(1f, 0.7f, 0.3f);
         shop.content = CreateScrollList(mw, new Vector2(-330, -10), new Vector2(760, 700));
+        shop.rowTemplate = RowTemplate(shop.content);
         shop.detailText = CreateText(mw, "Detail", "", 28, new Vector2(430, 60), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
         shop.buyButton = CreateButton(mw, "Buy", "BUY", new Vector2(430, -300), new Vector2(420, 80), 30);
         shop.buyButtonLabel = shop.buyButton.GetComponentInChildren<TMP_Text>();
@@ -461,12 +468,50 @@ public static partial class GoToHellSetup
         menu.currencyText = currency;
         EditorUtility.SetDirty(menu);
 
+        ApplyDefaultLook(canvas.gameObject);
         FinishScene(canvas.gameObject, "Main menu flow built: Play → Character Select → Create → Pact → run.");
     }
 
-    private static RectTransform CreateStack(Transform parent, Vector2 pos, Vector2 size)
+    /// <summary>A list row button that stretches to the list width (VerticalLayoutGroup parent).</summary>
+    private static Button ListRow(Transform parent, string name, string label, float height)
     {
-        GameObject go = CreateUIObject(parent, "Stats");
+        Button b = CreateButton(parent, name, label, Vector2.zero, new Vector2(100, height), 24);
+        b.gameObject.AddComponent<LayoutElement>().minHeight = height;
+        TMP_Text t = b.GetComponentInChildren<TMP_Text>();
+        t.alignment = TextAlignmentOptions.MidlineLeft;
+        t.rectTransform.offsetMin = new Vector2(20, 0);
+        return b;
+    }
+
+    /// <summary>Disabled "RowTemplate" inside a list — cloned at runtime once per entry, styled in the scene.</summary>
+    private static GameObject RowTemplate(Transform list)
+    {
+        Button b = ListRow(list, "RowTemplate", "Row", 80f);
+        b.gameObject.SetActive(false);
+        return b.gameObject;
+    }
+
+    /// <summary>"Stat   1  [−] [+]" row for character creation.</summary>
+    private static CharacterCreateUI.StatRow StatRow(Transform parent, PrimaryStat stat)
+    {
+        GameObject row = CreateUIObject(parent, CharacterCreateUI.StatName(stat));
+        row.AddComponent<LayoutElement>().minHeight = 56;
+        TMP_Text label = CreateText(row.transform, "Label", CharacterCreateUI.StatName(stat), 26, Vector2.zero,
+                                    Vector2.zero, TextAlignmentOptions.MidlineLeft);
+        StretchRect(label.gameObject);
+        label.rectTransform.offsetMax = new Vector2(-140, 0);
+
+        Button minus = CreateButton(row.transform, "Minus", "-", Vector2.zero, new Vector2(56, 48), 30);
+        Anchor(minus.gameObject, new Vector2(1, 0.5f), new Vector2(-100, 0));
+        Button plus = CreateButton(row.transform, "Plus", "+", Vector2.zero, new Vector2(56, 48), 30);
+        Anchor(plus.gameObject, new Vector2(1, 0.5f), new Vector2(-35, 0));
+
+        return new CharacterCreateUI.StatRow { stat = stat, label = label, minus = minus, plus = plus };
+    }
+
+    private static RectTransform CreateStack(Transform parent, string name, Vector2 pos, Vector2 size)
+    {
+        GameObject go = CreateUIObject(parent, name);
         CenterRect(go, pos, size);
         VerticalLayoutGroup v = go.AddComponent<VerticalLayoutGroup>();
         v.spacing = 8;

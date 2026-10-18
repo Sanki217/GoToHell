@@ -784,6 +784,7 @@ GameObject:
   - component: {fileID: 1480309002940532566}
   - component: {fileID: 1389196811611447786}
   - component: {fileID: 4847206013479063095}
+  - component: {fileID: 2189306929204974185}
   m_Layer: 8
   m_Name: Rogue
   m_TagString: Player
@@ -1583,6 +1584,19 @@ MonoBehaviour:
   reflectEnergyCost: 5
   contactDamageMultiplier: 0.4
   shieldVisual: {fileID: 0}
+--- !u!114 &2189306929204974185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5885043042379458451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86848e0878d317a40bae2e66730896a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AchievementTracker
+  pollInterval: 0.5
 --- !u!1 &7010740102580621068
 GameObject:
   m_ObjectHideFlags: 0

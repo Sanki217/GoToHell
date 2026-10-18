@@ -5,7 +5,9 @@ using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// Shows Steam-style achievement popups bottom-right. Queues multiple.
+/// Shows Steam-style achievement popups. Queues multiple. Position, size and
+/// draw order are set on the panel in the scene (bottom-right, own Canvas with a
+/// high Sort Order so it is above all UI).
 /// Put in gameplay scenes (or a persistent canvas). Subscribes to Achievements.OnUnlocked.
 ///
 /// Setup: a panel anchored bottom-right, with an icon Image, name TMP_Text, desc TMP_Text.
@@ -39,27 +41,9 @@ public class AchievementPopupUI : MonoBehaviour
         if (panel != null) panel.gameObject.SetActive(false);
     }
 
-    [Header("Placement")]
-    [Tooltip("Gap from the bottom-right screen corner (reference pixels).")]
-    public Vector2 margin = new Vector2(40f, 40f);
-
     private void Start()
     {
-        if (panel == null) return;
-
-        // Always on top of every other UI: own canvas with the highest sort order
-        Canvas c = panel.GetComponent<Canvas>();
-        if (c == null) c = panel.gameObject.AddComponent<Canvas>();
-        c.overrideSorting = true;
-        c.sortingOrder = short.MaxValue;
-
-        // Always bottom-right, sliding in from off-screen right
-        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(1f, 0f);
-        shownX = -margin.x;
-        hiddenX = panel.rect.width + margin.x;
-        panel.anchoredPosition = new Vector2(hiddenX, margin.y);
-
-        panel.gameObject.SetActive(false);
+        if (panel != null) panel.gameObject.SetActive(false);
     }
 
     private void Enqueue(AchievementDefinition a)

@@ -17,17 +17,28 @@ public class CharacterCreateUI : MonoBehaviour
     [Header("UI")]
     public GameObject panel;
     public TMP_InputField nameInput;
-    [Tooltip("Parent for class rows (VerticalLayoutGroup).")]
+    [Tooltip("Parent for class rows (VerticalLayoutGroup). One row per ClassDefinition is cloned from the template.")]
     public RectTransform classContent;
+    [Tooltip("Disabled row inside classContent (Button + TMP_Text). Style it in the scene.")]
+    public GameObject classRowTemplate;
     public TMP_Text classDetailText;
-    [Tooltip("Parent for the stat rows (VerticalLayoutGroup).")]
-    public RectTransform statsContent;
+    [Tooltip("One row per creation stat — scene objects (label, − and + buttons).")]
+    public StatRow[] statRows = new StatRow[0];
     public TMP_Text pointsText;
     public Toggle hardcoreToggle;
-    [Tooltip("Spends the remaining points randomly. Created at runtime next to the points text if empty.")]
+    [Tooltip("Spends the remaining points randomly.")]
     public Button autoButton;
     public Button createButton;
     public Button cancelButton;
+
+    [Serializable]
+    public class StatRow
+    {
+        public PrimaryStat stat;
+        public TMP_Text label;
+        public Button minus;
+        public Button plus;
+    }
 
     /// <summary>Fired after a character is saved.</summary>
     public event Action<CharacterData> OnCreated;
@@ -37,7 +48,6 @@ public class CharacterCreateUI : MonoBehaviour
     private readonly Dictionary<PrimaryStat, int> points = new Dictionary<PrimaryStat, int>();
     private readonly List<(ClassDefinition cls, Button button, TMP_Text label)> classRows =
         new List<(ClassDefinition, Button, TMP_Text)>();
-    private readonly Dictionary<PrimaryStat, TMP_Text> statLabels = new Dictionary<PrimaryStat, TMP_Text>();
     private ClassDefinition selectedClass;
 
     private int Remaining
@@ -59,8 +69,16 @@ public class CharacterCreateUI : MonoBehaviour
             nameInput.characterLimit = CharacterRoster.MaxNameLength;
             if (nameInput.placeholder is TMP_Text ph) ph.text = CharacterRoster.DefaultName;
         }
-        if (autoButton == null) autoButton = CreateAutoButton();
         if (autoButton != null) autoButton.onClick.AddListener(AutoAllocate);
+        if (classRowTemplate != null) classRowTemplate.SetActive(false);
+
+        foreach (StatRow row in statRows)
+        {
+            if (row == null) continue;
+            PrimaryStat captured = row.stat;
+            if (row.minus != null) row.minus.onClick.AddListener(() => Change(captured, -1));
+            if (row.plus != null)  row.plus.onClick.AddListener(() => Change(captured, +1));
+        }
         if (panel != null) panel.SetActive(false);
     }
 
@@ -77,7 +95,6 @@ public class CharacterCreateUI : MonoBehaviour
         if (panel != null) panel.SetActive(true);
 
         BuildClassRows();
-        BuildStatRows();
         Refresh();
         if (nameInput != null) nameInput.ActivateInputField();
     }
@@ -112,36 +129,17 @@ public class CharacterCreateUI : MonoBehaviour
         Refresh();
     }
 
-    /// <summary>Fallback for panels built before the Auto button existed: a small copy of Create.</summary>
-    private Button CreateAutoButton()
-    {
-        if (createButton == null || pointsText == null) return null;
-        GameObject go = Instantiate(createButton.gameObject, createButton.transform.parent);
-        go.name = "Auto";
-        Button b = go.GetComponent<Button>();
-        b.onClick = new Button.ButtonClickedEvent();
-        RectTransform rt = (RectTransform)go.transform;
-        RectTransform pt = pointsText.rectTransform;
-        rt.anchorMin = rt.anchorMax = pt.anchorMin;
-        rt.sizeDelta = new Vector2(150f, pt.sizeDelta.y);
-        rt.anchoredPosition = pt.anchoredPosition + new Vector2(pt.sizeDelta.x * 0.5f - 75f, 0f);
-        TMP_Text label = go.GetComponentInChildren<TMP_Text>();
-        if (label != null) { label.text = "AUTO"; label.fontSize = 24; }
-        pointsText.alignment = TextAlignmentOptions.MidlineLeft;
-        return b;
-    }
-
     // ================================================================
     //  BUILD
     // ================================================================
 
     private void BuildClassRows()
     {
-        UIRowFactory.Clear(classContent);
+        UIRowFactory.Clear(classContent, classRowTemplate);
         classRows.Clear();
         foreach (ClassDefinition c in Content.Classes.All)
         {
-            var (button, label) = UIRowFactory.Create(classContent, null, 70f);
+            var (button, label) = UIRowFactory.Create(classContent, classRowTemplate);
             ClassDefinition captured = c;
             if (button != null) button.onClick.AddListener(() =>
             {
@@ -150,20 +148,6 @@ public class CharacterCreateUI : MonoBehaviour
                 Refresh();
             });
             classRows.Add((c, button, label));
-        }
-    }
-
-    private void BuildStatRows()
-    {
-        UIRowFactory.Clear(statsContent);
-        statLabels.Clear();
-        foreach (PrimaryStat s in Stats)
-        {
-            var (label, minus, plus) = UIRowFactory.CreateStepper(statsContent);
-            PrimaryStat captured = s;
-            minus.onClick.AddListener(() => Change(captured, -1));
-            plus.onClick.AddListener(() => Change(captured, +1));
-            statLabels[s] = label;
         }
     }
 
@@ -181,8 +165,8 @@ public class CharacterCreateUI : MonoBehaviour
         {
             if (label != null)
                 label.text = c.IsUnlocked
-                    ? $"<b>{c.displayName}</b>   <color=#AAAAAA>{(c.weapon != null ? c.weapon.displayName : "")}</color>"
-                    : "<color=#777777>??? — locked</color>";
+                    ? $"<b>{c.displayName}</b>   {(c.weapon != null ? c.weapon.displayName : "")}"
+                    : "??? — locked";
             UIRowFactory.SetColor(button, !c.IsUnlocked ? UIRowFactory.DisabledColor
                                          : c == selectedClass ? UIRowFactory.SelectedColor : UIRowFactory.RowColor);
         }
@@ -199,16 +183,17 @@ public class CharacterCreateUI : MonoBehaviour
             }
         }
 
-        foreach (PrimaryStat s in Stats)
+        foreach (StatRow row in statRows)
         {
-            if (!statLabels.TryGetValue(s, out TMP_Text label) || label == null) continue;
-            int baseVal = CharacterRoster.BaseStatValue;
-            int add = points[s];
-            label.text = $"{StatName(s)}   <b>{baseVal + add}</b>" + (add > 0 ? $"  <color=#88FF88>(+{add})</color>" : "");
+            if (row == null || row.label == null) continue;
+            int add = points.TryGetValue(row.stat, out int v) ? v : 0;
+            row.label.text = $"{StatName(row.stat)}   <b>{CharacterRoster.BaseStatValue + add}</b>" + (add > 0 ? $"  (+{add})" : "");
+            if (row.minus != null) row.minus.interactable = add > 0;
+            if (row.plus != null)  row.plus.interactable = Remaining > 0;
         }
 
         if (pointsText != null)
-            pointsText.text = Remaining > 0 ? $"Points left: <b>{Remaining}</b>" : "<color=#88FF88>All points spent</color>";
+            pointsText.text = Remaining > 0 ? $"Points left: <b>{Remaining}</b>" : "All points spent";
 
         if (createButton != null) createButton.interactable = CanCreate();
         if (autoButton != null) autoButton.interactable = Remaining > 0;

@@ -852,6 +852,7 @@ GameObject:
   - component: {fileID: 896580749835130994}
   - component: {fileID: 3067490915115003354}
   - component: {fileID: 5049061815432663026}
+  - component: {fileID: 4582016451342938487}
   m_Layer: 8
   m_Name: Warrior
   m_TagString: Player
@@ -1651,6 +1652,19 @@ MonoBehaviour:
   teleportClearanceRadius: 0.4
   isDashing: 0
   isTeleportDash: 0
+--- !u!114 &4582016451342938487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7728477047858160054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86848e0878d317a40bae2e66730896a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AchievementTracker
+  pollInterval: 0.5
 --- !u!1 &8174353867238334254
 GameObject:
   m_ObjectHideFlags: 0

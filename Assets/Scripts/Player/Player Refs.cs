@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Cached singleton reference to the Player and its most-used components.
@@ -82,10 +82,9 @@ public class PlayerRefs : MonoBehaviour
         LevelSystem = GetComponent<PlayerLevelSystem>();
         StateCtrl   = GetComponent<PlayerStateController>();
 
-        // Single-run achievement polling travels with the player, so it works in
-        // every gameplay scene without anyone remembering to place a tracker.
         if (!TryGetComponent<AchievementTracker>(out _))
-            gameObject.AddComponent<AchievementTracker>();
+            Debug.LogWarning("[PlayerRefs] No AchievementTracker on the player — single-run achievements won't trigger. " +
+                             "Add it to the player prefab (Tools → Go To Hell → UI → Add Missing Scene Objects).");
     }
 
     private void OnDestroy()

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -17,7 +17,7 @@ public class PactSelectUI : MonoBehaviour
     public GameObject panel;
     [Tooltip("Parent for the rows (give it a VerticalLayoutGroup).")]
     public RectTransform content;
-    [Tooltip("Optional styled row prefab (Button + TMP_Text). Empty = plain rows.")]
+    [Tooltip("Disabled row inside content (Button + TMP_Text), cloned once per entry. Style it in the scene.")]
     public GameObject rowTemplate;
     public TMP_Text headerText;
     public TMP_Text detailText;
@@ -99,7 +99,7 @@ public class PactSelectUI : MonoBehaviour
         {
             bool unlocked = def.IsUnlocked;
             if (label != null)
-                label.text = unlocked ? $"<b>{def.displayName}</b>" : "<color=#777777>??? — locked</color>";
+                label.text = unlocked ? $"<b>{def.displayName}</b>" : "??? — locked";
             UIRowFactory.SetColor(button, !unlocked ? UIRowFactory.DisabledColor
                                          : def == selected ? UIRowFactory.SelectedColor : UIRowFactory.RowColor);
         }
@@ -108,7 +108,7 @@ public class PactSelectUI : MonoBehaviour
             detailText.text = shown == null
                 ? "No pacts unlocked.\nCreate PactDefinition assets in Assets/Resources/Pacts."
                 : shown.IsUnlocked
-                    ? $"<b>{shown.displayName}</b>\n<color=#AAAAAA>RMB skill</color>\n\n{shown.description}"
+                    ? $"<b>{shown.displayName}</b>\nRMB skill\n\n{shown.description}"
                     : "Locked.\nComplete achievements to unlock new pacts.";
 
         if (startButton != null) startButton.interactable = selected != null;

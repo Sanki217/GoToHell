@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 
 /// <summary>
-/// Esc pause menu with a settings sub-panel (camera shake, VSync).
+/// Esc pause menu with a settings sub-panel (SettingsUI — graphics, gameplay, sound, controls).
 ///
 /// Pausing is an owned GameTime pause + PlayerStateController blocker, so it
 /// stacks safely on top of the level-up picker or chest roll: closing either
@@ -17,15 +17,14 @@ public class PauseMenu : MonoBehaviour
     [Header("Buttons")]
     public Button resumeButton;
     public Button restartButton;
-    [Tooltip("Abandons the run and returns to the main menu (nothing is recorded, the character " +
-             "doesn't die). Created at runtime under Restart if left empty.")]
+    [Tooltip("Abandons the run and returns to the main menu (nothing is recorded, the character doesn't die).")]
     public Button quitToMenuButton;
     public Button settingsButton;
     public Button settingsBackButton;
 
     [Header("Settings — Camera Shake")]
     public Toggle cameraShakeToggle;
-    [Tooltip("Slider controlling shake intensity (0–2). Assign a UI Slider.")]
+    [Tooltip("Slider controlling shake intensity (0–500%). Assign a UI Slider.")]
     public Slider shakeIntensitySlider;
 
     [Header("Settings — VSync")]
@@ -40,7 +39,6 @@ public class PauseMenu : MonoBehaviour
     public PlayerStateController playerState;
 
     private bool isPaused = false;
-    private CameraFollow cameraFollow;
 
     public bool IsPaused => isPaused;
 
@@ -51,7 +49,6 @@ public class PauseMenu : MonoBehaviour
 
         if (resumeButton != null) resumeButton.onClick.AddListener(Resume);
         if (restartButton != null) restartButton.onClick.AddListener(Restart);
-        if (quitToMenuButton == null) quitToMenuButton = CreateQuitButton();
         if (quitToMenuButton != null) quitToMenuButton.onClick.AddListener(QuitToMenu);
         if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
         if (settingsBackButton != null) settingsBackButton.onClick.AddListener(CloseSettings);
@@ -59,44 +56,31 @@ public class PauseMenu : MonoBehaviour
         if (playerState == null && PlayerRefs.I != null)
             playerState = PlayerRefs.I.StateCtrl;
 
-        cameraFollow = PlayerRefs.CamFollow;
-
-        // Camera shake toggle
-        if (cameraShakeToggle != null && cameraFollow != null)
+        // Legacy widgets on this panel still work — they read/write GameSettings
+        // (the full tabbed settings live in SettingsUI).
+        if (cameraShakeToggle != null)
         {
-            cameraShakeToggle.isOn = cameraFollow.shakeEnabled;
-            cameraShakeToggle.onValueChanged.AddListener(val => cameraFollow.shakeEnabled = val);
+            cameraShakeToggle.isOn = GameSettings.CameraShake;
+            cameraShakeToggle.onValueChanged.AddListener(val => GameSettings.CameraShake = val);
         }
-
-        // Shake intensity slider
-        if (shakeIntensitySlider != null && cameraFollow != null)
+        if (shakeIntensitySlider != null)
         {
             shakeIntensitySlider.minValue = 0f;
-            shakeIntensitySlider.maxValue = 2f;
-            shakeIntensitySlider.value = cameraFollow.shakeIntensity;
-            shakeIntensitySlider.onValueChanged.AddListener(val => cameraFollow.shakeIntensity = val);
+            shakeIntensitySlider.maxValue = 5f;
+            shakeIntensitySlider.value = GameSettings.ShakeIntensity;
+            shakeIntensitySlider.onValueChanged.AddListener(val => GameSettings.ShakeIntensity = val);
         }
-
-        // UI scale (UIScaleManager applies it to every canvas immediately)
         if (uiScaleSlider != null)
         {
             uiScaleSlider.minValue = UIScaleManager.MinUserScale;
             uiScaleSlider.maxValue = UIScaleManager.MaxUserScale;
-            uiScaleSlider.value = UIScaleManager.UserScale;
-            uiScaleSlider.onValueChanged.AddListener(val => UIScaleManager.UserScale = val);
+            uiScaleSlider.value = GameSettings.UiScale;
+            uiScaleSlider.onValueChanged.AddListener(val => GameSettings.UiScale = val);
         }
-
-        // VSync toggle — on = vSyncCount 1, off = 0. Persisted; default OFF
-        // (applied at boot by GameSettingsBootstrap).
         if (vSyncToggle != null)
         {
-            vSyncToggle.isOn = QualitySettings.vSyncCount > 0;
-            vSyncToggle.onValueChanged.AddListener(val =>
-            {
-                QualitySettings.vSyncCount = val ? 1 : 0;
-                PlayerPrefs.SetInt(GameSettingsBootstrap.VSyncPref, val ? 1 : 0);
-                PlayerPrefs.Save();
-            });
+            vSyncToggle.isOn = GameSettings.VSync;
+            vSyncToggle.onValueChanged.AddListener(val => GameSettings.VSync = val);
         }
     }
 
@@ -151,31 +135,6 @@ public class PauseMenu : MonoBehaviour
     {
         Resume();
         SceneFlow.GoToMainMenu();
-    }
-
-    /// <summary>Fallback for scenes built before the button existed: a copy of Restart placed below it.</summary>
-    private Button CreateQuitButton()
-    {
-        if (restartButton == null) return null;
-        GameObject go = Instantiate(restartButton.gameObject, restartButton.transform.parent);
-        go.name = "QuitToMenuButton";
-        go.transform.SetSiblingIndex(restartButton.transform.GetSiblingIndex() + 1);
-        Button b = go.GetComponent<Button>();
-        b.onClick = new Button.ButtonClickedEvent();
-
-        // Inside a layout group the copy places itself; otherwise put it under Restart
-        if (go.transform.parent.GetComponent<LayoutGroup>() == null)
-        {
-            RectTransform src = (RectTransform)restartButton.transform;
-            RectTransform rt = (RectTransform)go.transform;
-            rt.anchoredPosition = src.anchoredPosition - new Vector2(0f, src.rect.height + 16f);
-        }
-
-        TMPro.TMP_Text tmp = go.GetComponentInChildren<TMPro.TMP_Text>();
-        if (tmp != null) tmp.text = "Quit to Menu";
-        Text legacy = go.GetComponentInChildren<Text>();
-        if (legacy != null) legacy.text = "Quit to Menu";
-        return b;
     }
 
     public void OpenSettings()
