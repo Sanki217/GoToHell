@@ -8,7 +8,8 @@ using TMPro;
 ///
 /// On Show: records the run through RunManager.CompleteRun (idempotent),
 /// freezes time, disables player control, and displays the highlights.
-/// "Back to Menu" returns to the main menu (which resets RunConfig).
+/// The button returns to the town with the same character (or the main menu
+/// if there is none / a hardcore character just fell).
 ///
 /// Callers use RunSummaryUI.TryShow(victory) — returns false if no summary UI
 /// exists in the scene, so callers can fall back to old behaviour (useful when
@@ -38,7 +39,7 @@ public class RunSummaryUI : MonoBehaviour
     {
         I = this;
         if (panel != null) panel.SetActive(false);
-        if (menuButton != null) menuButton.onClick.AddListener(SceneFlow.GoToMainMenu);
+        if (menuButton != null) menuButton.onClick.AddListener(SceneFlow.ReturnToTown);
     }
 
     private void OnDestroy()
@@ -77,6 +78,13 @@ public class RunSummaryUI : MonoBehaviour
         if (statsText != null)
             statsText.text = run != null ? FormatStats(run) : "";
 
+        if (menuButton != null)
+        {
+            TMP_Text label = menuButton.GetComponentInChildren<TMP_Text>(true);
+            CharacterData c = RunConfig.I != null ? CharacterRoster.Get(RunConfig.I.characterId) : null;
+            if (label != null) label.text = c != null && c.CanPlay ? "Return to Town" : "Main Menu";
+        }
+
         if (panel != null) panel.SetActive(true);
     }
 
@@ -99,7 +107,9 @@ public class RunSummaryUI : MonoBehaviour
             $"Souls collected:  {r.soulsCollected}\n" +
             $"Damage taken:  {r.damageTaken:F0}" +
             (r.hardcore && !r.victory ? "\n\n<b>HARDCORE — this character is gone.</b>" : "") +
-            $"\n\n<b>+{r.metaCurrencyEarned} {MetaProgression.CurrencyName}</b>";
+            $"\n\n<b>+{r.metaCurrencyEarned} {MetaProgression.CurrencyName}</b>" +
+            (r.xpEarned > 0 ? $"\n<b>+{r.xpEarned} XP</b>" : "") +
+            (r.levelsGained > 0 ? $"  <b>LEVEL UP! (+{r.levelsGained})</b>" : "");
     }
 
     private static string FormatDuration(float seconds)

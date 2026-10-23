@@ -8,7 +8,8 @@ using UnityEngine.InputSystem.Utilities;
 /// <summary>Every player-facing input action. Used for rebinding and prompt text.</summary>
 public enum GameAction
 {
-    Move, Jump, Attack, AltAttack, Skill, Interact, LevelUp, Pause, ToggleStats, Aim
+    Move, Jump, Attack, AltAttack, Skill, Interact, LevelUp, Pause, ToggleStats, Aim,
+    ClassSkill, Descend
 }
 
 /// <summary>What the player is currently using. Drives aiming and button prompts.</summary>
@@ -64,12 +65,18 @@ public static class GameInput
     public static bool AttackHeld     => Held(GameAction.Attack);
     public static bool AttackReleased => Released(GameAction.Attack);
 
-    /// <summary>Modifier that turns the primary attack into the sword slash.</summary>
+    /// <summary>Modifier that turns the primary attack into the universal kick.</summary>
     public static bool AltAttackHeld  => Held(GameAction.AltAttack);
 
-    /// <summary>Class skill: dash, shield, …</summary>
+    /// <summary>Pact skill (RMB): dash, shield, …</summary>
     public static bool SkillPressed   => Pressed(GameAction.Skill);
     public static bool SkillHeld      => Held(GameAction.Skill);
+
+    /// <summary>Class active skill: War Cry, Smoke Bomb, Holy Nova…</summary>
+    public static bool ClassSkillPressed => Pressed(GameAction.ClassSkill);
+
+    /// <summary>Town: hold to leave for a run.</summary>
+    public static bool DescendHeld       => Held(GameAction.Descend);
 
     public static bool InteractPressed    => Pressed(GameAction.Interact);
     public static bool LevelUpPressed     => Pressed(GameAction.LevelUp);
@@ -164,6 +171,16 @@ public static class GameInput
         }
     }
 
+    /// <summary>Debug overlay toggle: ` (backquote) — a fixed developer key, not rebindable.</summary>
+    public static bool DebugTogglePressed
+    {
+        get
+        {
+            Keyboard kb = Keyboard.current;
+            return kb != null && kb.backquoteKey.wasPressedThisFrame;
+        }
+    }
+
     /// <summary>Raw key check for debug tools. Gameplay should use actions.</summary>
     public static bool KeyPressed(KeyCode key)
     {
@@ -233,18 +250,18 @@ public static class GameInput
             // Work on a copy so runtime rebinds never dirty the project asset
             InputActionAsset copy = UnityEngine.Object.Instantiate(source);
             list = new InputAction[Enum.GetValues(typeof(GameAction)).Length];
-            bool complete = true;
+            InputActionMap map = copy.actionMaps.Count > 0 ? copy.actionMaps[0] : copy.AddActionMap("Gameplay");
             foreach (GameAction a in (GameAction[])Enum.GetValues(typeof(GameAction)))
             {
                 list[(int)a] = copy.FindAction(a.ToString());
-                if (list[(int)a] == null)
-                {
-                    complete = false;
-                    Debug.LogError($"[GameInput] '{ActionsResource}' has no action named '{a}' — using default bindings.");
-                }
+                if (list[(int)a] != null) continue;
+
+                // Asset made before this action existed: add it with its default keys
+                list[(int)a] = AddDefaultAction(map, a);
+                Debug.LogWarning($"[GameInput] '{ActionsResource}' has no action '{a}' — added with default bindings. " +
+                                 "Re-run Tools → Go To Hell → Input → Create Input Actions Asset to edit it.");
             }
-            if (complete) return copy;
-            UnityEngine.Object.Destroy(copy);
+            return copy;
         }
         return CreateDefaultActions(out list);
     }
@@ -257,36 +274,48 @@ public static class GameInput
         a.name = ActionsResource;
         InputActionMap map = a.AddActionMap("Gameplay");
         list = new InputAction[Enum.GetValues(typeof(GameAction)).Length];
-
-        InputAction move = map.AddAction("Move", InputActionType.Value, expectedControlLayout: "Vector2");
-        move.AddCompositeBinding("2DVector")
-            .With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s")
-            .With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
-        move.AddCompositeBinding("2DVector")
-            .With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow")
-            .With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
-        move.AddBinding("<Gamepad>/leftStick");
-        move.AddBinding("<Gamepad>/dpad");
-        list[(int)GameAction.Move] = move;
-
-        list[(int)GameAction.Jump]        = Button(map, "Jump",        "<Keyboard>/space",     "<Gamepad>/buttonSouth");
-        list[(int)GameAction.Attack]      = Button(map, "Attack",      "<Mouse>/leftButton",   "<Gamepad>/rightTrigger");
-        list[(int)GameAction.AltAttack]   = Button(map, "AltAttack",   "<Keyboard>/leftShift", "<Gamepad>/leftTrigger");
-        list[(int)GameAction.Skill]       = Button(map, "Skill",       "<Mouse>/rightButton",  "<Gamepad>/rightShoulder");
-        list[(int)GameAction.Interact]    = Button(map, "Interact",    "<Keyboard>/e",         "<Gamepad>/buttonNorth");
-        list[(int)GameAction.LevelUp]     = Button(map, "LevelUp",     "<Keyboard>/q",         "<Gamepad>/buttonWest");
-        list[(int)GameAction.Pause]       = Button(map, "Pause",       "<Keyboard>/escape",    "<Gamepad>/start");
-        list[(int)GameAction.ToggleStats] = Button(map, "ToggleStats", "<Keyboard>/tab",       "<Gamepad>/select");
-
-        InputAction aim = map.AddAction("Aim", InputActionType.Value, expectedControlLayout: "Vector2");
-        aim.AddBinding("<Gamepad>/rightStick");
-        list[(int)GameAction.Aim] = aim;
+        foreach (GameAction g in (GameAction[])Enum.GetValues(typeof(GameAction)))
+            list[(int)g] = AddDefaultAction(map, g);
 
         // Not a gameplay action: only lets "moved the mouse" switch the scheme
         // back to keyboard/mouse (aim follows the cursor again).
         map.AddAction("PointerMove", InputActionType.PassThrough, "<Mouse>/delta");
 
         return a;
+    }
+
+    /// <summary>Adds one action with its default bindings to a (disabled) map.</summary>
+    private static InputAction AddDefaultAction(InputActionMap map, GameAction a)
+    {
+        switch (a)
+        {
+            case GameAction.Move:
+                InputAction move = map.AddAction("Move", InputActionType.Value, expectedControlLayout: "Vector2");
+                move.AddCompositeBinding("2DVector")
+                    .With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s")
+                    .With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
+                move.AddCompositeBinding("2DVector")
+                    .With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow")
+                    .With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
+                move.AddBinding("<Gamepad>/leftStick");
+                move.AddBinding("<Gamepad>/dpad");
+                return move;
+            case GameAction.Aim:
+                InputAction aim = map.AddAction("Aim", InputActionType.Value, expectedControlLayout: "Vector2");
+                aim.AddBinding("<Gamepad>/rightStick");
+                return aim;
+            case GameAction.Jump:        return Button(map, "Jump",        "<Keyboard>/space",     "<Gamepad>/buttonSouth");
+            case GameAction.Attack:      return Button(map, "Attack",      "<Mouse>/leftButton",   "<Gamepad>/rightTrigger");
+            case GameAction.AltAttack:   return Button(map, "AltAttack",   "<Keyboard>/leftShift", "<Gamepad>/leftTrigger");
+            case GameAction.Skill:       return Button(map, "Skill",       "<Mouse>/rightButton",  "<Gamepad>/rightShoulder");
+            case GameAction.Interact:    return Button(map, "Interact",    "<Keyboard>/e",         "<Gamepad>/buttonNorth");
+            case GameAction.LevelUp:     return Button(map, "LevelUp",     "<Keyboard>/q",         "<Gamepad>/buttonWest");
+            case GameAction.Pause:       return Button(map, "Pause",       "<Keyboard>/escape",    "<Gamepad>/start");
+            case GameAction.ToggleStats: return Button(map, "ToggleStats", "<Keyboard>/tab",       "<Gamepad>/select");
+            case GameAction.ClassSkill:  return Button(map, "ClassSkill",  "<Keyboard>/f",         "<Gamepad>/leftShoulder");
+            case GameAction.Descend:     return Button(map, "Descend",     "<Keyboard>/r",         "<Gamepad>/leftStickPress");
+            default:                     return Button(map, a.ToString(),  "", "");
+        }
     }
 
     private static InputAction Button(InputActionMap map, string name, string keyboardMouse, string gamepad)
@@ -403,6 +432,8 @@ public static class GameInput
         KeyCode.Escape,      // Pause
         KeyCode.Tab,         // ToggleStats
         KeyCode.None,        // Aim (stick)
+        KeyCode.F,           // ClassSkill
+        KeyCode.R,           // Descend
     };
 
     public static Vector2 Move => new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
@@ -411,6 +442,7 @@ public static class GameInput
     public static bool AnyKeyPressed => Input.anyKeyDown;
     public static Vector3 PointerScreen => Input.mousePosition;
     public static bool KeyPressed(KeyCode key) => Input.GetKeyDown(key);
+    public static bool DebugTogglePressed => Input.GetKeyDown(KeyCode.BackQuote);
 
     private static bool Pressed(GameAction a)  => a == GameAction.Jump ? Input.GetButtonDown("Jump") : Input.GetKeyDown(keys[(int)a]);
     private static bool Held(GameAction a)     => Input.GetKey(keys[(int)a]);

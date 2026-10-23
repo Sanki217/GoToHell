@@ -36,9 +36,11 @@ public class PlayerSpawner : MonoBehaviour
         Instantiate(prefab, transform.position, Quaternion.identity);
     }
 
-    private GameObject ResolvePrefab()
+    private GameObject ResolvePrefab() => PrefabFor(RunConfig.I != null ? RunConfig.I.selectedClassId : "", defaultPlayerPrefab);
+
+    /// <summary>The class's player prefab, or <paramref name="fallback"/>.</summary>
+    public static GameObject PrefabFor(string classId, GameObject fallback)
     {
-        string classId = RunConfig.I != null ? RunConfig.I.selectedClassId : "";
         if (!string.IsNullOrEmpty(classId))
         {
             ClassDefinition def = Content.Classes.Get(classId);
@@ -48,7 +50,7 @@ public class PlayerSpawner : MonoBehaviour
                 Debug.LogWarning($"[PlayerSpawner] Class '{classId}' has no playerPrefab — using default.");
             }
         }
-        return defaultPlayerPrefab;
+        return fallback;
     }
 
     private void OnDrawGizmos()

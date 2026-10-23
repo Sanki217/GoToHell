@@ -260,11 +260,11 @@ MonoBehaviour:
   slowDistance: 8
   fastDistance: 15
   acceleration: 15
-  maxDepth: 10
-  depthNearDistance: 8
-  depthFarDistance: 22
-  depthSpeed: 10
-  heightOffset: 0.5
+  maxDepth: 8
+  depthNearDistance: 3
+  depthFarDistance: 8
+  depthSpeed: 6
+  heightOffset: -0.5
   separationRadius: 1.5
   separationStrength: 6
   lungeRange: 4

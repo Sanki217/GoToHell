@@ -102,14 +102,14 @@ public static partial class GoToHellSetup
             sword.weaponId          = "sword";
             sword.displayName       = "Sword";
             sword.description       = "A close-quarters blade. Slash toward the cursor — reach scales with Size, speed with Cooldown.";
-            sword.unlockedByDefault = false;   // unlocked by the "finish Level 1" achievement
+            sword.unlockedByDefault = true;
             sword.weaponComponentNames = new[] { "PlayerSlash" };
             AssetDatabase.CreateAsset(sword, swordPath);
             Debug.Log("[GoToHellSetup] Created Sword weapon (assign its sprite in the Inspector).");
         }
 
-        // DEMO LOCK STATE — only Rogue + Bow start unlocked.
-        // Warrior/Sword unlock via achievements; pacts arrive after the first boss.
+        // LOCK STATE — Bow + Sword start unlocked (weapons are picked in the town).
+        // Warrior unlocks via achievement (finish Level 1); Rogue + Priest are free.
         ClassDefinition warriorDef = AssetDatabase.LoadAssetAtPath<ClassDefinition>(warriorPath);
         if (warriorDef != null && warriorDef.unlockedByDefault)
         {
@@ -118,16 +118,17 @@ public static partial class GoToHellSetup
             Debug.Log("[GoToHellSetup] Warrior locked (achievement: finish Level 1).");
         }
         WeaponDefinition swordDef = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(swordPath);
-        if (swordDef != null && swordDef.unlockedByDefault)
+        if (swordDef != null && !swordDef.unlockedByDefault)
         {
-            swordDef.unlockedByDefault = false;
+            swordDef.unlockedByDefault = true;
             EditorUtility.SetDirty(swordDef);
-            Debug.Log("[GoToHellSetup] Sword locked (achievement: finish Level 1).");
+            Debug.Log("[GoToHellSetup] Sword unlocked from the start.");
         }
-        // Classes = weapon kits (LMB weapon + Shift+LMB alt). RMB is the pact.
+
+        // Classes: passive + active skill + starting weapon. Priest. Weapon smith
+        // levels. Class upgrades. Character level config. (GoToHellSetup.Town.cs)
         ClassDefinition rogueDef = AssetDatabase.LoadAssetAtPath<ClassDefinition>(roguePath);
-        ConfigureClassKit(rogueDef, bowDef, "PlayerSlash", "Kick");
-        ConfigureClassKit(warriorDef, swordDef, "", "");
+        SetupClassesAndWeapons(rogueDef, warriorDef, bowDef, swordDef);
 
         // Pacts = RMB skills (replaces the old class skills and the old modifier pacts)
         SetupPactSkills();

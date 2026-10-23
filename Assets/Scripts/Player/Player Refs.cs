@@ -87,6 +87,12 @@ public class PlayerRefs : MonoBehaviour
                              "Add it to the player prefab (Tools → Go To Hell → UI → Add Missing Scene Objects).");
     }
 
+    /// <summary>Stops being "the" player right now (an in-place respawn replaces it this frame).</summary>
+    public void Retire()
+    {
+        if (I == this) I = null;
+    }
+
     private void OnDestroy()
     {
         if (I == this) I = null;

@@ -14,7 +14,7 @@ public class SaveData
 {
     // Bump when the save format changes incompatibly; lets future versions
     // migrate old files instead of discarding them.
-    public int saveVersion = 2;
+    public int saveVersion = 3;
 
     // Last name the player entered — pre-fills the Level 1 name prompt.
     public string lastPlayerName = "";

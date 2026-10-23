@@ -15,8 +15,8 @@ using UnityEngine.UI;
 ///   Data/Auto-Tag Upgrades                     fills empty UpgradeTag fields
 ///   Data/Create Enemy Definitions              one EnemyDefinition per enemy prefab
 ///   Data/Create Starter Progression Content    meta config + example meta upgrades
-///   Characters/Build Main Menu Flow UI         Main Menu scene (slots, creation, pacts, meta shop)
-///   Characters/Sync Pact Skills Into Class Prefabs
+///   Characters/Build Main Menu Flow UI         Main Menu scene (slots, creation, meta shop)
+///   Characters/Sync Kit Into Class Prefabs     kick, class skills, pact skills on every class prefab
 ///   UI/Make Canvases Responsive                open scenes + all prefabs
 ///   UI/Convert EventSystems To Input System    open scenes + all prefabs
 ///   Mobile/Build Mobile Controls               gameplay scene
@@ -218,15 +218,6 @@ public static partial class GoToHellSetup
         "pact_wrath", "pact_frailty", "pact_haste", "pact_embers"
     };
 
-    private static void ConfigureClassKit(ClassDefinition cls, WeaponDefinition weapon, string altComponent, string altName)
-    {
-        if (cls == null) return;
-        cls.weapon = weapon;
-        cls.altAttackComponentName = altComponent;
-        cls.altAttackDisplayName = altName;
-        EditorUtility.SetDirty(cls);
-    }
-
     /// <summary>
     /// Pacts become RMB skills: removes the old modifier pacts, creates Dash +
     /// Shield, moves Dash-only upgrades from the Rogue class to the Dash pact,
@@ -291,11 +282,11 @@ public static partial class GoToHellSetup
     }
 
     /// <summary>
-    /// Every class prefab must carry every pact skill (disabled — RunConfigApplier
-    /// enables the chosen one). Copies missing skill components from a prefab
+    /// Every class prefab must carry every pact skill, the kick and every class
+    /// skill (disabled — RunConfigApplier enables the loadout's). Copies missing skill components from a prefab
     /// that has them, remapping references to children by hierarchy path.
     /// </summary>
-    [MenuItem("Tools/Go To Hell/Characters/Sync Pact Skills Into Class Prefabs")]
+    [MenuItem("Tools/Go To Hell/Characters/Sync Kit Into Class Prefabs")]
     public static void SyncPactSkillsIntoClassPrefabs()
     {
         List<GameObject> prefabs = LoadAllAssets<ClassDefinition>()
@@ -338,8 +329,9 @@ public static partial class GoToHellSetup
                 Debug.Log($"[GoToHellSetup] Added {type.Name} (disabled) to {target.name}.");
             }
         }
+        added += AddKitComponents(prefabs);   // kick + class skills (GoToHellSetup.Town.cs)
         AssetDatabase.SaveAssets();
-        Debug.Log($"[GoToHellSetup] Pact skill sync done — {added} component(s) added.");
+        Debug.Log($"[GoToHellSetup] Kit sync done — {added} component(s) added.");
     }
 
     /// <summary>Points copied references at the same-path objects in the new prefab.</summary>
@@ -429,18 +421,8 @@ public static partial class GoToHellSetup
         create.createButton = CreateButton(cw, "Create", "CREATE", new Vector2(430, -340), new Vector2(360, 80), 32);
         create.cancelButton = CreateButton(cw, "Cancel", "CANCEL", new Vector2(600, -420), new Vector2(220, 64), 24);
 
-        // ---- Pact select ----
-        PactSelectUI pacts = canvas.gameObject.AddComponent<PactSelectUI>();
-        pacts.panel = CreateModal(root, "PactSelectPanel", out Transform pw);
-        pacts.headerText = CreateText(pw, "Header", "CHOOSE A PACT", 48, new Vector2(0, 400), new Vector2(1400, 70), TextAlignmentOptions.Center, FontStyles.Bold);
-        pacts.content = CreateScrollList(pw, new Vector2(-330, 0), new Vector2(760, 720));
-        pacts.rowTemplate = RowTemplate(pacts.content);
-        pacts.detailText = CreateText(pw, "Detail", "", 28, new Vector2(430, 80), new Vector2(620, 560), TextAlignmentOptions.TopLeft);
-        pacts.startButton = CreateButton(pw, "Descend", "DESCEND", new Vector2(430, -290), new Vector2(420, 90), 36);
-        pacts.backButton = CreateButton(pw, "Back", "BACK", new Vector2(600, -420), new Vector2(220, 64), 24);
-
+        // (Pact select lives in the Town scene now — Build Town Scene)
         select.createUI = create;
-        select.pactSelect = pacts;
 
         // ---- Meta shop ----
         MetaShopUI shop = canvas.gameObject.AddComponent<MetaShopUI>();
@@ -458,7 +440,6 @@ public static partial class GoToHellSetup
 
         select.panel.SetActive(false);
         create.panel.SetActive(false);
-        pacts.panel.SetActive(false);
         shop.panel.SetActive(false);
 
         Undo.RecordObject(menu, "Wire main menu flow");
@@ -469,7 +450,7 @@ public static partial class GoToHellSetup
         EditorUtility.SetDirty(menu);
 
         ApplyDefaultLook(canvas.gameObject);
-        FinishScene(canvas.gameObject, "Main menu flow built: Play → Character Select → Create → Pact → run.");
+        FinishScene(canvas.gameObject, "Main menu flow built: Play → Character Select → Create → Town.");
     }
 
     /// <summary>A list row button that stretches to the list width (VerticalLayoutGroup parent).</summary>

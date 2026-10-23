@@ -14,6 +14,7 @@ public static class SceneFlow
     public const string MainMenu         = "Main Menu";
     public const string CharacterCreator = "Character Creator";
     public const string Collection       = "Collection";
+    public const string Town             = "Town";
 
     // Gameplay layers are "Level 1" ... "Level 9"
     public const string LevelPrefix = "Level ";
@@ -25,6 +26,40 @@ public static class SceneFlow
     {
         RunManager.EndRun();   // resets run-scoped state + time
         SceneManager.LoadScene(MainMenu);
+    }
+
+    /// <summary>
+    /// Enter the town hub as this character (from the menu, or back from a run).
+    /// A fallen hardcore character goes to the main menu instead.
+    /// </summary>
+    public static void GoToTown(CharacterData character)
+    {
+        if (character == null || !character.CanPlay) { GoToMainMenu(); return; }
+        RunManager.EndRun();
+        EnsureRunConfig().SetupTown(character);
+        SceneManager.LoadScene(Town);
+    }
+
+    /// <summary>Back to the town as the current run's character (run summary / abandon run).</summary>
+    public static void ReturnToTown()
+    {
+        CharacterData c = RunConfig.I != null ? CharacterRoster.Get(RunConfig.I.characterId) : null;
+        if (c == null) GoToMainMenu();
+        else GoToTown(c);
+    }
+
+    /// <summary>Leave the town for a run with this pact.</summary>
+    public static void StartRun(CharacterData character, PactDefinition pact)
+    {
+        if (character == null || !character.CanPlay) return;
+        EnsureRunConfig().SetupRun(character, pact);
+        StartRunAtLevel1();
+    }
+
+    private static RunConfig EnsureRunConfig()
+    {
+        if (RunConfig.I == null) new GameObject("RunConfig").AddComponent<RunConfig>();
+        return RunConfig.I;
     }
 
     public static void GoToCharacterCreator()

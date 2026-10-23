@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
@@ -462,6 +462,18 @@ public class PlayerShooting : MonoBehaviour
     }
 
     /// <summary>Change quiver size (shop/upgrades). Grows the HUD dots and clamps the current count.</summary>
+    /// <summary>
+    /// Permanently grows the quiver (weapon levels). Safe before or after Start:
+    /// the quiver starts full either way.
+    /// </summary>
+    public void AddMaxArrows(int amount)
+    {
+        if (amount == 0) return;
+        maxArrows = Mathf.Max(1, maxArrows + amount);
+        currentArrows = maxArrows;
+        if (arrowDots != null && arrowDots.Length > 0) UpdateArrowUI();
+    }
+
     public void SetMaxArrows(int value)
     {
         maxArrows = Mathf.Max(0, value);

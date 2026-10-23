@@ -466,7 +466,8 @@ public static partial class GoToHellSetup
         SValue(head, tmp).text = "Gamepad";
         var rows = new List<SettingsUI.BindingRow>();
         foreach (GameAction a in new[] { GameAction.Jump, GameAction.Attack, GameAction.AltAttack, GameAction.Skill,
-                                         GameAction.Interact, GameAction.LevelUp, GameAction.Pause, GameAction.ToggleStats })
+                                         GameAction.Interact, GameAction.LevelUp, GameAction.Pause, GameAction.ToggleStats,
+                                         GameAction.ClassSkill, GameAction.Descend })
         {
             RectTransform row = SRow(tmp, cp, ObjectNames.NicifyVariableName(a.ToString()));
             rows.Add(new SettingsUI.BindingRow { action = a, keyboardButton = SButton(row, tmp, "key"), gamepadButton = SButton(row, tmp, "button") });

@@ -18,6 +18,19 @@ MonoBehaviour:
   sprite: {fileID: 10917, guid: 0000000000000000f000000000000000, type: 0}
   unlockedByDefault: 0
   playerPrefab: {fileID: 7728477047858160054, guid: 208525a8fc9edde4bbfb3733925fc8d1, type: 3}
-  weapon: {fileID: 11400000, guid: edd6aed5d3807904590db75d755fccef, type: 2}
-  altAttackComponentName: 
-  altAttackDisplayName: 
+  startingWeapon: {fileID: 11400000, guid: edd6aed5d3807904590db75d755fccef, type: 2}
+  activeSkillComponentName: WarCrySkill
+  activeSkillName: War Cry
+  activeSkillDescription: A shout that damages, knocks back and staggers every enemy
+    around you.
+  passiveName: Iron Hide
+  passiveDescription: Take 15% less damage.
+  passiveEffects:
+  - rid: 1710094046747688967
+  references:
+    version: 2
+    RefIds:
+    - rid: 1710094046747688967
+      type: {class: DamageTakenEffect, ns: , asm: Assembly-CSharp}
+      data:
+        multiplier: 0.85

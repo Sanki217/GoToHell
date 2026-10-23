@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// One saved character (a slot on the Character Select screen). Lives in
-/// SaveData.characters. The class gives the weapon; every stat starts
-/// at 1 and the allocated points are what the player added at creation.
+/// SaveData.characters. The class is permanent; the weapon is equipped in the
+/// town and can be swapped. Every creation stat starts at 1 and the allocated
+/// points are what the player added at creation.
 /// </summary>
 [Serializable]
 public class CharacterData
@@ -29,9 +31,34 @@ public class CharacterData
     // Pact used last time — pre-selected on the Pact Select screen
     public string lastPactId;
 
-    // Progression (level design comes later — fields reserved so saves don't change shape)
+    // Weapon (town weapon rack) + smith levels of every weapon this character has upgraded
+    public string equippedWeaponId = "";
+    public List<WeaponLevelEntry> weaponLevels = new List<WeaponLevelEntry>();
+
+    // Character level: XP from runs (CharacterProgressionConfig). Each level
+    // past 1 gives a talent point (talent tree comes later).
     public int level = 1;
-    public int xp;
+    public int xp;                  // progress inside the current level
+    public int spentTalentPoints;
+
+    public int TalentPoints => Math.Max(0, level - 1 - spentTalentPoints);
+
+    public int WeaponLevel(string weaponId)
+    {
+        if (string.IsNullOrEmpty(weaponId) || weaponLevels == null) return 0;
+        foreach (WeaponLevelEntry e in weaponLevels)
+            if (e.weaponId == weaponId) return e.level;
+        return 0;
+    }
+
+    public void SetWeaponLevel(string weaponId, int value)
+    {
+        if (string.IsNullOrEmpty(weaponId)) return;
+        weaponLevels ??= new List<WeaponLevelEntry>();
+        foreach (WeaponLevelEntry e in weaponLevels)
+            if (e.weaponId == weaponId) { e.level = value; return; }
+        weaponLevels.Add(new WeaponLevelEntry { weaponId = weaponId, level = value });
+    }
 
     // Record
     public int runsPlayed;
@@ -74,4 +101,12 @@ public class CharacterData
         CharacterRoster.IsCreationStat(stat) ? CharacterRoster.BaseStatValue + Allocated(stat) : 0;
 
     public bool CanPlay => !(hardcore && dead);
+}
+
+/// <summary>Smith level of one weapon for one character.</summary>
+[Serializable]
+public class WeaponLevelEntry
+{
+    public string weaponId;
+    public int level;
 }

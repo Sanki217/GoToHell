@@ -30,6 +30,8 @@ public class RunStats
     public bool   hardcore;
     public string pactId;           // RMB skill taken into the run
     public int    metaCurrencyEarned;
+    public int    xpEarned;           // character XP from this run
+    public int    levelsGained;       // character levels gained from this run
 
     // Max depth reached (world units below the layer start, summed across
     // layers). Tracked as lowest-Y-ever by DepthTracker — bouncing back up

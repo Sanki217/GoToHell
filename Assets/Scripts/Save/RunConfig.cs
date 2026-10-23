@@ -1,15 +1,16 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Carries the current run's setup choices from the Character Creator scene
-/// into the gameplay scene(s). Survives scene loads as a DontDestroyOnLoad singleton.
+/// Carries the active character's loadout between scenes (town → run layers →
+/// town). Survives scene loads as a DontDestroyOnLoad singleton.
 ///
 /// Lifecycle:
-///   1. Character Creator writes playerName, class/weapon/pact ids, and the
-///      class's stat preset here.
-///   2. Gameplay scene reads these on load to configure the player.
-///   3. Persists across all gameplay layer scenes for the whole run.
-///   4. Reset() is called when starting a fresh run or returning to menu.
+///   1. Main menu → SetupTown(character): name, class, equipped weapon + its
+///      smith level, final stats. inTown = true.
+///   2. Town → pact chosen → SetupRun(character, pact): same, plus the pact.
+///   3. Gameplay scenes read this on load to configure the player
+///      (RunConfigApplier) — every layer of the run.
+///   4. Reset() when returning to the main menu.
 ///
 /// This holds ONLY the current run's setup — not save data. Persistent unlocks
 /// (classes, weapons, pacts, achievements, history) live in SaveManager.
@@ -27,6 +28,9 @@ public class RunConfig : MonoBehaviour
     public string selectedPactId   = "";   // RMB skill (PactDefinition.pactId)
     public string characterId      = "";   // CharacterData.id ("" = testing a scene directly)
     public bool   hardcore;
+    public int    weaponLevel;             // smith level of the equipped weapon
+    [Tooltip("True in the town hub: no pact, no meta run bonuses.")]
+    public bool   inTown;
 
     // Starting primary stats — copied from the selected class's preset
     public int agility;
@@ -77,6 +81,8 @@ public class RunConfig : MonoBehaviour
         selectedPactId   = "";
         characterId      = "";
         hardcore         = false;
+        weaponLevel      = 0;
+        inTown           = false;
         agility          = 0;
         attackDamage     = 0;
         luck             = 0;
@@ -90,22 +96,36 @@ public class RunConfig : MonoBehaviour
         RunModifiers.MarkDirty();
     }
 
+    /// <summary>The character walks around the town (no pact, no run bonuses).</summary>
+    public void SetupTown(CharacterData c)
+    {
+        LoadCharacter(c);
+        inTown = true;
+    }
+
     /// <summary>
     /// Sets the run up from a saved character + the pact chosen for this run:
-    /// name, class (weapon), final stats (class base + allocated points), RMB skill.
+    /// name, class, equipped weapon (+ level), final stats, RMB skill.
     /// </summary>
     public void SetupRun(CharacterData c, PactDefinition pact)
+    {
+        LoadCharacter(c);
+        inTown = false;
+        selectedPactId = pact != null ? pact.pactId : "";
+    }
+
+    private void LoadCharacter(CharacterData c)
     {
         Reset();
         if (c == null) return;
 
-        ClassDefinition cls = Content.Classes.Get(c.classId);
+        WeaponDefinition weapon = CharacterRoster.EquippedWeapon(c);
         characterId      = c.id;
         playerName       = c.name;
         hardcore         = c.hardcore;
         selectedClassId  = c.classId;
-        selectedWeaponId = cls != null && cls.weapon != null ? cls.weapon.weaponId : "";
-        selectedPactId   = pact != null ? pact.pactId : "";
+        selectedWeaponId = weapon != null ? weapon.weaponId : "";
+        weaponLevel      = weapon != null ? c.WeaponLevel(weapon.weaponId) : 0;
 
         agility      = c.FinalStat(PrimaryStat.Agility);
         attackDamage = c.FinalStat(PrimaryStat.AttackDamage);

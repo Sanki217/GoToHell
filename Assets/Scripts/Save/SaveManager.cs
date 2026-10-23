@@ -19,7 +19,7 @@ using UnityEngine;
 public static class SaveManager
 {
     /// <summary>Current save format. Bump when the format changes and handle it in Migrate().</summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private static SaveData _data;
     private static string FilePath   => Path.Combine(Application.persistentDataPath, "save.json");
@@ -95,6 +95,10 @@ public static class SaveManager
         // v1 → v2: meta progression fields. New lists are created by
         // EnsureValid; nothing to convert.
         if (d.saveVersion < 2) d.saveVersion = 2;
+        // v2 → v3: characters carry an equipped weapon + smith levels. An empty
+        // weapon falls back to the class's starting weapon at runtime
+        // (CharacterRoster.EquippedWeapon); lists are created by EnsureValid.
+        if (d.saveVersion < 3) d.saveVersion = 3;
         if (d.saveVersion > CurrentVersion)
             Debug.LogWarning($"[SaveManager] Save is from a newer build (v{d.saveVersion}).");
     }
@@ -114,6 +118,13 @@ public static class SaveManager
         if (d.characters == null)              d.characters = new List<CharacterData>();
         if (d.discoveredUpgradeIds == null)    d.discoveredUpgradeIds = new List<string>();
         if (d.metaCurrency < 0)                d.metaCurrency = 0;
+        d.characters.RemoveAll(c => c == null);
+        foreach (CharacterData c in d.characters)
+        {
+            if (c.weaponLevels == null) c.weaponLevels = new List<WeaponLevelEntry>();
+            if (c.equippedWeaponId == null) c.equippedWeaponId = "";
+            if (c.level < 1) c.level = 1;
+        }
     }
 
     private static SaveData TryRead(string path)

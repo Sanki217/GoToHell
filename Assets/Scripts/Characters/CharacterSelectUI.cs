@@ -7,11 +7,11 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Character Select — the 8 character slots (Diablo / No Rest for the Wicked
-/// style). Pick a character → Play (opens Pact Select → run), or Create New,
+/// style). Pick a character → Play (enters the town), or Create New,
 /// or Delete (click twice to confirm). Fallen hardcore characters stay
 /// visible as graves but can't be played.
 ///
-/// MainMenu opens this on Play and listens to OnStartRun.
+/// MainMenu opens this on Play and listens to OnPlay.
 /// </summary>
 public class CharacterSelectUI : MonoBehaviour
 {
@@ -28,10 +28,9 @@ public class CharacterSelectUI : MonoBehaviour
 
     [Header("Screens")]
     public CharacterCreateUI createUI;
-    public PactSelectUI pactSelect;
 
-    /// <summary>Character + pact chosen; MainMenu starts the run.</summary>
-    public event Action<CharacterData, PactDefinition> OnStartRun;
+    /// <summary>Character chosen; MainMenu takes them to the town.</summary>
+    public event Action<CharacterData> OnPlay;
 
     private readonly List<CharacterData> slotData = new List<CharacterData>();
     private string selectedId;
@@ -80,8 +79,7 @@ public class CharacterSelectUI : MonoBehaviour
         CharacterData c = CharacterRoster.Get(selectedId);
         if (c == null || !c.CanPlay) return;
 
-        if (pactSelect != null) pactSelect.Open(c, pact => OnStartRun?.Invoke(c, pact));
-        else OnStartRun?.Invoke(c, null);
+        OnPlay?.Invoke(c);
     }
 
     private void OpenCreate()
@@ -167,6 +165,14 @@ public class CharacterSelectUI : MonoBehaviour
         sb.Append($"<b>{c.name}</b>\n");
         sb.Append($"{(cls != null ? cls.displayName : c.classId)}  ·  Level {c.level}");
         if (c.hardcore) sb.Append(c.dead ? "  ·  Fallen (hardcore)" : "  ·  Hardcore");
+        sb.Append($"\nXP {c.xp} / {CharacterProgressionConfig.Get().XpToNext(c.level)}");
+        if (c.TalentPoints > 0) sb.Append($"  ·  {c.TalentPoints} talent point{(c.TalentPoints == 1 ? "" : "s")}");
+        WeaponDefinition w = CharacterRoster.EquippedWeapon(c);
+        if (w != null)
+        {
+            int lvl = c.WeaponLevel(w.weaponId);
+            sb.Append($"\nWeapon: {w.displayName}{(lvl > 0 ? $" +{lvl}" : "")}");
+        }
         sb.Append("\n\n");
 
         foreach (PrimaryStat s in CharacterRoster.CreationStats)

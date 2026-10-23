@@ -55,7 +55,7 @@ public enum StalkerTerrain
 /// Shooter, otherwise Melee).
 /// </summary>
 [RequireComponent(typeof(Enemy))]
-public class EnemyStalker : MonoBehaviour, IKnockbackReceiver, ISerializationCallbackReceiver
+public class EnemyStalker : MonoBehaviour, IKnockbackReceiver, ISerializationCallbackReceiver, IDebugDrawable
 {
     [Header("Role")]
     public StalkerRole role = StalkerRole.Melee;
@@ -511,6 +511,44 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver, ISerializationCal
         }
 
         knockedBack = false;
+    }
+
+    // ================================================================
+    //  DEBUG OVERLAY (` key)
+    // ================================================================
+
+    public void DrawDebug()
+    {
+        Vector3 p = transform.position;
+        Transform player = PlayerRefs.PlayerTransform;
+        Vector3 target = player != null ? player.position + Vector3.up * heightOffset : p;
+        float dist = Vector2.Distance(p, target);
+        Vector3 label = p + Vector3.up * 1.2f;
+
+        DebugDraw.Label(label, $"{role} · {state} {(stateTimer > 0f ? $"{stateTimer:0.00}s" : "")}", DebugColors.State, 4);
+        DebugDraw.Label(label, $"z target {DepthFor(dist):0.0}  (on plane ≤ {depthNearDistance:0.#} m)", DebugColors.Depth, 5);
+        DebugDraw.Label(label, $"speed {velocity.magnitude:0.0} / max {SpeedFor(dist):0.0}", DebugColors.Velocity, 6);
+        DebugDraw.Arrow(p, p + (Vector3)(velocity * 0.25f), DebugColors.Velocity);
+        if (attackTimer > 0f) DebugDraw.Label(label, $"attack cd {attackTimer:0.0}s", DebugColors.State, 7);
+
+        if (role == StalkerRole.Melee)
+        {
+            DebugDraw.Range(p, lungeRange, DebugColors.Melee, "lunge");
+            if (state == State.Lunge || state == State.Windup)
+                DebugDraw.Arrow(p, p + (Vector3)(lungeDir * 2f), DebugColors.Melee);
+        }
+        else
+        {
+            DebugDraw.Range(p, attackRange, DebugColors.Attack, "shoot");
+            if (player != null)
+            {
+                DebugDraw.Range(target, preferredRange, DebugColors.Keep, "keep");
+                Vector3 hover = target + (Vector3)hoverOffset;
+                DebugDraw.Cross(hover, 0.4f, DebugColors.Target);
+                DebugDraw.Line(p, hover, DebugColors.Target);
+            }
+        }
+        DebugDraw.Circle(p, bodyRadius, DebugColors.State, 16);
     }
 
     // ================================================================

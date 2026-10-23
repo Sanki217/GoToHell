@@ -853,6 +853,10 @@ GameObject:
   - component: {fileID: 3067490915115003354}
   - component: {fileID: 5049061815432663026}
   - component: {fileID: 4582016451342938487}
+  - component: {fileID: 381949468910994237}
+  - component: {fileID: 6321019681179946806}
+  - component: {fileID: 647924301067208369}
+  - component: {fileID: 2265967101200350133}
   m_Layer: 8
   m_Name: Warrior
   m_TagString: Player
@@ -1183,6 +1187,7 @@ MonoBehaviour:
   baseMaxHP: 100
   hpPerHealth: 1
   bonusMaxHP: 0
+  bonusCritChance: 0
   moveSpeed: 10
   acceleration: 0
   dashDistance: 6
@@ -1232,6 +1237,8 @@ MonoBehaviour:
     hardcore: 0
     pactId: 
     metaCurrencyEarned: 0
+    xpEarned: 0
+    levelsGained: 0
     maxDepthReached: 0
     distanceMovedLeft: 0
     distanceMovedRight: 0
@@ -1418,6 +1425,7 @@ MonoBehaviour:
   resurrectionMinTimeScale: 0.05
   resurrectionCameraZoom: 3
   resurrectionZoomSpeed: 2
+  damageTakenMultiplier: 1
 --- !u!114 &7378174094132373651
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1530,7 +1538,6 @@ MonoBehaviour:
   baseWidth: 0.8
   baseCooldown: 0.3
   slashActiveDuration: 0.15
-  kickDamageMultiplier: 0.25
   sizeScalePerPoint: 0.05
   cooldownReductionPerPoint: 0.05
   minCooldown: 0.01
@@ -1665,6 +1672,102 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AchievementTracker
   pollInterval: 0.5
+--- !u!114 &381949468910994237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7728477047858160054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e4aef38ae0cb7341b1ba2f3e9a35e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerKick
+  baseDamage: 2
+  damagePerAttack: 0.15
+  reach: 1.3
+  width: 0.9
+  knockback: 6
+  cooldown: 0.45
+  debugColor: {r: 1, g: 0.9, b: 0.4, a: 0.5}
+  showHitShape: 1
+--- !u!114 &6321019681179946806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7728477047858160054}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0305803a185091644972331aafb8de1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HolyNovaSkill
+  skillName: Holy Nova
+  baseCooldown: 14
+  energyCost: 0
+  cooldownReductionPerPoint: 0.03
+  minCooldownFraction: 0.4
+  radiusPerSize: 0.03
+  effectColor: {r: 1, g: 0.9, b: 0.45, a: 0.4}
+  announceReady: 1
+  radius: 5
+  healFraction: 0.15
+  baseDamage: 4
+  damagePerPsyche: 0.4
+  applyHoly: 1
+--- !u!114 &647924301067208369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7728477047858160054}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6453b3715e3cbd4c8acead410d473b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SmokeBombSkill
+  skillName: Smoke Bomb
+  baseCooldown: 12
+  energyCost: 0
+  cooldownReductionPerPoint: 0.03
+  minCooldownFraction: 0.4
+  radiusPerSize: 0.03
+  effectColor: {r: 0.6, g: 0.6, b: 0.65, a: 0.45}
+  announceReady: 1
+  radius: 4
+  duration: 1.5
+  slowSpeed: 0.4
+  slowLinger: 1
+  nextArrowCrits: 1
+--- !u!114 &2265967101200350133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7728477047858160054}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2729f37ffeb06a1428b0f46a145db073, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WarCrySkill
+  skillName: War Cry
+  baseCooldown: 10
+  energyCost: 0
+  cooldownReductionPerPoint: 0.03
+  minCooldownFraction: 0.4
+  radiusPerSize: 0.03
+  effectColor: {r: 1, g: 0.35, b: 0.2, a: 0.35}
+  announceReady: 1
+  radius: 5
+  baseDamage: 6
+  damagePerAttack: 0.5
+  knockback: 12
+  staggerSpeed: 0.2
+  staggerDuration: 1.5
 --- !u!1 &8174353867238334254
 GameObject:
   m_ObjectHideFlags: 0

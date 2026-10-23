@@ -17,6 +17,37 @@ MonoBehaviour:
   description: "A close-quarters blade. Slash toward the cursor \u2014 reach scales
     with Size, speed with Cooldown."
   sprite: {fileID: 0}
-  unlockedByDefault: 0
+  unlockedByDefault: 1
   weaponComponentNames:
   - PlayerSlash
+  levels:
+  - description: +2 Attack Damage
+    cost: 60
+    effects:
+    - rid: 1710094046747688963
+  - description: "+2 Size \u2014 longer reach"
+    cost: 120
+    effects:
+    - rid: 1710094046747688964
+  - description: "+3 Cooldown \u2014 faster swings"
+    cost: 220
+    effects:
+    - rid: 1710094046747688965
+  references:
+    version: 2
+    RefIds:
+    - rid: 1710094046747688963
+      type: {class: PrimaryStatEffect, ns: , asm: Assembly-CSharp}
+      data:
+        stat: 1
+        amount: 2
+    - rid: 1710094046747688964
+      type: {class: PrimaryStatEffect, ns: , asm: Assembly-CSharp}
+      data:
+        stat: 5
+        amount: 2
+    - rid: 1710094046747688965
+      type: {class: PrimaryStatEffect, ns: , asm: Assembly-CSharp}
+      data:
+        stat: 6
+        amount: 3

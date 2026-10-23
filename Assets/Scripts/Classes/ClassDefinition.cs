@@ -1,15 +1,20 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
-/// A playable class = the character's weapon kit.
-///   LMB       → weapon (WeaponDefinition: Rogue = Bow, Warrior = Sword)
-///   Shift+LMB → a small alt attack (Rogue = kick for vases when out of arrows)
-///   RMB       → NOT the class: chosen per run as a Pact (Dash, Shield…)
+/// A playable class — chosen once at character creation, kept forever.
+/// The class is WHO you are, the weapon is WHAT you hold:
 ///
-/// Characters pick a class at creation; stats are the same for every class
-/// (all start at 1 + free points — see CharacterRoster).
-/// RunConfigApplier enables this class's weapon/alt components on the player
-/// and disables every other class's.
+///   LMB        → weapon (equipped in the town, any class can use any weapon)
+///   Shift+LMB  → kick (universal, PlayerKick)
+///   F          → this class's ACTIVE skill (a ClassSkill component)
+///   passive    → this class's PASSIVE (RunEffects applied when the player spawns)
+///   RMB        → pact, chosen before each run
+///   run upgrades with PlayerUpgrade.requiredClass = this classId only drop for this class
+///
+/// RunConfigApplier enables this class's skill component and applies its
+/// passive effects; every other class's skill stays disabled.
 ///
 /// Create via: Assets → Create → GoToHell → Class
 /// Store in:   Assets/Resources/Classes/
@@ -32,18 +37,42 @@ public class ClassDefinition : ScriptableObject
     public bool unlockedByDefault;
 
     [Header("Player Prefab")]
-    [Tooltip("Spawned by PlayerSpawner. Must carry this class's weapon components AND every pact skill " +
-             "(Tools → Go To Hell → Characters → Sync Pact Skills Into Class Prefabs).")]
+    [Tooltip("Spawned by PlayerSpawner (town and runs). Must carry every weapon, the kick, every class skill " +
+             "and every pact skill (Tools → Go To Hell → Characters → Sync Kit Into Class Prefabs).")]
     public GameObject playerPrefab;
 
-    [Header("LMB Weapon")]
-    public WeaponDefinition weapon;
+    [Header("Starting Weapon")]
+    [Tooltip("Equipped on a new character. Swap weapons at the weapon rack in the town.")]
+    [FormerlySerializedAs("weapon")]
+    public WeaponDefinition startingWeapon;
 
-    [Header("Shift + LMB")]
-    [Tooltip("Component type name of the alt attack (e.g. \"PlayerSlash\" in kick mode). Empty = none.")]
-    public string altAttackComponentName;
-    public string altAttackDisplayName;
+    [Header("Active Skill (F)")]
+    [Tooltip("Component type name of this class's ClassSkill (e.g. \"WarCrySkill\").")]
+    public string activeSkillComponentName;
+    public string activeSkillName;
+    [TextArea(2, 4)]
+    public string activeSkillDescription;
+
+    [Header("Passive")]
+    public string passiveName;
+    [TextArea(2, 4)]
+    public string passiveDescription;
+    [Tooltip("What the passive does — applied every time the player spawns (town and every layer).")]
+    [SerializeReference, SubclassSelector]
+    public List<RunEffect> passiveEffects = new List<RunEffect>();
 
     public bool IsUnlocked => unlockedByDefault || SaveManager.IsClassUnlocked(classId);
 
+    /// <summary>Applies the passive to a freshly spawned player.</summary>
+    public void ApplyPassive(GameObject player, bool isRunStart)
+    {
+        if (player == null || passiveEffects == null) return;
+        var ctx = new RunEffectContext(player, 1, isRunStart);
+        foreach (RunEffect e in passiveEffects)
+        {
+            if (e == null) continue;
+            try { e.Apply(ctx); }
+            catch (System.Exception ex) { Debug.LogException(ex, this); }
+        }
+    }
 }

@@ -25,7 +25,7 @@ using System.Collections;
 ///   detection puts it back into Climbing or Landed.
 /// </summary>
 [RequireComponent(typeof(Enemy))]
-public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
+public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver, IDebugDrawable
 {
     // ================================================================
     //  INSPECTOR
@@ -408,6 +408,29 @@ public class EnemyWallJumper : MonoBehaviour, IKnockbackReceiver
         foreach (var sc in selfColliders)
             if (sc == c) return true;
         return false;
+    }
+
+    // ================================================================
+    //  DEBUG OVERLAY (` key)
+    // ================================================================
+
+    public void DrawDebug()
+    {
+        Vector3 p = transform.position;
+        float yBand = hasAggro ? yMatchThreshold * aggroYMultiplier : yMatchThreshold;
+        float xRadius = hasAggro ? jumpTriggerRadius * aggroRadiusMultiplier : jumpTriggerRadius;
+
+        // Jumps at the player when he is inside this box (±x radius, ±y band)
+        DebugDraw.Box(p, new Vector3(xRadius * 2f, yBand * 2f, 0f), DebugColors.Melee);
+        DebugDraw.Label(p + new Vector3(xRadius, yBand, 0f), $"jump {xRadius:0.#} x {yBand:0.#}", DebugColors.Melee);
+        if (!hasAggro) DebugDraw.Range(p, aggroRadius, DebugColors.Aggro, "aggro");
+        DebugDraw.Box(p + new Vector3(0f, dirY, 0f) * climbLookAhead, climbCheckBox * 2f, DebugColors.State);
+        if (state == State.Jumping) DebugDraw.Arrow(p, p + vel * 0.25f, DebugColors.Velocity);
+
+        Vector3 label = p + Vector3.up * 1.2f;
+        DebugDraw.Label(label, $"{state}{(hasAggro ? " · AGGRO" : "")}", DebugColors.State, 4);
+        if (jumpCooldownTimer > 0f) DebugDraw.Label(label, $"jump cd {jumpCooldownTimer:0.0}s", DebugColors.State, 5);
+        if (state == State.Landed) DebugDraw.Label(label, $"wait {landTimer:0.0}s", DebugColors.State, 6);
     }
 
     // ================================================================

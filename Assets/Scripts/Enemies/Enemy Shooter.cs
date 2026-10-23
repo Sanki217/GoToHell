@@ -7,7 +7,7 @@ using System.Collections;
 /// Fire rate scales with Enemy.SpeedMultiplier (Freeze slows shooting too).
 /// </summary>
 [RequireComponent(typeof(Enemy))]
-public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
+public class EnemyShooter : MonoBehaviour, IKnockbackReceiver, IDebugDrawable
 {
     [Header("Detection")]
     public float attackRange = 15f;
@@ -113,6 +113,21 @@ public class EnemyShooter : MonoBehaviour, IKnockbackReceiver
 
         cooldownTimer = 0f;
         Shoot(toPlayer.normalized);
+    }
+
+    // ================================================================
+    //  DEBUG OVERLAY (` key)
+    // ================================================================
+
+    public void DrawDebug()
+    {
+        Vector3 p = transform.position;
+        Vector3 label = p + Vector3.up * 1.2f;
+        DebugDraw.Range(p, attackRange, DebugColors.Attack, "shoot");
+        DebugDraw.Cross(homePosition, 0.3f, DebugColors.Target);
+        DebugDraw.Label(label, $"shot {Mathf.Max(0f, attackCooldown - cooldownTimer):0.0}s", DebugColors.State, 4);
+        if (knockedBack) DebugDraw.Label(label, "knocked back", DebugColors.State, 5);
+        else if (returning) DebugDraw.Label(label, "returning home", DebugColors.State, 5);
     }
 
     // ================================================================

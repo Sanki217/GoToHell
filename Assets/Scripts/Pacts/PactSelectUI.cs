@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// Pact Select — the last screen before a run: pick the RMB skill this
 /// character takes down (Dash, Shield…). Lists every PactDefinition; unlocked
 /// ones are selectable, locked ones show as "???". The character's last pact
-/// is pre-selected. Opened by CharacterSelectUI; "Descend" calls back with
+/// is pre-selected. Opened when leaving the town; "Descend" calls back with
 /// the chosen pact.
 /// </summary>
 public class PactSelectUI : MonoBehaviour

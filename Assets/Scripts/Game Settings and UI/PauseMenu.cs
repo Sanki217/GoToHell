@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
@@ -17,7 +18,8 @@ public class PauseMenu : MonoBehaviour
     [Header("Buttons")]
     public Button resumeButton;
     public Button restartButton;
-    [Tooltip("Abandons the run and returns to the main menu (nothing is recorded, the character doesn't die).")]
+    [Tooltip("In a run: abandons it and returns to the town (nothing is recorded, the character doesn't die). " +
+             "In the town: back to the main menu. The label is set automatically.")]
     public Button quitToMenuButton;
     public Button settingsButton;
     public Button settingsBackButton;
@@ -56,6 +58,12 @@ public class PauseMenu : MonoBehaviour
         if (playerState == null && PlayerRefs.I != null)
             playerState = PlayerRefs.I.StateCtrl;
 
+        if (quitToMenuButton != null)
+        {
+            TMP_Text label = quitToMenuButton.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = InRunWithCharacter ? "Abandon Run" : "Quit to Menu";
+        }
+
         // Legacy widgets on this panel still work — they read/write GameSettings
         // (the full tabbed settings live in SettingsUI).
         if (cameraShakeToggle != null)
@@ -93,6 +101,7 @@ public class PauseMenu : MonoBehaviour
     private void Update()
     {
         if (!GameInput.PausePressed) return;
+        if (!isPaused && ModalUI.AnyOpen) return;   // Esc closes the open window instead
 
         if (settingsPanel != null && settingsPanel.activeSelf)
         {
@@ -127,14 +136,20 @@ public class PauseMenu : MonoBehaviour
         SceneFlow.RestartRun();
     }
 
+    private static bool InRunWithCharacter =>
+        RunConfig.I != null && !RunConfig.I.inTown && CharacterRoster.Get(RunConfig.I.characterId) != null;
+
     /// <summary>
-    /// Leave the run: no run record, no meta currency, no achievements checked,
-    /// and a hardcore character survives (abandoning isn't dying).
+    /// In a run: leave it — no run record, no meta currency, no achievements
+    /// checked, a hardcore character survives (abandoning isn't dying) — and
+    /// go back to the town. In the town: back to the main menu.
     /// </summary>
     public void QuitToMenu()
     {
+        bool toTown = InRunWithCharacter;
         Resume();
-        SceneFlow.GoToMainMenu();
+        if (toTown) SceneFlow.ReturnToTown();
+        else SceneFlow.GoToMainMenu();
     }
 
     public void OpenSettings()

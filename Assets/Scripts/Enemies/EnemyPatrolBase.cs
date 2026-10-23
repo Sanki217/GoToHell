@@ -15,7 +15,7 @@ using System.Collections;
 ///   • Respects Enemy.SpeedMultiplier (Freeze and any future slows).
 /// </summary>
 [RequireComponent(typeof(Enemy))]
-public abstract class EnemyPatrolBase : MonoBehaviour, IKnockbackReceiver
+public abstract class EnemyPatrolBase : MonoBehaviour, IKnockbackReceiver, IDebugDrawable
 {
     [Header("Movement")]
     public float speed = 3f;
@@ -169,6 +169,27 @@ public abstract class EnemyPatrolBase : MonoBehaviour, IKnockbackReceiver
         transform.position = IsHorizontal
             ? new Vector3(next, cross, 0f)
             : new Vector3(cross, next, 0f);
+    }
+
+    // ================================================================
+    //  DEBUG OVERLAY (` key)
+    // ================================================================
+
+    public void DrawDebug()
+    {
+        Vector3 p = transform.position;
+        Vector3 a = IsHorizontal ? new Vector3(pathMin, pathLine, p.z) : new Vector3(pathLine, pathMin, p.z);
+        Vector3 b = IsHorizontal ? new Vector3(pathMax, pathLine, p.z) : new Vector3(pathLine, pathMax, p.z);
+        DebugDraw.Line(a, b, DebugColors.State);                         // patrol path
+        DebugDraw.Cross(a, 0.25f, DebugColors.State);
+        DebugDraw.Cross(b, 0.25f, DebugColors.State);
+        DebugDraw.Box(p + Axis * (dir * turnLookAhead), turnBoxHalfExtents * 2f, DebugColors.Aggro);   // wall look-ahead
+        DebugDraw.Arrow(p, p + Axis * smoothedVel * 0.3f, DebugColors.Velocity);
+
+        Vector3 label = p + Vector3.up * 1.2f;
+        DebugDraw.Label(label, $"patrol {(pathMax - pathMin):0.0} m · v {Mathf.Abs(smoothedVel):0.0}/{speed:0.0}", DebugColors.Velocity, 4);
+        if (suspended) DebugDraw.Label(label, "knocked back", DebugColors.State, 5);
+        else if (returning) DebugDraw.Label(label, "returning to path", DebugColors.State, 5);
     }
 
     // ================================================================

@@ -6,12 +6,11 @@ using System.Collections;
 /// Box collider extends from player center toward cursor, scaled by Size stat.
 /// Cooldown reduced by Cooldown stat.
 ///
-/// MODES (set by RunConfigApplier from the ClassDefinition):
-///   • Weapon (Warrior)  → slash on LMB.
-///   • Alt attack (Rogue's KICK) → only on Shift+LMB, damage × kickDamageMultiplier.
-///     Lets a bow user break vases / poke enemies with an empty quiver.
-///   • Testing a scene directly (no RunConfig, bow also enabled) → legacy:
-///     slash on LMB when the quiver is empty or Shift is held.
+/// Enabled by RunConfigApplier when the Sword is the equipped weapon.
+/// Shift+LMB is the universal kick (PlayerKick), so the slash ignores LMB
+/// while Shift is held.
+/// Testing a scene directly (no RunConfig, bow also enabled) → legacy:
+/// slash on LMB only when the quiver is empty.
 ///
 /// SETUP:
 ///   1. Add this script to the Player root
@@ -20,7 +19,7 @@ using System.Collections;
 ///   4. Add Slash_Damage_Collider.cs to that child
 ///   5. Assign slashColliderObject in Inspector
 /// </summary>
-public class PlayerSlash : MonoBehaviour, IAltAttack
+public class PlayerSlash : MonoBehaviour
 {
     [Header("References")]
     public GameObject slashColliderObject;
@@ -32,10 +31,6 @@ public class PlayerSlash : MonoBehaviour, IAltAttack
     public float baseCooldown = 0.8f;
     public float slashActiveDuration = 0.15f;
 
-    [Header("Alt Attack (kick) Mode")]
-    [Tooltip("Damage multiplier when used as a class's Shift+LMB alt attack (Rogue kick).")]
-    public float kickDamageMultiplier = 0.25f;
-
     [Header("Stat Scaling")]
     public float sizeScalePerPoint = 0.05f;
     public float cooldownReductionPerPoint = 0.05f;
@@ -45,7 +40,6 @@ public class PlayerSlash : MonoBehaviour, IAltAttack
     //  STATE
     // ================================================================
 
-    private bool altMode;
     private float cooldownTimer = 0f;
     private bool onCooldown = false;
 
@@ -92,21 +86,16 @@ public class PlayerSlash : MonoBehaviour, IAltAttack
 
         if (stateController != null && !stateController.HasControl()) return;
 
-        // Kick mode: Shift+LMB only
-        if (altMode)
-        {
-            if (!onCooldown && GameInput.AltAttackHeld && GameInput.AttackPressed) TrySlash();
-            return;
-        }
+        // Shift+LMB belongs to the kick
+        if (GameInput.AltAttackHeld) return;
 
-        // Sword mode: PlayerShooting disabled/absent → slash is the primary LMB attack.
+        // Sword equipped: PlayerShooting disabled/absent → slash is the LMB attack.
         bool slashIsPrimary = shooting == null || !shooting.enabled;
 
-        // Legacy fallback mode (both components enabled): quiver empty or Shift held.
-        bool shiftHeld = GameInput.AltAttackHeld;
+        // Legacy test mode (both weapons enabled): slash only with an empty quiver.
         bool quiverEmpty = !slashIsPrimary && shooting.CurrentArrows <= 0;
 
-        if ((!slashIsPrimary && !quiverEmpty && !shiftHeld) || onCooldown) return;
+        if ((!slashIsPrimary && !quiverEmpty) || onCooldown) return;
         if (!GameInput.AttackPressed) return;
 
         TrySlash();
@@ -171,14 +160,7 @@ public class PlayerSlash : MonoBehaviour, IAltAttack
     //  HIT CALLBACKS (called by Slash_Damage_Collider)
     // ================================================================
 
-    /// <summary>IAltAttack: true = this slash is the class's Shift+LMB kick.</summary>
-    public void SetAltAttackMode(bool isAlt) => altMode = isAlt;
-
-    private float CurrentDamage()
-    {
-        float damage = playerStats != null ? playerStats.slashDamage : baseDamage;
-        return altMode ? damage * kickDamageMultiplier : damage;
-    }
+    private float CurrentDamage() => playerStats != null ? playerStats.slashDamage : baseDamage;
 
     public void OnSlashHitEnemy(Enemy enemy)
     {

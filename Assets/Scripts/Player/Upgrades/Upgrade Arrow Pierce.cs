@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
@@ -24,7 +24,7 @@ public class UpgradeArrowPierce : PlayerUpgrade
         var stats = mgr.GetComponent<PlayerStats>();
         if (stats != null)
         {
-            stats.arrowPierceCount = pierceCount;
+            stats.arrowPierceCount += pierceCount;   // stacks with weapon levels
             stats.pierceDamageBase = pierceDamage;
             stats.pierceDmgAPScaling = pierceDmgAPScaling;
         }

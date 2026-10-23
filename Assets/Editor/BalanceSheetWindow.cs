@@ -36,7 +36,7 @@ public class BalanceSheetWindow : EditorWindow
     private UpgradeTag tagFilter;
     private readonly HashSet<string> expanded = new HashSet<string>();
     private List<UpgradeRow> upgradeRows;
-    private string[] weaponIds = new string[0], pactIds = new string[0];
+    private string[] weaponIds = new string[0], pactIds = new string[0], classIds = new string[0];
 
     // Enemies
     private int previewLayer = 1;
@@ -233,9 +233,10 @@ public class BalanceSheetWindow : EditorWindow
         DrawUpgradeSummary(rows);
 
         Header(("Pool", 34), ("Name", 150), ("Type", 160), ("Rarity", 85), ("Category", 85), ("Tags", 150),
-               ("Weapon", 80), ("Pact", 90), ("Common", 55), ("Rare", 55), ("Epic", 55), ("Legendary", 70), ("", 0));
+               ("Weapon", 80), ("Pact", 90), ("Class", 80), ("Common", 55), ("Rare", 55), ("Epic", 55), ("Legendary", 70), ("", 0));
         weaponIds = Ids<WeaponDefinition>(d => d.weaponId);
         pactIds = Ids<PactDefinition>(d => d.pactId);
+        classIds = Ids<ClassDefinition>(d => d.classId);
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
         foreach (UpgradeRow r in rows)
@@ -271,6 +272,7 @@ public class BalanceSheetWindow : EditorWindow
             GUI.backgroundColor = old;
             IdPopup(r.so, "requiredWeaponId", weaponIds, 80);
             IdPopup(r.so, "requiredPactId", pactIds, 90);
+            IdPopup(r.so, "requiredClass", classIds, 80);
             Prop(r.so, "statCountCommon", 55);
             Prop(r.so, "statCountRare", 55);
             Prop(r.so, "statCountEpic", 55);

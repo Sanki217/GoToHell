@@ -26,6 +26,11 @@ MonoBehaviour:
   - {fileID: 4843489735958322590, guid: 72a363c5101242e4c9f2c034cb4903c1, type: 3}
   - {fileID: 9218952406192997915, guid: eb800edb775ef8246a6480898e4b5546, type: 3}
   - {fileID: 9218952406192997915, guid: 0e849e8148512874ba41d124c71ee53d, type: 3}
+  - {fileID: 440265961167594197, guid: 429ddfd699d3a4c428d461935f81b217, type: 3}
+  - {fileID: 440265961167594197, guid: 54e8b4b0c17419e428a9dc44b6747185, type: 3}
+  - {fileID: 440265961167594197, guid: 83b119d248dd67a42aebea7d05a9bc5d, type: 3}
+  synergyWeightPerOwned: 0.15
+  maxSynergyMultiplier: 2
   statRanges:
   - stat: 0
     commonMin: 1

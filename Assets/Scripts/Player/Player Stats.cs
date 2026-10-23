@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -176,6 +176,9 @@ public class PlayerStats : MonoBehaviour
     [Tooltip("Flat max HP from items/upgrades (PlayerHealth.IncreaseMaxHP). Survives recalculation.")]
     public float bonusMaxHP = 0f;
 
+    [Tooltip("Flat crit chance from class passives / effects (0.1 = +10%). Survives recalculation.")]
+    public float bonusCritChance = 0f;
+
     // ================================================================
     //  DERIVED STATS  (read-only — computed by RecalculateDerived)
     // ================================================================
@@ -252,7 +255,7 @@ public class PlayerStats : MonoBehaviour
         arrowDamage = baseArrowDamage + arrowDmgPerAttack * attackDamage;
         slashDamage = baseSlashDamage + slashDmgPerAttack * attackDamage;
         dashDamage = baseDashDamage + dashDmgPerAttack * attackDamage;
-        critChance = Mathf.Min(maxCritChance, baseCritChance + critChancePerLuck * luck);
+        critChance = Mathf.Min(maxCritChance, baseCritChance + critChancePerLuck * luck + bonusCritChance);
         critMultiplier = baseCritMultiplier + critMultPerAttack * attackDamage;
         knockbackForce = Mathf.Min(maxKnockback, baseKnockback + knockbackPerAttack * attackDamage);
 
@@ -310,6 +313,14 @@ public class PlayerStats : MonoBehaviour
     };
 
     /// <summary>Permanent flat max-HP bonus (items, upgrades). Survives recalculation.</summary>
+    /// <summary>Permanent flat crit chance (class passives). 0.1 = +10%.</summary>
+    public void AddBonusCritChance(float amount)
+    {
+        if (amount == 0f) return;
+        bonusCritChance += amount;
+        RecalculateDerived();
+    }
+
     public void AddBonusMaxHP(float amount)
     {
         if (amount == 0f) return;

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 /// <summary>
 /// Main menu controller. Put on a manager object in the Main Menu scene.
 ///
-/// Play       → Character Select (8 slots) → [Create Character] → Pact Select → run
+/// Play       → Character Select (8 slots) → [Create Character] → Town → (pact) → run
 /// Meta Shop  → MetaShopUI — permanent upgrades for meta currency (optional)
 /// Settings   → toggles the settings panel
 /// Collection → Collection scene
@@ -46,7 +46,7 @@ public class MainMenu : MonoBehaviour
         if (exitButton != null)         exitButton.onClick.AddListener(OnExit);
         if (settingsBackButton != null) settingsBackButton.onClick.AddListener(CloseSettings);
         if (metaShopButton != null && metaShop != null) metaShopButton.onClick.AddListener(metaShop.Open);
-        if (characterSelect != null)    characterSelect.OnStartRun += StartRun;
+        if (characterSelect != null)    characterSelect.OnPlay += EnterTown;
 
         if (settingsPanel != null) settingsPanel.SetActive(false);
 
@@ -57,7 +57,7 @@ public class MainMenu : MonoBehaviour
     private void OnDestroy()
     {
         MetaProgression.OnChanged -= RefreshCurrency;
-        if (characterSelect != null) characterSelect.OnStartRun -= StartRun;
+        if (characterSelect != null) characterSelect.OnPlay -= EnterTown;
     }
 
     private void RefreshCurrency()
@@ -85,13 +85,10 @@ public class MainMenu : MonoBehaviour
         if (settingsPanel != null) settingsPanel.SetActive(false);
     }
 
-    /// <summary>Character + pact chosen → configure the run and load Level 1.</summary>
-    private void StartRun(CharacterData character, PactDefinition pact)
+    /// <summary>Character chosen → walk into the town.</summary>
+    private void EnterTown(CharacterData character)
     {
         if (character == null || !character.CanPlay) return;
-
-        if (RunConfig.I == null) new GameObject("RunConfig").AddComponent<RunConfig>();
-        RunConfig.I.SetupRun(character, pact);
-        SceneFlow.StartRunAtLevel1();
+        SceneFlow.GoToTown(character);
     }
 }

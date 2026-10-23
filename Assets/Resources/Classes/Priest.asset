@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd661e232fad924a9b12ce2c1c977a1, type: 3}
+  m_Name: Priest
+  m_EditorClassIdentifier: Assembly-CSharp::ClassDefinition
+  classId: priest
+  displayName: Priest
+  description: A fallen cleric still clinging to a little light. Heals through the
+    dark.
+  sprite: {fileID: 0}
+  unlockedByDefault: 1
+  playerPrefab: {fileID: 5885043042379458451, guid: bb729a718354cb947a49c2edbd9e87a1, type: 3}
+  startingWeapon: {fileID: 11400000, guid: 206cac2f3844a1743ad539f4a6e42009, type: 2}
+  activeSkillComponentName: HolyNovaSkill
+  activeSkillName: Holy Nova
+  activeSkillDescription: 'A burst of light: heal yourself and smite every enemy
+    around you with Holy.'
+  passiveName: Devotion
+  passiveDescription: Heal 1 HP for every soul you collect.
+  passiveEffects:
+  - rid: 1710094046747688966
+  references:
+    version: 2
+    RefIds:
+    - rid: 1710094046747688966
+      type: {class: HealOnSoulEffect, ns: , asm: Assembly-CSharp}
+      data:
+        hpPerSoul: 1

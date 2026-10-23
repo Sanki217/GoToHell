@@ -10,7 +10,9 @@ using UnityEngine;
 ///   CharacterRoster.Create(name, class, points, hardcore)
 ///   CharacterRoster.Delete(id)
 ///   CharacterRoster.Get(id)
-///   CharacterRoster.RecordRun(run, victory)    RunManager calls this when a run ends
+///   CharacterRoster.RecordRun(run, victory)    RunManager calls this when a run ends (XP, levels)
+///   CharacterRoster.EquipWeapon(c, weapon)     town weapon rack
+///   CharacterRoster.TryUpgradeWeapon(c, w)     town smith (Brimstone)
 /// </summary>
 public static class CharacterRoster
 {
@@ -74,6 +76,7 @@ public static class CharacterRoster
             classId = cls.classId,
             createdUtc = DateTime.UtcNow.ToString("o"),
             hardcore = hardcore,
+            equippedWeaponId = DefaultWeaponId(cls),
         };
         if (points != null)
             foreach (KeyValuePair<PrimaryStat, int> kv in points) c.SetAllocated(kv.Key, kv.Value);
@@ -92,6 +95,73 @@ public static class CharacterRoster
         SaveManager.Save();
         OnChanged?.Invoke();
         return true;
+    }
+
+    // ================================================================
+    //  WEAPONS (town)
+    // ================================================================
+
+    /// <summary>The class's starting weapon, else the first unlocked weapon.</summary>
+    public static string DefaultWeaponId(ClassDefinition cls)
+    {
+        if (cls != null && cls.startingWeapon != null) return cls.startingWeapon.weaponId;
+        foreach (WeaponDefinition w in Content.Weapons.All)
+            if (w.IsUnlocked) return w.weaponId;
+        return "";
+    }
+
+    /// <summary>The character's equipped weapon (falls back to the class default).</summary>
+    public static WeaponDefinition EquippedWeapon(CharacterData c)
+    {
+        if (c == null) return null;
+        WeaponDefinition w = Content.Weapons.Get(c.equippedWeaponId);
+        return w != null ? w : Content.Weapons.Get(DefaultWeaponId(Content.Classes.Get(c.classId)));
+    }
+
+    public static bool EquipWeapon(CharacterData c, WeaponDefinition weapon)
+    {
+        if (c == null || weapon == null || !weapon.IsUnlocked) return false;
+        if (c.equippedWeaponId == weapon.weaponId) return true;
+        c.equippedWeaponId = weapon.weaponId;
+        SaveManager.Save();
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Buys the next smith level of a weapon with meta currency. False if maxed or too poor.</summary>
+    public static bool TryUpgradeWeapon(CharacterData c, WeaponDefinition weapon)
+    {
+        if (c == null || weapon == null) return false;
+        int level = c.WeaponLevel(weapon.weaponId);
+        int cost = weapon.NextLevelCost(level);
+        if (cost < 0 || MetaProgression.Currency < cost) return false;
+
+        MetaProgression.AddCurrency(-cost, save: false);
+        c.SetWeaponLevel(weapon.weaponId, level + 1);
+        SaveManager.Save();
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    // ================================================================
+    //  LEVELS
+    // ================================================================
+
+    /// <summary>Adds XP, levelling up as many times as it covers. Returns levels gained (no save).</summary>
+    public static int AddXp(CharacterData c, int amount)
+    {
+        if (c == null || amount <= 0) return 0;
+        CharacterProgressionConfig cfg = CharacterProgressionConfig.Get();
+        int gained = 0;
+        c.xp += amount;
+        while (c.level < cfg.maxLevel && c.xp >= cfg.XpToNext(c.level))
+        {
+            c.xp -= cfg.XpToNext(c.level);
+            c.level++;
+            gained++;
+        }
+        if (c.level >= cfg.maxLevel) c.xp = 0;
+        return gained;
     }
 
     public static string CleanName(string name)
@@ -117,6 +187,9 @@ public static class CharacterRoster
         c.totalKills += run.enemiesKilled;
         if (!string.IsNullOrEmpty(run.pactId)) c.lastPactId = run.pactId;
         if (c.hardcore && !victory) c.dead = true;
+
+        run.xpEarned = CharacterProgressionConfig.Get().XpForRun(run);
+        run.levelsGained = AddXp(c, run.xpEarned);
 
         OnChanged?.Invoke();
     }

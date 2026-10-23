@@ -21,7 +21,7 @@ using UnityEngine.Serialization;
 /// spawn is followed by spawnCooldown seconds of guaranteed quiet. Never more
 /// than maxAlive at once — dead stalkers free their slot automatically.
 /// </summary>
-public class EnemyStalkerSpawner : MonoBehaviour
+public class EnemyStalkerSpawner : MonoBehaviour, IDebugDrawable
 {
     [Header("Prefabs")]
     public GameObject meleeStalkerPrefab;
@@ -112,6 +112,21 @@ public class EnemyStalkerSpawner : MonoBehaviour
         }
         lastPlayerPos = p;
         hasLastPos = true;
+    }
+
+    public void DrawDebug()
+    {
+        Transform t = PlayerRefs.PlayerTransform;
+        if (t == null) return;
+        Vector3 c = t.position;
+        float below = playerFallSpeed * fallLeadTime;
+        float top = c.y - spawnDistance - below, bottom = top - spawnDistanceExtra;
+        DebugDraw.Box(new Vector3(c.x, (top + bottom) * 0.5f, 0f),
+                      new Vector3(spawnSpreadX * 2f, Mathf.Max(0.2f, top - bottom), 0f), DebugColors.Target);
+        DebugDraw.Label(new Vector3(c.x - spawnSpreadX, top, 0f),
+                        $"stalker spawn · alive {alive.Count}/{maxAlive} · roll {Mathf.Max(0f, checkInterval - rollTimer):0.0}s" +
+                        (cooldownRemaining > 0f ? $" · quiet {cooldownRemaining:0.0}s" : "") +
+                        $" · fall {playerFallSpeed:0.0} m/s", DebugColors.Target);
     }
 
     private void OnDrawGizmosSelected()

@@ -21,3 +21,32 @@ MonoBehaviour:
   weaponComponentNames:
   - PlayerShooting
   - ArrowRegenerator
+  levels:
+  - description: +2 Attack Damage
+    cost: 60
+    effects:
+    - rid: 1710094046747688960
+  - description: +1 arrow in the quiver
+    cost: 120
+    effects:
+    - rid: 1710094046747688961
+  - description: Arrows pierce one enemy
+    cost: 220
+    effects:
+    - rid: 1710094046747688962
+  references:
+    version: 2
+    RefIds:
+    - rid: 1710094046747688960
+      type: {class: PrimaryStatEffect, ns: , asm: Assembly-CSharp}
+      data:
+        stat: 1
+        amount: 2
+    - rid: 1710094046747688961
+      type: {class: ExtraArrowsEffect, ns: , asm: Assembly-CSharp}
+      data:
+        arrows: 1
+    - rid: 1710094046747688962
+      type: {class: ArrowPierceEffect, ns: , asm: Assembly-CSharp}
+      data:
+        pierce: 1

@@ -4,14 +4,14 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Main-menu meta shop: spend meta currency on permanent MetaUpgradeDefinition
+/// Meta shop (main menu, or the town shrine): spend meta currency on permanent MetaUpgradeDefinition
 /// ranks. Rows are built from Resources/Meta, grouped by category; click a
 /// row to see details, press Buy to rank it up.
 ///
 /// Build a default panel: Tools → Go To Hell → Progression → Build Pact + Meta Shop UI
 /// (Main Menu scene).
 /// </summary>
-public class MetaShopUI : MonoBehaviour
+public class MetaShopUI : MonoBehaviour, ITownPanel
 {
     [Header("UI")]
     public GameObject panel;
@@ -38,6 +38,8 @@ public class MetaShopUI : MonoBehaviour
         if (rowTemplate != null) rowTemplate.SetActive(false);
         if (panel != null) panel.SetActive(false);
     }
+
+    public bool IsOpen => panel != null && panel.activeSelf;
 
     private void OnEnable() => MetaProgression.OnChanged += Refresh;
     private void OnDisable() => MetaProgression.OnChanged -= Refresh;

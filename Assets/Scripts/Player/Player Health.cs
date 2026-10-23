@@ -56,6 +56,9 @@ public class PlayerHealth : MonoBehaviour
 
     public static bool HasExtraLife = false;
 
+    [Tooltip("Per-player damage taken scale (class passives, e.g. Warrior 0.85). Multiplies with meta modifiers.")]
+    public float damageTakenMultiplier = 1f;
+
     // ================================================================
     //  PRIVATE STATE
     // ================================================================
@@ -166,7 +169,7 @@ public class PlayerHealth : MonoBehaviour
         if (amount <= 0 || isDead || IsInvincible) return;
 
         // Pacts / meta upgrades (never rounds a real hit down to zero)
-        amount = Mathf.Max(1, Mathf.RoundToInt(amount * RunModifiers.DamageTakenMult));
+        amount = Mathf.Max(1, Mathf.RoundToInt(amount * RunModifiers.DamageTakenMult * damageTakenMultiplier));
 
         // Shield absorbs a hit
         if (shieldBlocks > 0)

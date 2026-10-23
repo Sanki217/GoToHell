@@ -32,6 +32,8 @@ public abstract class PlayerUpgrade : MonoBehaviour
     [Tooltip("If set, offered only when this pact (RMB skill) is taken, e.g. \"pact_dash\".")]
     [UnityEngine.Serialization.FormerlySerializedAs("requiredClassId")]
     public string requiredPactId = "";
+    [Tooltip("If set, offered only to this class (ClassDefinition.classId, e.g. \"priest\").")]
+    public string requiredClass = "";
 
     [Header("Stat Bonus Count per Rarity")]
     [Tooltip("How many primary stat bonuses are rolled when offered at each rarity.")]
@@ -53,6 +55,7 @@ public abstract class PlayerUpgrade : MonoBehaviour
         if (cfg == null) return true;
         if (!string.IsNullOrEmpty(requiredWeaponId) && requiredWeaponId != cfg.selectedWeaponId) return false;
         if (!string.IsNullOrEmpty(requiredPactId) && requiredPactId != cfg.selectedPactId) return false;
+        if (!string.IsNullOrEmpty(requiredClass) && requiredClass != cfg.selectedClassId) return false;
         return true;
     }
 

@@ -5,7 +5,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Character creation: name (empty = "Unknown Sinner"), class (= weapon),
+/// Character creation: name (empty = "Unknown Sinner"), class (permanent —
+/// passive, active skill, class upgrades; the weapon is picked in the town),
 /// every stat starting at 1 with CharacterRoster.CreationPoints free points
 /// to add (never below 1; Size/Cooldown excluded — gained in-game only), Auto to spend the
 /// rest randomly, and an optional Hardcore flag (permanent death).
@@ -165,7 +166,7 @@ public class CharacterCreateUI : MonoBehaviour
         {
             if (label != null)
                 label.text = c.IsUnlocked
-                    ? $"<b>{c.displayName}</b>   {(c.weapon != null ? c.weapon.displayName : "")}"
+                    ? $"<b>{c.displayName}</b>"
                     : "??? — locked";
             UIRowFactory.SetColor(button, !c.IsUnlocked ? UIRowFactory.DisabledColor
                                          : c == selectedClass ? UIRowFactory.SelectedColor : UIRowFactory.RowColor);
@@ -176,10 +177,7 @@ public class CharacterCreateUI : MonoBehaviour
             if (selectedClass == null) classDetailText.text = "No class unlocked.";
             else
             {
-                string alt = string.IsNullOrEmpty(selectedClass.altAttackDisplayName) ? "—" : selectedClass.altAttackDisplayName;
-                string weapon = selectedClass.weapon != null ? selectedClass.weapon.displayName : "—";
-                classDetailText.text = $"<b>{selectedClass.displayName}</b>\n{selectedClass.description}\n\n" +
-                                       $"LMB: {weapon}\nShift+LMB: {alt}\nRMB: chosen per run (pact)";
+                classDetailText.text = ClassSummary(selectedClass);
             }
         }
 
@@ -197,6 +195,20 @@ public class CharacterCreateUI : MonoBehaviour
 
         if (createButton != null) createButton.interactable = CanCreate();
         if (autoButton != null) autoButton.interactable = Remaining > 0;
+    }
+
+    /// <summary>Class card text: description, passive, active skill, controls.</summary>
+    public static string ClassSummary(ClassDefinition c)
+    {
+        if (c == null) return "";
+        string passive = string.IsNullOrEmpty(c.passiveName) ? "—" : $"<b>{c.passiveName}</b> — {c.passiveDescription}";
+        string active = string.IsNullOrEmpty(c.activeSkillName) ? "—" : $"<b>{c.activeSkillName}</b> — {c.activeSkillDescription}";
+        string key = GameInput.BindingDisplay(GameAction.ClassSkill);
+        string weapon = c.startingWeapon != null ? c.startingWeapon.displayName : "any";
+        return $"<b>{c.displayName}</b>\n{c.description}\n\n" +
+               $"Passive: {passive}\n" +
+               $"Skill ({key}): {active}\n\n" +
+               $"Starts with: {weapon} (swap weapons in town)";
     }
 
     public static string StatName(PrimaryStat s) => s switch
