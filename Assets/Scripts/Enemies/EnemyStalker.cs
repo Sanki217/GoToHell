@@ -163,6 +163,18 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver, ISerializationCal
         selfColliders = GetComponentsInChildren<Collider>(true);
         contactDamage = GetComponentsInChildren<EnemyDamage>(true);
         bobPhase = Random.value * Mathf.PI * 2f;
+
+        // Moved by code every frame: a kinematic body with no interpolation.
+        // (A dynamic, interpolated body fights the transform writes — that was
+        // the stutter in builds, worse the higher the FPS.)
+        if (TryGetComponent(out Rigidbody rb))
+        {
+            rb.isKinematic = true;
+            rb.interpolation = RigidbodyInterpolation.None;
+            rb.useGravity = false;
+        }
+
+        CacheHitColliders();
     }
 
     private void OnEnable()
@@ -511,6 +523,66 @@ public class EnemyStalker : MonoBehaviour, IKnockbackReceiver, ISerializationCal
         }
 
         knockedBack = false;
+    }
+
+    // ================================================================
+    //  HIT COLLIDERS STAY ON THE GAMEPLAY PLANE
+    //  The stalker LOOKS deep (−Z) while far away, but its hit colliders are
+    //  kept at z = 0 so arrows, slashes, kicks, dashes and skills hit it at
+    //  any depth. Contact-damage triggers (EnemyDamage) stay with the body —
+    //  a stalker deep in the background can be hit but can't touch you.
+    // ================================================================
+
+    private Collider[] hitColliders;
+    private Vector3[] hitCenters;
+
+    private void CacheHitColliders()
+    {
+        var cols = new List<Collider>();
+        var centers = new List<Vector3>();
+        foreach (Collider c in GetComponentsInChildren<Collider>(true))
+        {
+            if (c.GetComponent<EnemyDamage>() != null) continue;
+            if (!TryGetCenter(c, out Vector3 center)) continue;
+            cols.Add(c);
+            centers.Add(center);
+        }
+        hitColliders = cols.ToArray();
+        hitCenters = centers.ToArray();
+    }
+
+    private void LateUpdate()
+    {
+        if (hitColliders == null) return;
+        float dz = -transform.position.z;   // world offset back to the plane
+        for (int i = 0; i < hitColliders.Length; i++)
+        {
+            Collider c = hitColliders[i];
+            if (c == null) continue;
+            Vector3 local = c.transform.InverseTransformVector(new Vector3(0f, 0f, dz));
+            SetCenter(c, hitCenters[i] + local);
+        }
+    }
+
+    private static bool TryGetCenter(Collider c, out Vector3 center)
+    {
+        switch (c)
+        {
+            case BoxCollider b:     center = b.center; return true;
+            case SphereCollider s:  center = s.center; return true;
+            case CapsuleCollider k: center = k.center; return true;
+            default:                center = Vector3.zero; return false;
+        }
+    }
+
+    private static void SetCenter(Collider c, Vector3 center)
+    {
+        switch (c)
+        {
+            case BoxCollider b:     b.center = center; break;
+            case SphereCollider s:  s.center = center; break;
+            case CapsuleCollider k: k.center = center; break;
+        }
     }
 
     // ================================================================
